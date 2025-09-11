@@ -3,7 +3,7 @@ import { getProducts } from '../../common/api/productRegister.js'
 import { getJwtToken } from '../../common/api/tokenAuth.js'
 import { assert, statusOk } from '../../common/assertions.js'
 import defaultHandleSummaryBuilder from '../../common/handleSummaryBuilder.js'
-import { defaultApiOptionsBuilder } from '../../common/dyanamicScenarios/defaultOptions.js'
+import { defaultApiOptionsBuilder } from '../../common/dynamicScenarios/defaultOptions.js'
 import { getCategoryFromProductGroup } from '../../common/utils.js'
 
 const application = 'register'
