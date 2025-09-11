@@ -1,5 +1,5 @@
 import http from 'k6/http'
-import { logResult } from '../dyanamicScenarios/utils.js'
+import { logResult } from '../dynamicScenarios/utils.js'
 import { DEV, UAT, getBaseUrl } from '../envUrl.js'
 
 export const PRODUCT_API_NAMES = {
@@ -7,7 +7,7 @@ export const PRODUCT_API_NAMES = {
 }
 
 const REGISTERED_ENVS = [DEV, UAT]
-const innerBaseUrl = `${getBaseUrl(REGISTERED_ENVS, 'register')}`
+const innerBaseUrl = `${getBaseUrl(REGISTERED_ENVS, 'eie')}`
 const API_PREFIX = '/register'
 
 export function getProducts(params, accessToken) {

@@ -3,12 +3,7 @@ import { getProducts } from '../../common/api/productRegister.js'
 import { getJwtToken } from '../../common/api/tokenAuth.js'
 import { assert, statusOk } from '../../common/assertions.js'
 import defaultHandleSummaryBuilder from '../../common/handleSummaryBuilder.js'
-import { defaultApiOptionsBuilder } from '../../common/dyanamicScenarios/defaultOptions.js'
-import {
-    getAllProductCategories,
-    getAllProductStatuses,
-    getProductNameByCategory
-} from '../../common/utils.js'
+import { defaultApiOptionsBuilder } from '../../common/dynamicScenarios/defaultOptions.js'
 
 const application = 'register'
 const testName = 'getProducts'
@@ -17,47 +12,75 @@ export const options = defaultApiOptionsBuilder(application, testName)
 export const handleSummary = defaultHandleSummaryBuilder(application, testName)
 
 export function setup() {
-    const res = getJwtToken()
+    const tokenRes = getJwtToken()
 
-    const success = check(res, {
+    const success = check(tokenRes, {
         'JWT token received': (r) => r && r.status === 200
     })
 
-    if (!success || !res.body) {
-        console.error(`[SETUP] Failed to retrieve JWT token. Status: ${res?.status}, Body: ${res?.body}`)
-        fail('[SETUP] Test aborted invalid token')
+    if (!success || !tokenRes.body) {
+        console.error(`[SETUP] Failed to retrieve JWT token. Status: ${tokenRes?.status}, Body: ${tokenRes?.body}`)
+        fail('[SETUP] Test aborted due to invalid token')
     }
 
-    const token = res.body.replace(/"/g, '').trim()
-    return { accessToken: token }
+    const token = tokenRes.body.replace(/"/g, '').trim()
+
+    const fetchParams = {
+        organizationId: '72c2c5f8-1c71-4614-a4b3-95e3aee71c3d'
+    }
+
+    const productRes = getProducts(fetchParams, token)
+    const body = productRes.json()
+
+    console.log(`[SETUP] Response body: ${JSON.stringify(body, null, 2)}`)
+
+    const productArray = Array.isArray(body?.content) ? body.content : []
+
+    const productSuccess = check(productRes, {
+        'Fetched initial products': () => productArray.length > 0
+    })
+
+    if (!productSuccess) {
+        console.error(`[SETUP] No products found or API failed. Status: ${productRes?.status}`)
+        fail('[SETUP] Test aborted due to missing product data')
+    }
+
+    const products = productArray.map(p => ({
+        category: p.category,
+        productName: p.productName,
+        organizationId: p.organizationId
+    }))
+
+    return { accessToken: token, products }
 }
 
 export default function (data) {
-    const categories = getAllProductCategories()
-    const statuses = getAllProductStatuses()
-
-    group('Product Register API', () => {
-        for (const category of categories) {
-            for (const status of statuses) {
-                const productName = getProductNameByCategory(category)
-
-                group(`Category: ${category} | Status: ${status} | Name: ${productName}`, () => {
-                    const params = {
-                        category,
-                        status,
-                        productName,
-                        organizationId: '390cea38-f2de-4bcb-a181-d6eef99fe528'
-                    }
-
-                    const res = getProducts(params, data.accessToken)
-
-                    check(res, {
-                        'Request succeeded': (r) => r && r.status === 200
-                    })
-
-                    assert(res, [statusOk()])
-                })
+    group('Product Register API - Dynamic Test', () => {
+        for (const product of data.products) {
+            if (!product.productName || product.productName.length < 2) {
+                console.warn(`[SKIP] Invalid product name for category ${product.category}`)
+                continue
             }
+
+            group(`Name: ${product.productName}`, () => {
+                const params = {
+                    organizationId: product.organizationId,
+                    productName: product.productName
+                }
+
+                const res = getProducts(params, data.accessToken)
+
+                check(res, {
+                    'Request succeeded': (r) => r && r.status === 200,
+                    'HTTP status is 200': (r) => r.status === 200
+                })
+
+                if (res.status !== 200 || !res.json()?.content?.length) {
+                    console.warn(`[FAIL] No results for: ${JSON.stringify(params)}`)
+                }
+
+                assert(res, [statusOk()])
+            })
         }
     })
 

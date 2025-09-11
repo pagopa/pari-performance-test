@@ -1,5 +1,5 @@
 import http from 'k6/http'
-import { logResult } from '../dyanamicScenarios/utils.js'
+import { logResult } from '../dynamicScenarios/utils.js'
 import { DEV, UAT, getBaseUrl } from '../envUrl.js'
 
 export const REGISTER_AUTH_API_NAMES = {
@@ -7,7 +7,7 @@ export const REGISTER_AUTH_API_NAMES = {
 }
 
 const REGISTERED_ENVS = [DEV, UAT]
-const innerBaseUrl = `${getBaseUrl(REGISTERED_ENVS, 'register')}`
+const innerBaseUrl = `${getBaseUrl(REGISTERED_ENVS, 'eie')}`
 
 export function getJwtToken() {
   const apiName = REGISTER_AUTH_API_NAMES.authToken
@@ -16,11 +16,11 @@ export function getJwtToken() {
   const payload = JSON.stringify({
     aud: 'idpay.register.welfare.pagopa.it',
     iss: 'https://api-io.dev.cstar.pagopa.it',
-    uid: '83843864-f3c0-4def-badb-7f197471b72e',
+    uid: '72c2c5f8-1c71-4614-a4b3-95e3aee71c3d',
     name: 'pippo',
     familyName: 'qwerty',
     email: 'pippo@test.email.it',
-    orgId: '390cea38-f2de-4bcb-a181-d6eef99fe528',
+    orgId: '72c2c5f8-1c71-4614-a4b3-95e3aee71c3d',
     orgVAT: '80117082724',
     orgName: 'Ente di test IdPay',
     orgRole: 'operatore',

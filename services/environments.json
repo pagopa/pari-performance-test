@@ -1,8 +1,8 @@
 {
-    "dev_register": {
+    "dev_eie": {
         "baseUrl": "https://api-io.dev.cstar.pagopa.it/idpay-itn"
     },
-    "uat_register": {
+    "uat_eie": {
         "baseUrl": "https://api-emd.uat.cstar.pagopa.it/idpay-itn"
     }
 }

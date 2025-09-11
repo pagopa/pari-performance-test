@@ -1,4 +1,4 @@
-import { CONFIG } from './dyanamicScenarios/envVars.js'
+import { CONFIG } from './dynamicScenarios/envVars.js'
 import { abort } from './utils.js'
 
 export const DEV = 'dev'

@@ -4,9 +4,9 @@ import {
 } from 'https://jslib.k6.io/k6-summary/0.0.3/index.js'
 import { htmlReport } from 'https://raw.githubusercontent.com/benc-uk/k6-reporter/main/dist/bundle.js'
 import { coalesce } from './utils.js'
-import { CONFIG } from './dyanamicScenarios/envVars.js'
-import rampingArrivalRate from './dyanamicScenarios/scenarios/rampingArrivalRate.js'
-import rampingGrowingArrivalRate from './dyanamicScenarios/scenarios/rampingGrowingArrivalRate.js'
+import { CONFIG } from './dynamicScenarios/envVars.js'
+import rampingArrivalRate from './dynamicScenarios/scenarios/rampingArrivalRate.js'
+import rampingGrowingArrivalRate from './dynamicScenarios/scenarios/rampingGrowingArrivalRate.js'
 
 const outputDir = coalesce(CONFIG.SUMMARY.RESULTS_DIR, '.')
 
