@@ -135,11 +135,11 @@ jobs:
       deploymentEnvironment: '${{ upper(parameters.TARGET_ENV) }}'
       steps:
 
-        - task: DownloadSecureFile@1
-          name: eie_secrets
-          displayName: 'Download EIE secrets'
-          inputs:
-            secureFile: 'eie_performance_secrets_${{ parameters.TARGET_ENV }}.env'
+        #- task: DownloadSecureFile@1
+        #  name: eie_secrets
+        #  displayName: 'Download EIE secrets'
+        #  inputs:
+        #    secureFile: 'eie_performance_secrets_${{ parameters.TARGET_ENV }}.env'
 
         - script: |
             docker info | grep -i mem
