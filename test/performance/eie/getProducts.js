@@ -74,20 +74,18 @@ export default function (data) {
             }
 
             group(`Search category: ${category}`, () => {
-                console.log(`[REQUEST] Params: ${JSON.stringify(params)}`)
-
                 const res = getProducts(params, data.accessToken)
-
-                const responseBody = res.json()
-                console.log(`[RESPONSE] Status: ${res.status}, Body: ${JSON.stringify(responseBody, null, 2)}`)
+                const content = res.json()?.content || []
 
                 const checks = check(res, {
                     'Request succeeded': (r) => r && r.status === 200,
-                    'Response has content': (r) => Array.isArray(r.json()?.content)
+                    'Content is array': (r) => Array.isArray(r.json()?.content)
                 })
 
-                if (!checks || !responseBody?.content?.length) {
-                    console.warn(`[FAIL] No results for: ${JSON.stringify(params)}`)
+                if (res.status === 200) {
+                    console.info(`[RESULT] ${category} → ${content.length} products`)
+                } else {
+                    console.warn(`[FAIL] ${category} → Status: ${res.status}`)
                 }
 
                 assert(res, [statusOk()])
