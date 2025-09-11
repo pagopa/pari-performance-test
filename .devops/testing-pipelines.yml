@@ -1,0 +1,197 @@
+# Run Automated Test in UAT environment
+
+trigger: none
+
+pool:
+  vmImage: ubuntu-22.04
+
+parameters:
+
+  - name: 'TARGET_ENV'
+    displayName: 'Target Environment'
+    type: string
+    default: 'uat'
+    values:
+      - 'dev'
+      - 'uat'
+
+  - name: 'SCRIPT'
+    displayName: 'Script name'
+    type: string
+    default: 'getProducts'
+    values:
+      - getProducts
+
+  - name: 'SCENARIO_TYPE_ENV'
+    displayName: 'Scenario type'
+    type: string
+    default: 'soakTest'
+    values:
+      - 'soakTest'
+      - 'perVuIterations'
+      - 'constantArrivalRate'
+      - 'rampingArrivalRate'
+      - 'rampingGrowingArrivalRate'
+
+
+  - name: 'VUS_MAX_ENV'
+    displayName: 'Maximum number of virtual users'
+    type: number
+
+  - name: 'SCENARIO_PER_VU_SINGLE_ITERATION_ENV'
+    displayName: '[perVuIterations] Run one single scenario, otherwise it will run multiple iteration'
+    type: string
+    default: 'false'
+
+  - name: 'MAX_ITERATION_ENV'
+    displayName: '[perVuIterations] Number of iteration for multiple stage'
+    type: number
+    default: 1
+
+  - name: 'SCENARIO_PER_VU_EXECUTIONS_ENV'
+    displayName: '[perVuIterations] Number of execution for iteration'
+    type: number
+    default: 1
+
+  - name: 'SCENARIO_DURATION_ENV'
+    displayName: '[perVuIterations][constantArrivalRate] Duration in seconds of the scenario'
+    type: number
+    default: 10
+
+  - name: 'SCENARIO_TIME_UNIT_ENV'
+    displayName: '[constantArrivalRate][rampingArrivalRate][rampingGrowingArrivalRate] Time units for arrival rate'
+    type: number
+    default: 1
+
+  - name: 'SCENARIO_RAMP_STAGE_NUMBER_ENV'
+    displayName: '[rampingArrivalRate][rampingGrowingArrivalRate] Stage number, the duration of each is given by timeUnit'
+    type: number
+    default: 10
+
+  - name: 'THRESHOLDS_API_MAX_AVG_MS_ENV'
+    displayName: 'Max AVG milliseconds applied as default to single API tests'
+    type: number
+    default: 500
+
+  - name: 'THRESHOLDS_API_MAX_P90_MS_ENV'
+    displayName: 'Max P90 milliseconds applied as default to single API tests'
+    type: number
+    default: 800
+
+  - name: 'THRESHOLDS_API_MAX_P95_MS_ENV'
+    displayName: 'Max P95 milliseconds applied as default to single API tests'
+    type: number
+    default: 1000
+
+  - name: 'THRESHOLDS_API_MAX_FAILED_REQ_RATE_ENV'
+    displayName: 'Max failed request rate'
+    type: number
+    default: 0.05
+
+
+variables:
+
+  # Folder name of this sub-repository
+  - name: working-dir
+    value: '.'
+
+  # Project root folder
+  - name: projectRoot
+    value: $(System.DefaultWorkingDirectory)/$(working-dir)
+
+  # comma separated list of tests to execute based on the SCRIPT parameter
+  - name: k6Test_getProducts
+    value: getProducts
+
+  # resolved list of k6 script to execute
+  - name: SCRIPTS_TO_EXECUTE
+    value: ${{ variables[format('k6Test_{0}', parameters.SCRIPT)] }}
+
+  - ${{ if eq(parameters.TARGET_ENV, 'dev') }}:
+      - name: selfHostedAgentPool
+        value: cstar-dev-perf-linux
+  - ${{ else }}:
+      - name: selfHostedAgentPool
+        value: cstar-uat-perf-linux
+
+  - name: xk6CacheKey
+    value: '"xk6" | "0.57.0" | dotenv'
+
+jobs:
+  - template: templates\xk6-build.yml
+    parameters:
+      xk6CacheKey: '$(xk6CacheKey)'
+      k6Version: v0.57.0
+
+  - template: templates\job-type-switch.yml
+    parameters:
+      name: PerformanceTest
+      displayName: 'Executing ${{ parameters.SCRIPT }} on ${{ parameters.TARGET_ENV }}'
+      timeoutInMinutes: 0
+      continueOnError: true
+      dependsOn: xk6Build
+
+      deploymentPoolName: $(selfHostedAgentPool)
+      deploymentEnvironment: '${{ upper(parameters.TARGET_ENV) }}'
+      steps:
+
+        - task: DownloadSecureFile@1
+          name: eie_secrets
+          displayName: 'Download EIE secrets'
+          inputs:
+            secureFile: 'eie_performance_secrets_${{ parameters.TARGET_ENV }}.env'
+
+        - script: |
+            docker info | grep -i mem
+          displayName: Display Docker Memory Info
+
+        - script: |
+            mkdir -p results
+          displayName: Results folder creation
+
+        - task: Cache@2
+          inputs:
+            key: '$(xk6CacheKey)'
+            path: '$(Build.SourcesDirectory)'
+          displayName: Retrieve xk6 from Cache
+
+        - ${{ each k6Test in split(variables.SCRIPTS_TO_EXECUTE, ',') }}:
+            - script: ./xk6 run ./test/performance/eie/${{k6Test}}.js -e SECRETS_FILE_PATH=$(eie_secrets.secureFilePath)
+              env:
+                RESULTS_DIR: '.'
+                CSV_DELIMITER: ';'
+                TARGET_ENV: ${{ parameters.TARGET_ENV }}
+                MAX_ITERATION_ENV: ${{ parameters.MAX_ITERATION_ENV }}
+                SCENARIO_TIME_UNIT_ENV: ${{ parameters.SCENARIO_TIME_UNIT_ENV }}
+                SCENARIO_RAMP_STAGE_NUMBER_ENV: ${{ parameters.SCENARIO_RAMP_STAGE_NUMBER_ENV }}
+                ${{ if eq(k6Test, parameters.SCRIPT) }}:
+                  SCENARIO_TYPE_ENV: ${{ parameters.SCENARIO_TYPE_ENV }}
+                  VUS_MAX_ENV: ${{ parameters.VUS_MAX_ENV }}
+                  SCENARIO_PER_VU_RAMPING_SIZE: 'true'
+                  SCENARIO_PER_VU_SINGLE_ITERATION_ENV: ${{ parameters.SCENARIO_PER_VU_SINGLE_ITERATION_ENV }}
+                  SCENARIO_PER_VU_EXECUTIONS_ENV: ${{ parameters.SCENARIO_PER_VU_EXECUTIONS_ENV }}
+                  SCENARIO_DURATION_ENV: ${{ parameters.SCENARIO_DURATION_ENV }}
+                  THRESHOLDS_API_MAX_AVG_MS_ENV: ${{ parameters.THRESHOLDS_API_MAX_AVG_MS_ENV }}
+                  THRESHOLDS_API_MAX_P90_MS_ENV: ${{ parameters.THRESHOLDS_API_MAX_P90_MS_ENV }}
+                  THRESHOLDS_API_MAX_P95_MS_ENV: ${{ parameters.THRESHOLDS_API_MAX_P95_MS_ENV }}
+                  THRESHOLDS_API_MAX_FAILED_REQ_RATE_ENV:  ${{ parameters.THRESHOLDS_API_MAX_P95_MS_ENV }}
+                ${{ else }}: # intermediate tests will execute this configuration, which ensure the execution of all test entities
+                  SCENARIO_TYPE_ENV: perVuIterations
+                  VUS_MAX_ENV: '20'
+                  SCENARIO_PER_VU_RAMPING_SIZE: 'false'
+                  SCENARIO_PER_VU_SINGLE_ITERATION_ENV: 'false'
+                  SCENARIO_PER_VU_EXECUTIONS_ENV: '1'
+                  SCENARIO_DURATION_ENV: '2'
+                  THRESHOLDS_API_MAX_AVG_MS_ENV: '10000'
+                  THRESHOLDS_API_MAX_P90_MS_ENV: '10000'
+                  THRESHOLDS_API_MAX_P95_MS_ENV: '10000'
+                  THRESHOLDS_API_MAX_FAILED_REQ_RATE_ENV: '0.05'
+              displayName: Run k6 ${{k6Test}}.js on ${{ parameters.TARGET_ENV }}
+              timeoutInMinutes: 0
+        - task: PublishPipelineArtifact@1
+          displayName: 'Publishing results of k6 tests in folder: results'
+          condition: true
+          inputs:
+            artifact: 'results'
+            targetPath: 'results'
+            publishLocation: 'pipeline'
