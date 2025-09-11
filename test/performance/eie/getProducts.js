@@ -3,7 +3,7 @@ import { getProducts } from '../../common/api/productRegister.js'
 import { getJwtToken } from '../../common/api/tokenAuth.js'
 import { assert, statusOk } from '../../common/assertions.js'
 import defaultHandleSummaryBuilder from '../../common/handleSummaryBuilder.js'
-import { defaultApiOptionsBuilder } from '../../common/dynamicScenarios/defaultOptions.js'
+import { defaultApiOptionsBuilder } from '../../common/dyanamicScenarios/defaultOptions.js'
 import { getCategoryFromProductGroup } from '../../common/utils.js'
 
 const application = 'register'
@@ -11,7 +11,6 @@ const testName = 'getProducts'
 
 export const options = defaultApiOptionsBuilder(application, testName)
 export const handleSummary = defaultHandleSummaryBuilder(application, testName)
-
 
 export function setup() {
     const tokenRes = getJwtToken()
@@ -47,10 +46,14 @@ export function setup() {
         fail('[SETUP] Test aborted due to missing product data')
     }
 
-    const products = productArray.map(p => ({
-        productGroup: p.productGroup,
-        organizationId: p.organizationId
-    }))
+    const products = productArray
+        .filter(p => p.productGroup && p.organizationId)
+        .map(p => ({
+            productGroup: p.productGroup,
+            organizationId: p.organizationId
+        }))
+
+    console.log(`[SETUP] Total products prepared for test: ${products.length}`)
 
     return { accessToken: token, products }
 }
@@ -58,7 +61,6 @@ export function setup() {
 export default function (data) {
     group('Product Register API - Dynamic Test', () => {
         for (const product of data.products) {
-            const groupKey = product.productGroup?.toLowerCase()
             const category = getCategoryFromProductGroup(product.productGroup)
 
             if (!category) {
@@ -66,20 +68,25 @@ export default function (data) {
                 continue
             }
 
-            group(`Category: ${category}`, () => {
-                const params = {
-                    organizationId: product.organizationId,
-                    category
-                }
+            const params = {
+                organizationId: product.organizationId,
+                category
+            }
+
+            group(`Search category: ${category}`, () => {
+                console.log(`[REQUEST] Params: ${JSON.stringify(params)}`)
 
                 const res = getProducts(params, data.accessToken)
 
-                check(res, {
+                const responseBody = res.json()
+                console.log(`[RESPONSE] Status: ${res.status}, Body: ${JSON.stringify(responseBody, null, 2)}`)
+
+                const checks = check(res, {
                     'Request succeeded': (r) => r && r.status === 200,
-                    'HTTP status is 200': (r) => r.status === 200
+                    'Response has content': (r) => Array.isArray(r.json()?.content)
                 })
 
-                if (res.status !== 200 || !res.json()?.content?.length) {
+                if (!checks || !responseBody?.content?.length) {
                     console.warn(`[FAIL] No results for: ${JSON.stringify(params)}`)
                 }
 
