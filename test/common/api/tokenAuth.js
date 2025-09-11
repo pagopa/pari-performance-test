@@ -8,6 +8,7 @@ export const REGISTER_AUTH_API_NAMES = {
 
 const REGISTERED_ENVS = [DEV, UAT]
 const innerBaseUrl = `${getBaseUrl(REGISTERED_ENVS, 'eie')}`
+const issBaseUrl = `${getBaseUrl(REGISTERED_ENVS, 'iss')}`
 
 export function getJwtToken() {
   const apiName = REGISTER_AUTH_API_NAMES.authToken
@@ -15,7 +16,7 @@ export function getJwtToken() {
 
   const payload = JSON.stringify({
     aud: 'idpay.register.welfare.pagopa.it',
-    iss: 'https://api-io.dev.cstar.pagopa.it',
+    iss: issBaseUrl,
     uid: '72c2c5f8-1c71-4614-a4b3-95e3aee71c3d',
     name: 'pippo',
     familyName: 'qwerty',
