@@ -3,13 +3,15 @@ import { getProducts } from '../../common/api/productRegister.js'
 import { getJwtToken } from '../../common/api/tokenAuth.js'
 import { assert, statusOk } from '../../common/assertions.js'
 import defaultHandleSummaryBuilder from '../../common/handleSummaryBuilder.js'
-import { defaultApiOptionsBuilder } from '../../common/dynamicScenarios/defaultOptions.js'
+import { defaultApiOptionsBuilder } from '../../common/dyanamicScenarios/defaultOptions.js'
+import { getCategoryFromProductGroup } from '../../common/utils.js'
 
 const application = 'register'
 const testName = 'getProducts'
 
 export const options = defaultApiOptionsBuilder(application, testName)
 export const handleSummary = defaultHandleSummaryBuilder(application, testName)
+
 
 export function setup() {
     const tokenRes = getJwtToken()
@@ -46,8 +48,7 @@ export function setup() {
     }
 
     const products = productArray.map(p => ({
-        category: p.category,
-        productName: p.productName,
+        productGroup: p.productGroup,
         organizationId: p.organizationId
     }))
 
@@ -57,15 +58,18 @@ export function setup() {
 export default function (data) {
     group('Product Register API - Dynamic Test', () => {
         for (const product of data.products) {
-            if (!product.productName || product.productName.length < 2) {
-                console.warn(`[SKIP] Invalid product name for category ${product.category}`)
+            const groupKey = product.productGroup?.toLowerCase()
+            const category = getCategoryFromProductGroup(product.productGroup)
+
+            if (!category) {
+                console.warn(`[SKIP] Unknown productGroup: ${product.productGroup}`)
                 continue
             }
 
-            group(`Name: ${product.productName}`, () => {
+            group(`Category: ${category}`, () => {
                 const params = {
                     organizationId: product.organizationId,
-                    productName: product.productName
+                    category
                 }
 
                 const res = getProducts(params, data.accessToken)

@@ -112,44 +112,17 @@ export function generateUUID() {
     });
 }
 
-export function getAllProductCategories() {
-    return [
-        'WASHINGMACHINES',
-        'WASHERDRIERS',
-        'OVENS',
-        'RANGEHOODS',
-        'DISHWASHERS',
-        'TUMBLEDRYERS',
-        'REFRIGERATINGAPPL',
-        'COOKINGHOBS'
-    ]
-}
-
-export function getAllProductStatuses() {
-    return [
-        'APPROVED',
-        'SUPERVISED',
-        'REJECTED',
-        'UPLOADED',
-        'WAIT_APPROVED'
-    ]
-}
-
-export function getProductNameByCategory(category) {
-    const productNamesByCategory = {
-        WASHINGMACHINES: ['Lavatrice EcoWash', 'Lavatrice TurboSpin', 'Lavatrice SmartClean'],
-        WASHERDRIERS: ['Lavasciuga DualCare', 'Lavasciuga CompactDry', 'Lavasciuga SteamPlus'],
-        OVENS: ['Forno AirBake', 'Forno MaxHeat', 'Forno SmartCook'],
-        RANGEHOODS: ['Cappa SilentFlow', 'Cappa PowerAir', 'Cappa SlimLine'],
-        DISHWASHERS: ['Lavastoviglie AquaJet', 'Lavastoviglie EcoRinse', 'Lavastoviglie SmartDry'],
-        TUMBLEDRYERS: ['Asciugatrice QuickDry', 'Asciugatrice HeatPump', 'Asciugatrice EcoSoft'],
-        REFRIGERATINGAPPL: ['Frigorifero CoolTech', 'Frigorifero IceBox', 'Frigorifero SmartFreeze'],
-        COOKINGHOBS: ['PianoCottura InductionPro', 'PianoCottura FlameMaster', 'PianoCottura FlexZone']
+export function getCategoryFromProductGroup(productGroup) {
+    const mapping = {
+        washingmachines: 'WASHINGMACHINES',
+        washerdriers: 'WASHERDRIERS',
+        ovens: 'OVENS',
+        rangehoods: 'RANGEHOODS',
+        dishwashers: 'DISHWASHERS',
+        tumbledryers: 'TUMBLEDRYERS',
+        refrigeratingappliances2019: 'REFRIGERATINGAPPL',
+        cookinghobs: 'COOKINGHOBS'
     }
 
-    const names = productNamesByCategory[category]
-    if (!names) return 'ProdottoGenerico'
-
-    const index = Math.floor(Math.random() * names.length)
-    return names[index]
+    return mapping[productGroup?.toLowerCase()] || null
 }
