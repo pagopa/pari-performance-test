@@ -6,14 +6,14 @@ import defaultHandleSummaryBuilder from '../../common/handleSummaryBuilder.js'
 import { defaultApiOptionsBuilder } from '../../common/dynamicScenarios/defaultOptions.js'
 import { getCategoryFromProductGroup } from '../../common/utils.js'
 
-const application = 'eie'
+const application = 'register'
 const testName = 'getProducts'
 
 export const options = defaultApiOptionsBuilder(application, testName)
 export const handleSummary = defaultHandleSummaryBuilder(application, testName)
 
 export function setup() {
-    const { tokenRes, organizationId } = getJwtToken()
+    const tokenRes = getJwtToken()
 
     const success = check(tokenRes, {
         'JWT token received': (r) => r && r.status === 200
@@ -25,20 +25,17 @@ export function setup() {
     }
 
     const token = tokenRes.body.replace(/"/g, '').trim()
-    const fetchParams = { organizationId }
+
+    const fetchParams = {
+        organizationId: '72c2c5f8-1c71-4614-a4b3-95e3aee71c3d'
+    }
 
     const productRes = getProducts(fetchParams, token)
     const body = productRes.json()
 
-    console.log(`[SETUP] Raw product response: ${JSON.stringify(body, null, 2)}`)
+    console.log(`[SETUP] Response body: ${JSON.stringify(body, null, 2)}`)
 
     const productArray = Array.isArray(body?.content) ? body.content : []
-
-    console.log(`[SETUP] Found ${productArray.length} products in DB for orgId: ${organizationId}`)
-
-    productArray.forEach((p, i) => {
-        console.log(`[PRODUCT ${i + 1}] Group: ${p.productGroup}, OrgID: ${p.organizationId}, Name: ${p.name || 'N/A'}`)
-    })
 
     const productSuccess = check(productRes, {
         'Fetched initial products': () => productArray.length > 0
@@ -62,7 +59,7 @@ export function setup() {
 }
 
 export default function (data) {
-    group('Product Eie API - Dynamic Test', () => {
+    group('Product Register API - Dynamic Test', () => {
         for (const product of data.products) {
             const category = getCategoryFromProductGroup(product.productGroup)
 
@@ -77,22 +74,18 @@ export default function (data) {
             }
 
             group(`Search category: ${category}`, () => {
-                console.log(`[REQUEST] Params: ${JSON.stringify(params)}`)
-
                 const res = getProducts(params, data.accessToken)
-                const responseBody = res.json()
-
-                console.log(`[RESPONSE] Status: ${res.status}, Body: ${JSON.stringify(responseBody, null, 2)}`)
+                const content = res.json()?.content || []
 
                 const checks = check(res, {
                     'Request succeeded': (r) => r && r.status === 200,
-                    'Response has content': (r) => Array.isArray(r.json()?.content)
+                    'Content is array': (r) => Array.isArray(r.json()?.content)
                 })
 
-                if (!checks || !responseBody?.content?.length) {
-                    console.warn(`[FAIL] No results for: ${JSON.stringify(params)}`)
+                if (res.status === 200) {
+                    console.info(`[RESULT] ${category} → ${content.length} products`)
                 } else {
-                    console.info(`[RESULT] ${category} → ${responseBody.content.length} products`)
+                    console.warn(`[FAIL] ${category} → Status: ${res.status}`)
                 }
 
                 assert(res, [statusOk()])
