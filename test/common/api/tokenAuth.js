@@ -44,5 +44,10 @@ export function getJwtToken() {
   }
 
   logResult(apiName, res)
-  return res
+  return {
+    tokenRes: res,
+    organizationId: isUat
+      ? '8bd31e63-a8e8-4cbc-b06d-bc69f32c3fde'
+      : '72c2c5f8-1c71-4614-a4b3-95e3aee71c3d'
+  }
 }

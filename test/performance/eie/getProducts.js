@@ -13,22 +13,19 @@ export const options = defaultApiOptionsBuilder(application, testName)
 export const handleSummary = defaultHandleSummaryBuilder(application, testName)
 
 export function setup() {
-    const tokenRes = getJwtToken()
+    const { tokenRes, organizationId } = getJwtToken()
 
     const success = check(tokenRes, {
-        'JWT token received': (r) => r && r.status === 200
+      'JWT token received': (r) => r && r.status === 200
     })
 
     if (!success || !tokenRes.body) {
-        console.error(`[SETUP] Failed to retrieve JWT token. Status: ${tokenRes?.status}, Body: ${tokenRes?.body}`)
-        fail('[SETUP] Test aborted due to invalid token')
+      console.error(`[SETUP] Failed to retrieve JWT token. Status: ${tokenRes?.status}, Body: ${tokenRes?.body}`)
+      fail('[SETUP] Test aborted due to invalid token')
     }
 
     const token = tokenRes.body.replace(/"/g, '').trim()
-
-    const fetchParams = {
-        organizationId: '8bd31e63-a8e8-4cbc-b06d-bc69f32c3fde'
-    }
+    const fetchParams = { organizationId }
 
     const productRes = getProducts(fetchParams, token)
     const body = productRes.json()
