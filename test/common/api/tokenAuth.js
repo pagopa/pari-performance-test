@@ -2,7 +2,7 @@ import http from 'k6/http'
 import { logResult } from '../dynamicScenarios/utils.js'
 import { DEV, UAT, getBaseUrl } from '../envUrl.js'
 
-export const REGISTER_AUTH_API_NAMES = {
+export const EIE_AUTH_API_NAMES = {
   authToken: 'register/token/test',
 }
 
@@ -10,7 +10,7 @@ const REGISTERED_ENVS = [DEV, UAT]
 const innerBaseUrl = `${getBaseUrl(REGISTERED_ENVS, 'eie')}`
 
 export function getJwtToken() {
-  const apiName = REGISTER_AUTH_API_NAMES.authToken
+  const apiName = EIE_AUTH_API_NAMES.authToken
   const url = `${innerBaseUrl}/register/token/test`
 
   const isUat = __ENV.ENVIRONMENT === UAT

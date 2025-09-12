@@ -6,7 +6,7 @@ import defaultHandleSummaryBuilder from '../../common/handleSummaryBuilder.js'
 import { defaultApiOptionsBuilder } from '../../common/dynamicScenarios/defaultOptions.js'
 import { getCategoryFromProductGroup } from '../../common/utils.js'
 
-const application = 'register'
+const application = 'eie'
 const testName = 'getProducts'
 
 export const options = defaultApiOptionsBuilder(application, testName)
@@ -56,7 +56,7 @@ export function setup() {
 }
 
 export default function (data) {
-    group('Product Register API - Dynamic Test', () => {
+    group('Product Eie API - Dynamic Test', () => {
         for (const product of data.products) {
             const category = getCategoryFromProductGroup(product.productGroup)
 
