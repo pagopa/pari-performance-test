@@ -20,7 +20,7 @@ export function getJwtToken() {
     name: 'pippo',
     familyName: 'qwerty',
     email: 'pippo@test.email.it',
-    orgId: '72c2c5f8-1c71-4614-a4b3-95e3aee71c3d',
+    orgId: '8bd31e63-a8e8-4cbc-b06d-bc69f32c3fde',
     orgVAT: '80117082724',
     orgName: 'Ente di test IdPay',
     orgRole: 'operatore',

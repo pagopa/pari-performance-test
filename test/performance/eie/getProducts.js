@@ -27,7 +27,7 @@ export function setup() {
     const token = tokenRes.body.replace(/"/g, '').trim()
 
     const fetchParams = {
-        organizationId: '72c2c5f8-1c71-4614-a4b3-95e3aee71c3d'
+        organizationId: '8bd31e63-a8e8-4cbc-b06d-bc69f32c3fde'
     }
 
     const productRes = getProducts(fetchParams, token)
