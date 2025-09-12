@@ -3,12 +3,12 @@ import { logResult } from '../dynamicScenarios/utils.js'
 import { DEV, UAT, getBaseUrl } from '../envUrl.js'
 
 export const PRODUCT_API_NAMES = {
-    getProducts: 'eie/products',
+    getProducts: 'register/products',
 }
 
 const REGISTERED_ENVS = [DEV, UAT]
 const innerBaseUrl = `${getBaseUrl(REGISTERED_ENVS, 'eie')}`
-const API_PREFIX = '/eie'
+const API_PREFIX = '/register'
 
 export function getProducts(params, accessToken) {
     const apiName = PRODUCT_API_NAMES.getProducts
