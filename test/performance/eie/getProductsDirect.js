@@ -1,5 +1,5 @@
 import { group, sleep, check, fail } from 'k6'
-import { getProducts } from '../../common/api/productRegister.js'
+import { getProducts } from '../../common/api/productRegisterDirect.js'
 import { assert, statusOk } from '../../common/assertions.js'
 import defaultHandleSummaryBuilder from '../../common/handleSummaryBuilder.js'
 import { defaultApiOptionsBuilder } from '../../common/dynamicScenarios/defaultOptions.js'
