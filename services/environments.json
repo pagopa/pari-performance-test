@@ -4,11 +4,5 @@
     },
     "uat_eie": {
         "baseUrl": "https://api-emd.uat.cstar.pagopa.it/idpay-itn"
-    },
-    "dev_iss": {
-        "baseUrl": "https://api-io.dev.cstar.pagopa.it"
-    },
-    "uat_iss": {
-        "baseUrl": "https://api-io.uat.cstar.pagopa.it"
     }
 }

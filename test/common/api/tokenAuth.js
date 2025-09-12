@@ -8,25 +8,28 @@ export const REGISTER_AUTH_API_NAMES = {
 
 const REGISTERED_ENVS = [DEV, UAT]
 const innerBaseUrl = `${getBaseUrl(REGISTERED_ENVS, 'eie')}`
-const issBaseUrl = `${getBaseUrl(REGISTERED_ENVS, 'iss')}`
 
 export function getJwtToken() {
   const apiName = REGISTER_AUTH_API_NAMES.authToken
   const url = `${innerBaseUrl}/register/token/test`
 
+  const isUat = __ENV.ENVIRONMENT === UAT
+
   const payload = JSON.stringify({
     aud: 'idpay.register.welfare.pagopa.it',
-    iss: issBaseUrl,
-    uid: '72c2c5f8-1c71-4614-a4b3-95e3aee71c3d',
-    name: 'pippo',
-    familyName: 'qwerty',
-    email: 'pippo@test.email.it',
-    orgId: '8bd31e63-a8e8-4cbc-b06d-bc69f32c3fde',
-    orgVAT: '80117082724',
-    orgName: 'Ente di test IdPay',
-    orgRole: 'operatore',
-    orgPec: 'pec',
-    orgAddress: 'address'
+    iss: 'https://api-io.dev.cstar.pagopa.it',
+    uid: isUat ? 'e88fe25f-ccfa-4962-8f62-f1450fd78ad0' : '72c2c5f8-1c71-4614-a4b3-95e3aee71c3d',
+    name: isUat ? 'Gianantonio' : 'pippo',
+    family_name: isUat ? 'Grassi' : 'qwerty',
+    org_email: isUat ? 'test.rdb.dev@gmail.com' : 'pippo@test.email.it',
+    org_id: isUat ? '8bd31e63-a8e8-4cbc-b06d-bc69f32c3fde' : '72c2c5f8-1c71-4614-a4b3-95e3aee71c3d',
+    org_vat: isUat ? '13123784130' : '80117082724',
+    org_fc: isUat ? '13123784130' : '80117082724',
+    org_name: isUat ? 'Produttore di Elettrodomestici 04Luglio' : 'Ente di test IdPay',
+    org_party_role: isUat ? 'OPERATOR' : 'OPERATOR',
+    org_role: 'operatore',
+    org_address: isUat ? 'Via Test 1, 81035 Roma (IT)' : 'address',
+    org_pec: isUat ? 'test@produttore.it' : 'pec'
   })
 
   const headers = {
@@ -42,4 +45,3 @@ export function getJwtToken() {
 
   logResult(apiName, res)
   return res
-}
