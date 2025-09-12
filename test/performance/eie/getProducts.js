@@ -16,12 +16,12 @@ export function setup() {
     const { tokenRes, organizationId } = getJwtToken()
 
     const success = check(tokenRes, {
-      'JWT token received': (r) => r && r.status === 200
+        'JWT token received': (r) => r && r.status === 200
     })
 
     if (!success || !tokenRes.body) {
-      console.error(`[SETUP] Failed to retrieve JWT token. Status: ${tokenRes?.status}, Body: ${tokenRes?.body}`)
-      fail('[SETUP] Test aborted due to invalid token')
+        console.error(`[SETUP] Failed to retrieve JWT token. Status: ${tokenRes?.status}, Body: ${tokenRes?.body}`)
+        fail('[SETUP] Test aborted due to invalid token')
     }
 
     const token = tokenRes.body.replace(/"/g, '').trim()
@@ -30,9 +30,15 @@ export function setup() {
     const productRes = getProducts(fetchParams, token)
     const body = productRes.json()
 
-    console.log(`[SETUP] Response body: ${JSON.stringify(body, null, 2)}`)
+    console.log(`[SETUP] Raw product response: ${JSON.stringify(body, null, 2)}`)
 
     const productArray = Array.isArray(body?.content) ? body.content : []
+
+    console.log(`[SETUP] Found ${productArray.length} products in DB for orgId: ${organizationId}`)
+
+    productArray.forEach((p, i) => {
+        console.log(`[PRODUCT ${i + 1}] Group: ${p.productGroup}, OrgID: ${p.organizationId}, Name: ${p.name || 'N/A'}`)
+    })
 
     const productSuccess = check(productRes, {
         'Fetched initial products': () => productArray.length > 0
@@ -71,18 +77,22 @@ export default function (data) {
             }
 
             group(`Search category: ${category}`, () => {
+                console.log(`[REQUEST] Params: ${JSON.stringify(params)}`)
+
                 const res = getProducts(params, data.accessToken)
-                const content = res.json()?.content || []
+                const responseBody = res.json()
+
+                console.log(`[RESPONSE] Status: ${res.status}, Body: ${JSON.stringify(responseBody, null, 2)}`)
 
                 const checks = check(res, {
                     'Request succeeded': (r) => r && r.status === 200,
-                    'Content is array': (r) => Array.isArray(r.json()?.content)
+                    'Response has content': (r) => Array.isArray(r.json()?.content)
                 })
 
-                if (res.status === 200) {
-                    console.info(`[RESULT] ${category} → ${content.length} products`)
+                if (!checks || !responseBody?.content?.length) {
+                    console.warn(`[FAIL] No results for: ${JSON.stringify(params)}`)
                 } else {
-                    console.warn(`[FAIL] ${category} → Status: ${res.status}`)
+                    console.info(`[RESULT] ${category} → ${responseBody.content.length} products`)
                 }
 
                 assert(res, [statusOk()])
