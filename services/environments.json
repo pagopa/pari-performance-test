@@ -5,10 +5,10 @@
     "uat_eie": {
         "baseUrl": "https://api-io.uat.cstar.pagopa.it/idpay-itn"
     },
-    "direct_dev_eie": {
+    "dev_direct_eie": {
         "baseUrl": "https://idpay.itn.internal.dev.cstar.pagopa.it/idpayassetregisterbackend/idpay-itn"
     },
-    "direct_uat_eie": {
+    "uat_direct_eie": {
         "baseUrl": "https://idpay.itn.internal.uat.cstar.pagopa.it/idpayassetregisterbackend/idpay-itn"
     }
 }
