@@ -15,11 +15,6 @@ export function getJwtToken() {
   const apiName = REGISTER_AUTH_API_NAMES.authToken
   const url = `${innerBaseUrl}/register/token/test`
 
-  const isUat = __ENV.ENVIRONMENT === UAT
-  const orgId = isUat
-    ? '8bd31e63-a8e8-4cbc-b06d-bc69f32c3fde'
-    : '72c2c5f8-1c71-4614-a4b3-95e3aee71c3d'
-
   const payload = JSON.stringify({
     aud: 'idpay.register.welfare.pagopa.it',
     iss: 'https://api-io.dev.cstar.pagopa.it',
