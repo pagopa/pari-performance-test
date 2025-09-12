@@ -113,19 +113,31 @@ export function generateUUID() {
     });
 }
 
-export function getCategoryFromProductGroup(productGroup) {
+export function getCategoryFromProductGroup(productGroup, product = {}) {
     const mapping = {
-        washingmachines: 'WASHINGMACHINES',
-        washerdriers: 'WASHERDRIERS',
+        washingmachines2019: 'WASHINGMACHINES',
+        washerdriers2019: 'WASHERDRIERS',
         ovens: 'OVENS',
         rangehoods: 'RANGEHOODS',
-        dishwashers: 'DISHWASHERS',
-        tumbledryers: 'TUMBLEDRYERS',
+        dishwashers2019: 'DISHWASHERS',
+        tumbledryers20232534: 'TUMBLEDRYERS',
         refrigeratingappliances2019: 'REFRIGERATINGAPPL',
         cookinghobs: 'COOKINGHOBS'
     }
 
-    return mapping[productGroup?.toLowerCase()] || null
+    const normalizedGroup = productGroup?.toLowerCase()
+    if (normalizedGroup && mapping[normalizedGroup]) {
+        return mapping[normalizedGroup]
+    }
+
+    const gtin = product.gtinCode?.toLowerCase() || ''
+    const category = product.category?.toLowerCase() || ''
+
+    if (gtin.includes('cookinghobs') || category.includes('piano cottura')) {
+        return mapping['cookinghobs']
+    }
+
+    return null
 }
 
 export const ORG_IDS = {

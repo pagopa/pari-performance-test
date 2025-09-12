@@ -58,7 +58,7 @@ export function setup() {
 export default function (data) {
     group('Product Register API - Dynamic Test', () => {
         for (const product of data.products) {
-            const category = getCategoryFromProductGroup(product.productGroup)
+            const category = getCategoryFromProductGroup(product.productGroup, product)
 
             if (!category) {
                 console.warn(`[SKIP] Unknown productGroup: ${product.productGroup}`)
