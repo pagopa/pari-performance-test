@@ -45,3 +45,4 @@ export function getJwtToken() {
 
   logResult(apiName, res)
   return res
+}
