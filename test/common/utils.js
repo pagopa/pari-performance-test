@@ -2,6 +2,7 @@ import { randomString, randomIntBetween, } from 'https://jslib.k6.io/k6-utils/1.
 import papaparse from 'https://jslib.k6.io/papaparse/5.1.1/index.js'
 import exec from 'k6/execution'
 import { randomBytes } from 'k6/crypto';
+import { CONFIG } from './dynamicScenarios/envVars.js'
 
 
 export function randomFiscalCode() {
@@ -125,4 +126,30 @@ export function getCategoryFromProductGroup(productGroup) {
     }
 
     return mapping[productGroup?.toLowerCase()] || null
+}
+
+export const ORG_IDS = {
+  dev_eie: '72c2c5f8-1c71-4614-a4b3-95e3aee71c3d',
+  uat_eie: '8bd31e63-a8e8-4cbc-b06d-bc69f32c3fde'
+}
+
+export function getOrgId(operationAvailableEnvs, system) {
+  const env = CONFIG.TARGET_ENV
+
+  if (
+    !operationAvailableEnvs.includes(env)
+  ) {
+    abort('Environment selected not allowed for orgId resolution')
+    return null
+  }
+
+  const key = `${env}_${system}`
+  const orgId = ORG_IDS[key]
+
+  if (!orgId) {
+    abort(`Missing orgId for key: ${key}`)
+    return null
+  }
+
+  return orgId
 }

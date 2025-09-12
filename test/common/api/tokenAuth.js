@@ -1,6 +1,7 @@
 import http from 'k6/http'
 import { logResult } from '../dynamicScenarios/utils.js'
 import { DEV, UAT, getBaseUrl } from '../envUrl.js'
+import { getOrgId } from '../utils.js'
 
 export const REGISTER_AUTH_API_NAMES = {
   authToken: 'register/token/test',
@@ -8,6 +9,7 @@ export const REGISTER_AUTH_API_NAMES = {
 
 const REGISTERED_ENVS = [DEV, UAT]
 const innerBaseUrl = `${getBaseUrl(REGISTERED_ENVS, 'eie')}`
+const orgId = getOrgId(REGISTERED_ENVS, 'eie')
 
 export function getJwtToken() {
   const apiName = REGISTER_AUTH_API_NAMES.authToken
