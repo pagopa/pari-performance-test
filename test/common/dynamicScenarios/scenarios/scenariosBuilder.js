@@ -3,7 +3,7 @@ import { CONFIG } from '../envVars.js'
 
 
 export const scenarios = {
-    rampingGrowingLoad
+    rampingGrowingArrivalRate
 }
 
 export default function buildScenarios() {
