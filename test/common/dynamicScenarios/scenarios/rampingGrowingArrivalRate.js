@@ -11,7 +11,7 @@ for (let i = 0; i < stageNumber; i++) {
 }
 
 export default {
-    rampingGrowingLoad: {
+    rampingGrowingArrivalRate: {
         executor: 'ramping-arrival-rate',
         timeUnit: `${timeUnit}s`,
         preAllocatedVUs: Math.max(1, Math.round(vus / stageNumber)),

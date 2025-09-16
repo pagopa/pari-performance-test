@@ -26,9 +26,9 @@ parameters:
   - name: 'SCENARIO_TYPE_ENV'
     displayName: 'Scenario type'
     type: string
-    default: 'rampingGrowingLoad'
+    default: 'rampingGrowingArrivalRate'
     values:
-      - 'rampingGrowingLoad'
+      - 'rampingGrowingArrivalRate'
 
   - name: 'VUS_MAX_ENV'
     displayName: 'Maximum number of virtual users'
