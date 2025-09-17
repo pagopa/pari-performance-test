@@ -21,7 +21,6 @@ parameters:
     default: 'getProducts'
     values:
       - getProducts
-      - getProductsDirect
 
   - name: 'SCENARIO_TYPE_ENV'
     displayName: 'Scenario type'
@@ -74,9 +73,6 @@ variables:
 
   - name: k6Test_getProducts
     value: getProducts
-
-  - name: k6Test_getProductsDirect
-    value: getProductsDirect
 
   - name: SCRIPTS_TO_EXECUTE
     value: ${{ variables[format('k6Test_{0}', parameters.SCRIPT)] }}
