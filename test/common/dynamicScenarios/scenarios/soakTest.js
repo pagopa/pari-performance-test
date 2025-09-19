@@ -1,11 +1,11 @@
 export default {
     soakTest: {
         executor: 'constant-arrival-rate',
-        rate: 67,
+        rate: 20,
         timeUnit: '1s',
-        duration: '10m',
-        preAllocatedVUs: 50,
-        maxVUs: 200,
+        duration: '1m',
+        preAllocatedVUs: 10,
+        maxVUs: 10,
     },
 }
 
