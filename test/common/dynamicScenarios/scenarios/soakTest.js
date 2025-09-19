@@ -3,9 +3,9 @@ export default {
         executor: 'constant-arrival-rate',
         rate: 4,
         timeUnit: '1s',
-        duration: '2m',
-        preAllocatedVUs: 5,
-        maxVUs: 5,
+        duration: '1m',
+        preAllocatedVUs: 4,
+        maxVUs: 4,
     },
 }
 
