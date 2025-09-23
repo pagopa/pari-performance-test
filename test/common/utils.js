@@ -140,6 +140,23 @@ export function getCategoryFromProductGroup(productGroup, product = {}) {
     return null
 }
 
+const CategoriesEnum = {
+    WASHINGMACHINES: 'WASHINGMACHINES',
+    WASHERDRIERS: 'WASHERDRIERS',
+    OVENS: 'OVENS',
+    RANGEHOODS: 'RANGEHOODS',
+    DISHWASHERS: 'DISHWASHERS',
+    TUMBLEDRYERS: 'TUMBLEDRYERS',
+    REFRIGERATINGAPPL: 'REFRIGERATINGAPPL',
+    COOKINGHOBS: 'COOKINGHOBS'
+};
+
+export function getRandomCategory() {
+    const categories = Object.values(CategoriesEnum);
+    const randomIndex = Math.floor(Math.random() * categories.length);
+    return categories[randomIndex];
+}
+
 export const ORG_IDS = {
   dev_eie: '72c2c5f8-1c71-4614-a4b3-95e3aee71c3d',
   uat_eie: '8bd31e63-a8e8-4cbc-b06d-bc69f32c3fde'
