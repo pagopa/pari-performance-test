@@ -50,7 +50,7 @@ export function setup() {
 
 export default function (data) {
     group('Product Register API - Test with category filter', () => {
-        const randomCategory = getRandomCategory();
+        const randomCategory = getRandomCategory()
         console.log(`[FILTER] Using random category: ${randomCategory}`)
 
         const params = {
@@ -58,9 +58,13 @@ export default function (data) {
             category: randomCategory
         }
 
+        console.log(`[API CALL] Params being sent: ${JSON.stringify(params)}`)
+
         group(`Search products for category: ${randomCategory}`, () => {
             const res = getProducts(params, data.accessToken)
             const content = res.json()?.content || []
+
+            console.log(`[API RESPONSE] Category: ${randomCategory}, Response: ${JSON.stringify(res.json(), null, 2)}`)
 
             const checks = check(res, {
                 'Request succeeded': (r) => r && r.status === 200,
