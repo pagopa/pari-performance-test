@@ -153,7 +153,7 @@ const CategoriesEnum = {
 
 export function getRandomCategory() {
     const categories = Object.values(CategoriesEnum);
-    const randomIndex = Math.floor(Math.random() * categories.length);
+    const randomIndex = Math.floor(Math.random() * categories.length); //NOSONAR
     return categories[randomIndex];
 }
 
