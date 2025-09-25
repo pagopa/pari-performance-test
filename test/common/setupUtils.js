@@ -1,5 +1,5 @@
-import { getJwtToken } from '../../common/api/tokenAuth.js'
-import { getProducts } from '../../common/api/productRegister.js'
+import { getJwtToken } from './api/tokenAuth.js'
+import { getProducts } from './api/productRegister.js'
 import { check, fail } from 'k6'
 
 export function setupUtils() {
