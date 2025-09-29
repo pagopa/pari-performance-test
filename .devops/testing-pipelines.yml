@@ -21,6 +21,7 @@ parameters:
     default: 'getProducts'
     values:
       - getProducts
+      - getProductsNoFilter
 
   - name: 'SCENARIO_TYPE_ENV'
     displayName: 'Scenario type'
@@ -102,6 +103,9 @@ variables:
   # comma separated list of tests to execute based on the SCRIPT parameter
   - name: k6Test_getProducts
     value: getProducts
+
+  - name: k6Test_getProductsNoFilter
+    value: getProductsNoFilter
 
   # resolved list of k6 script to execute
   - name: SCRIPTS_TO_EXECUTE
