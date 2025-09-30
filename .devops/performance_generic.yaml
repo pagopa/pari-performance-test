@@ -43,16 +43,6 @@ parameters:
     type: string
     default: '1s'
 
-  - name: 'K6_ADDITIONAL_ARGS'
-    displayName: 'Additional CLI args for k6 (optional)'
-    type: string
-    default: ''
-
-  - name: 'K6_PDV_URL_OVERRIDE'
-    displayName: 'Override PDV URL (optional)'
-    type: string
-    default: ''
-
 variables:
 
   - name: working-dir
@@ -76,10 +66,7 @@ variables:
         value: cstar-prod-perf-linux
 
   # PDV URL defaults; prod left blank intentionally because no endpoint is available
-  - ${{ if ne(parameters.K6_PDV_URL_OVERRIDE, '') }}:
-      - name: pdvUrl
-        value: ${{ parameters.K6_PDV_URL_OVERRIDE }}
-  - ${{ elseif eq(parameters.TARGET_ENV, 'dev') }}:
+  - ${{ if eq(parameters.TARGET_ENV, 'dev') }}:
       - name: pdvUrl
         value: https://idpay.itn.internal.dev.cstar.pagopa.it/mcshareddatavault
   - ${{ elseif eq(parameters.TARGET_ENV, 'uat') }}:
@@ -137,8 +124,6 @@ jobs:
                 vus="${{ parameters.K6_VUS }}"
                 rate="${{ parameters.K6_RATE }}"
                 time_unit="${{ parameters.K6_TIME_UNIT }}"
-                additional_args="${{ parameters.K6_ADDITIONAL_ARGS }}"
-
                 echo "Eseguo ./xk6 run $SCRIPT_PATH"
                 echo "  TARGET_ENV : $TARGET_ENV"
                 echo "  PDV_URL    : $PDV_URL"
@@ -147,15 +132,8 @@ jobs:
                 echo "  RATE       : $rate"
                 echo "  TIME_UNIT  : $time_unit"
 
-                cmd=(./xk6 run "$SCRIPT_PATH" --duration "$duration" --vus "$vus" --tag environment=${{ parameters.TARGET_ENV }})
-                if [ -n "$additional_args" ]; then
-                  # shellcheck disable=SC2206
-                  extra_args=($additional_args)
-                  cmd+=("${extra_args[@]}")
-                fi
-
-                printf 'Comando: %s\n' "${cmd[*]}"
-                "${cmd[@]}"
+                echo "Comando: ./xk6 run $SCRIPT_PATH --duration $duration --vus $vus --tag environment=${{ parameters.TARGET_ENV }}"
+                ./xk6 run "$SCRIPT_PATH" --duration "$duration" --vus "$vus" --tag environment=${{ parameters.TARGET_ENV }}
               env:
                 TARGET_ENV: ${{ parameters.TARGET_ENV }}
                 PDV_URL: $(pdvUrl)
