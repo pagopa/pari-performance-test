@@ -95,6 +95,21 @@ export function coalesce(o1, o2) {
     return o1 !== undefined && o1 !== null ? o1 : o2
 }
 
+export function toPositiveNumber(value) {
+    const parsed = Number(value)
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined
+}
+
+export function toNonNegativeNumber(value) {
+    const parsed = Number(value)
+    return Number.isFinite(parsed) && parsed >= 0 ? parsed : undefined
+}
+
+export function toTrimmedString(value, fallback = '') {
+    const trimmed = (value || '').toString().trim()
+    return trimmed || fallback
+}
+
 export function abort(description) {
     description = `Aborting execution due to: ${description}`
     if (exec) {
