@@ -1,5 +1,5 @@
 /*
- * k6 run -e RATE=100 -e URL=https://api.datavaultapp.com script-fixed-rate-dev.js --duration 1m --vus 10000
+ * k6 run -e RATE=100 -e PDV_URL=https://api.datavaultapp.com script-fixed-rate-dev.js --duration 1m --vus 10000
  */
 import http from 'k6/http';
 import { check } from 'k6';
