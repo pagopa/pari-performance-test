@@ -81,10 +81,6 @@ parameters:
     type: number
     default: 0
 
-  - name: 'K6_STAGES'
-    displayName: 'k6 Definizione stages (ENV: K6_STAGES, JSON es. [{"duration":"30s","target":10}])'
-    type: string
-    default: ''
 
 variables:
 
@@ -171,7 +167,6 @@ jobs:
                 echo "  K6_START_VUS    : $K6_START_VUS"
                 echo "  K6_PRE_ALLOC_VUS: $K6_PRE_ALLOCATED_VUS"
                 echo "  K6_MAX_VUS      : $K6_MAX_VUS"
-                echo "  K6_STAGES       : $K6_STAGES"
 
                 cmd=(./xk6 run "$SCRIPT_PATH" --vus "$vus" --tag environment=${{ parameters.TARGET_ENV }})
                 if [ -n "$duration" ] && [ "$duration" != "0" ]; then
@@ -198,7 +193,6 @@ jobs:
                 K6_START_VUS: ${{ parameters.K6_START_VUS }}
                 K6_PRE_ALLOCATED_VUS: ${{ parameters.K6_PRE_ALLOCATED_VUS }}
                 K6_MAX_VUS: ${{ parameters.K6_MAX_VUS }}
-                K6_STAGES: ${{ parameters.K6_STAGES }}
               displayName: Run k6 ${{ k6Script }} on ${{ parameters.TARGET_ENV }}
               timeoutInMinutes: 0
 
