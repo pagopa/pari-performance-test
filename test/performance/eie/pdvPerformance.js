@@ -25,7 +25,7 @@ export default function () {
     };
 
     let resp = http.put(
-        `${__ENV.URL}/tokens`,
+        `${__ENV.PDV_URL}/tokens`,
         JSON.stringify(body),
         {
             headers: {
