@@ -3,10 +3,10 @@ parameters:
       type: string
     - name: 'k6Version'
       type: string
-      default: v0.57.0
+      default: v1.3.0
     - name: 'xk6Extensions'
       type: string
-      default: '--with github.com/szkiba/xk6-dotenv@v0.1.3'
+      default: '--with github.com/szkiba/xk6-dotenv@v0.2.0'
 
 jobs:
     - job: xk6Build
