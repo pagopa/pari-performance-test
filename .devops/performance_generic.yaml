@@ -17,9 +17,11 @@ parameters:
       - 'prod'
 
   - name: 'K6_SCRIPT_PATH'
-    displayName: 'Comma separated k6 script paths (relative to repo root)'
+    displayName: 'k6 script da eseguire'
     type: string
     default: 'test/performance/eie/pdvPerformance.js'
+    values:
+      - 'test/performance/eie/pdvPerformance.js'
 
   - name: 'K6_SECURE_FILE'
     displayName: 'Secure file name to download (optional)'
