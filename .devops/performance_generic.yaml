@@ -24,24 +24,34 @@ parameters:
       - 'test/performance/eie/pdvPerformance.js'
 
   - name: 'K6_DURATION'
-    displayName: 'k6 duration (es. 1m, 30s)'
+    displayName: 'Durata test (CLI: --duration, es. 30s, 1m, 10m)'
     type: string
     default: '1m'
 
+  - name: 'K6_ITERATIONS'
+    displayName: 'Numero iterazioni totali (CLI: --iterations, 0 = disabilitato)'
+    type: number
+    default: 0
+
   - name: 'K6_VUS'
-    displayName: 'k6 virtual users'
+    displayName: 'Virtual users (CLI: --vus)'
     type: number
     default: 50
 
   - name: 'K6_RATE'
-    displayName: 'k6 constant arrival rate (req/s)'
+    displayName: 'Valore env RATE (CLI: -e RATE=…, req/s per scenario)'
     type: number
     default: 100
 
   - name: 'K6_TIME_UNIT'
-    displayName: 'k6 time unit (es. 1s, 500ms)'
+    displayName: 'Valore env TIME_UNIT (CLI: -e TIME_UNIT=…, es. 1s, 500ms)'
     type: string
     default: '1s'
+
+  - name: 'K6_RPS'
+    displayName: 'Limite richieste al secondo (CLI: --rps, 0 = illimitato)'
+    type: number
+    default: 0
 
 variables:
 
@@ -121,19 +131,34 @@ jobs:
                 fi
 
                 duration="${{ parameters.K6_DURATION }}"
+                iterations=${{ parameters.K6_ITERATIONS }}
                 vus="${{ parameters.K6_VUS }}"
                 rate="${{ parameters.K6_RATE }}"
                 time_unit="${{ parameters.K6_TIME_UNIT }}"
+                rps=${{ parameters.K6_RPS }}
                 echo "Eseguo ./xk6 run $SCRIPT_PATH"
                 echo "  TARGET_ENV : $TARGET_ENV"
                 echo "  PDV_URL    : $PDV_URL"
                 echo "  DURATION   : $duration"
+                echo "  ITERATIONS : $iterations"
                 echo "  VUs        : $vus"
                 echo "  RATE       : $rate"
                 echo "  TIME_UNIT  : $time_unit"
+                echo "  RPS        : $rps"
 
-                echo "Comando: ./xk6 run $SCRIPT_PATH --duration $duration --vus $vus --tag environment=${{ parameters.TARGET_ENV }}"
-                ./xk6 run "$SCRIPT_PATH" --duration "$duration" --vus "$vus" --tag environment=${{ parameters.TARGET_ENV }}
+                cmd=(./xk6 run "$SCRIPT_PATH" --vus "$vus" --tag environment=${{ parameters.TARGET_ENV }})
+                if [ -n "$duration" ] && [ "$duration" != "0" ]; then
+                  cmd+=(--duration "$duration")
+                fi
+                if [ "$iterations" -gt 0 ]; then
+                  cmd+=(--iterations "$iterations")
+                fi
+                if [ "$rps" -gt 0 ]; then
+                  cmd+=(--rps "$rps")
+                fi
+
+                printf 'Comando: %s\n' "${cmd[*]}"
+                "${cmd[@]}"
               env:
                 TARGET_ENV: ${{ parameters.TARGET_ENV }}
                 PDV_URL: $(pdvUrl)
