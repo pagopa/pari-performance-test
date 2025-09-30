@@ -4,14 +4,5 @@
     },
     "uat_eie": {
         "baseUrl": "https://api-io.uat.cstar.pagopa.it/idpay-itn"
-    },
-    "dev_pdv": {
-        "baseUrl": "https://idpay.itn.internal.dev.cstar.pagopa.it/mcshareddatavault"
-    },
-    "uat_pdv": {
-        "baseUrl": "https://idpay.itn.internal.uat.cstar.pagopa.it/mcshareddatavault"
-    },
-    "prod_pdv": {
-        "baseUrl": ""
     }
 }

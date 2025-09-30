@@ -1,37 +1,77 @@
-/*
- * k6 run -e RATE=100 -e PDV_URL=https://api.datavaultapp.com script-fixed-rate-dev.js --duration 1m --vus 10000
- */
-import http from 'k6/http';
-import { check } from 'k6';
-import { randomString } from 'https://jslib.k6.io/k6-utils/1.2.0/index.js';
+// Esegui con: TARGET_ENV=dev SCENARIO_TYPE_ENV=constant-arrival-rate ./xk6 run test/pdv/pdvPerformance.js
+import http from 'k6/http'
+import { check } from 'k6'
+import { randomString } from 'https://jslib.k6.io/k6-utils/1.2.0/index.js'
+
+const targetEnv = (__ENV.TARGET_ENV || 'dev').trim().toLowerCase()
+const scenarioType = (__ENV.SCENARIO_TYPE_ENV || 'constant-arrival-rate').trim()
+
+const serviceConfig = JSON.parse(open(`../../services/${targetEnv}.json`))
+const pdvUrl = (serviceConfig.pdvUrl || '').trim()
+
+if (!pdvUrl) {
+    throw new Error(`Missing pdvUrl for environment: ${targetEnv}`)
+}
+
+const vus = Number(__ENV.VUS_MAX_ENV || 50)
+const rate = Number(__ENV.RATE || 100)
+const timeUnit = (__ENV.TIME_UNIT || '1s').trim()
+const duration = (__ENV.SCENARIO_DURATION_ENV || '1m').trim()
+const iterations = Number(__ENV.ITERATIONS_ENV || 1)
+
+function buildScenario() {
+    switch (scenarioType) {
+        case 'constant-vus':
+            return {
+                executor: 'constant-vus',
+                vus,
+                duration,
+            }
+        case 'per-vu-iterations':
+            return {
+                executor: 'per-vu-iterations',
+                vus,
+                iterations: Math.max(iterations, 1),
+                maxDuration: duration,
+            }
+        default:
+            return {
+                executor: 'constant-arrival-rate',
+                rate,
+                timeUnit,
+                duration,
+                preAllocatedVUs: Math.max(vus, 1),
+                maxVUs: Math.max(vus, rate),
+            }
+    }
+}
 
 export const options = {
     discardResponseBodies: true,
     scenarios: {
-        contacts: {
-            executor: 'constant-arrival-rate',
-            rate: __ENV.RATE,
-            timeUnit: '1s'
-        }
+        pdv: buildScenario(),
     },
     thresholds: {
         checks: ['rate>0.99'],
-    }
-};
+    },
+}
 
 export default function () {
-    let body = {
-        pii: randomString(8, 'abcdefghijklmnopqrstuvwxyz01234567890')
-    };
+    const payload = {
+        pii: randomString(8, 'abcdefghijklmnopqrstuvwxyz01234567890'),
+    }
 
-    let resp = http.put(
-        `${__ENV.PDV_URL}/tokens`,
-        JSON.stringify(body),
+    const response = http.put(
+        `${pdvUrl}/tokens`,
+        JSON.stringify(payload),
         {
             headers: {
-                'Content-Type': 'application/json'
-            }
-        });
+                'Content-Type': 'application/json',
+            },
+        }
+    )
 
-    check(resp, { 'status was 200': (r) => r.status === 200 });
+    check(response, {
+        'status was 200': (r) => r.status === 200,
+    })
 }
