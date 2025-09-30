@@ -1,4 +1,4 @@
-import { randomString, randomIntBetween, } from 'https://jslib.k6.io/k6-utils/1.1.0/index.js'
+import { randomString, randomIntBetween } from 'https://jslib.k6.io/k6-utils/1.1.0/index.js'
 import papaparse from 'https://jslib.k6.io/papaparse/5.1.1/index.js'
 import exec from 'k6/execution'
 import { randomBytes } from 'k6/crypto';
@@ -93,21 +93,6 @@ function getFiscalCodeMonth(month) {
 
 export function coalesce(o1, o2) {
     return o1 !== undefined && o1 !== null ? o1 : o2
-}
-
-export function toPositiveNumber(value) {
-    const parsed = Number(value)
-    return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined
-}
-
-export function toNonNegativeNumber(value) {
-    const parsed = Number(value)
-    return Number.isFinite(parsed) && parsed >= 0 ? parsed : undefined
-}
-
-export function toTrimmedString(value, fallback = '') {
-    const trimmed = (value || '').toString().trim()
-    return trimmed || fallback
 }
 
 export function abort(description) {

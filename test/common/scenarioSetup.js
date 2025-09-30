@@ -1,4 +1,4 @@
-import { toNonNegativeNumber, toTrimmedString } from './utils.js'
+import { toNonNegativeNumber, toTrimmedString } from './basicUtils.js'
 
 const scenarioAliases = {
     manual: 'manual',

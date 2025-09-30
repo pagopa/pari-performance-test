@@ -11,7 +11,7 @@ import { loadEnvConfig } from '../common/loadEnv.js'
 import {
     toPositiveNumber,
     toTrimmedString,
-} from '../common/utils.js'
+} from '../common/basicUtils.js'
 import {
     normalizeScenarioType,
     buildScenarioConfig,
