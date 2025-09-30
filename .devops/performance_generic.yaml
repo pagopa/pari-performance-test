@@ -113,93 +113,90 @@ jobs:
       xk6CacheKey: '$(xk6CacheKey)'
       k6Version: v1.3.0
 
-  - template: templates\job-type-switch.yml
-    parameters:
-      name: PerformanceTest
-      displayName: '🚀 Running k6 scripts on ${{ parameters.TARGET_ENV }}'
-      timeoutInMinutes: 0
-      continueOnError: true
-      dependsOn: xk6Build
+  - job: PerformanceTest
+    displayName: '🚀 Running k6 scripts on ${{ parameters.TARGET_ENV }}'
+    timeoutInMinutes: 0
+    continueOnError: true
+    dependsOn: xk6Build
+    pool:
+      name: $(selfHostedAgentPool)
+    steps:
 
-      deploymentPoolName: $(selfHostedAgentPool)
-      deploymentEnvironment: '${{ upper(parameters.TARGET_ENV) }}'
-      steps:
+      - script: |
+          docker info | grep -i mem
+        displayName: Display Docker Memory Info
 
-        - script: |
-            docker info | grep -i mem
-          displayName: Display Docker Memory Info
+      - script: |
+          mkdir -p results
+        displayName: Results folder creation
 
-        - script: |
-            mkdir -p results
-          displayName: Results folder creation
+      - task: Cache@2
+        inputs:
+          key: '$(xk6CacheKey)'
+          path: '$(Build.SourcesDirectory)'
+        displayName: Retrieve xk6 from Cache
 
-        - task: Cache@2
-          inputs:
-            key: '$(xk6CacheKey)'
-            path: '$(Build.SourcesDirectory)'
-          displayName: Retrieve xk6 from Cache
+      - ${{ each k6Script in split(variables.SCRIPTS_TO_EXECUTE, ',') }}:
+          - script: |
+              set -euo pipefail
+              SCRIPT_PATH="$(echo "${{ k6Script }}" | xargs)"
+              if [ ! -f "$SCRIPT_PATH" ]; then
+                echo "Script $SCRIPT_PATH non trovato"
+                exit 1
+              fi
 
-        - ${{ each k6Script in split(variables.SCRIPTS_TO_EXECUTE, ',') }}:
-            - script: |
-                set -euo pipefail
-                SCRIPT_PATH="$(echo "${{ k6Script }}" | xargs)"
-                if [ ! -f "$SCRIPT_PATH" ]; then
-                  echo "Script $SCRIPT_PATH non trovato"
-                  exit 1
-                fi
+              duration="${{ parameters.K6_DURATION }}"
+              iterations=${{ parameters.K6_ITERATIONS }}
+              vus="${{ parameters.K6_VUS }}"
+              rate="${{ parameters.K6_RATE }}"
+              time_unit="${{ parameters.K6_TIME_UNIT }}"
+              rps=${{ parameters.K6_RPS }}
+              echo "Eseguo ./xk6 run $SCRIPT_PATH"
+              echo "  TARGET_ENV      : $TARGET_ENV"
+              echo "  PDV_URL         : resolved via config/${TARGET_ENV}.json (override with PDV_URL)"
+              echo "  K6_SCENARIO_TYPE: $K6_SCENARIO_TYPE"
+              echo "  K6_DURATION     : $duration"
+              echo "  K6_ITERATIONS   : $iterations"
+              echo "  K6_VUS          : $vus"
+              echo "  K6_RATE         : $rate"
+              echo "  K6_TIME_UNIT    : $time_unit"
+              echo "  K6_RPS          : $rps"
+              echo "  K6_START_VUS    : $K6_START_VUS"
+              echo "  K6_PRE_ALLOC_VUS: $K6_PRE_ALLOCATED_VUS"
+              echo "  K6_MAX_VUS      : $K6_MAX_VUS"
 
-                duration="${{ parameters.K6_DURATION }}"
-                iterations=${{ parameters.K6_ITERATIONS }}
-                vus="${{ parameters.K6_VUS }}"
-                rate="${{ parameters.K6_RATE }}"
-                time_unit="${{ parameters.K6_TIME_UNIT }}"
-                rps=${{ parameters.K6_RPS }}
-                echo "Eseguo ./xk6 run $SCRIPT_PATH"
-                echo "  TARGET_ENV      : $TARGET_ENV"
-                echo "  PDV_URL         : resolved via config/${TARGET_ENV}.json (override with PDV_URL)"
-                echo "  K6_SCENARIO_TYPE: $K6_SCENARIO_TYPE"
-                echo "  K6_DURATION     : $duration"
-                echo "  K6_ITERATIONS   : $iterations"
-                echo "  K6_VUS          : $vus"
-                echo "  K6_RATE         : $rate"
-                echo "  K6_TIME_UNIT    : $time_unit"
-                echo "  K6_RPS          : $rps"
-                echo "  K6_START_VUS    : $K6_START_VUS"
-                echo "  K6_PRE_ALLOC_VUS: $K6_PRE_ALLOCATED_VUS"
-                echo "  K6_MAX_VUS      : $K6_MAX_VUS"
+              cmd=(./xk6 run "$SCRIPT_PATH" --vus "$vus" --tag environment=${{ parameters.TARGET_ENV }})
+              if [ -n "$duration" ] && [ "$duration" != "0" ]; then
+                cmd+=(--duration "$duration")
+              fi
+              if [ "$iterations" -gt 0 ]; then
+                cmd+=(--iterations "$iterations")
+              fi
+              if [ "$rps" -gt 0 ]; then
+                cmd+=(--rps "$rps")
+              fi
 
-                cmd=(./xk6 run "$SCRIPT_PATH" --vus "$vus" --tag environment=${{ parameters.TARGET_ENV }})
-                if [ -n "$duration" ] && [ "$duration" != "0" ]; then
-                  cmd+=(--duration "$duration")
-                fi
-                if [ "$iterations" -gt 0 ]; then
-                  cmd+=(--iterations "$iterations")
-                fi
-                if [ "$rps" -gt 0 ]; then
-                  cmd+=(--rps "$rps")
-                fi
+              printf 'Comando: %s\n' "${cmd[*]}"
+              "${cmd[@]}"
+            env:
+              TARGET_ENV: ${{ parameters.TARGET_ENV }}
+              K6_SCENARIO_TYPE: ${{ parameters.K6_SCENARIO_TYPE }}
+              K6_DURATION: ${{ parameters.K6_DURATION }}
+              K6_ITERATIONS: ${{ parameters.K6_ITERATIONS }}
+              K6_VUS: ${{ parameters.K6_VUS }}
+              K6_RATE: ${{ parameters.K6_RATE }}
+              K6_TIME_UNIT: ${{ parameters.K6_TIME_UNIT }}
+              K6_RPS: ${{ parameters.K6_RPS }}
+              K6_START_VUS: ${{ parameters.K6_START_VUS }}
+              K6_PRE_ALLOCATED_VUS: ${{ parameters.K6_PRE_ALLOCATED_VUS }}
+              K6_MAX_VUS: ${{ parameters.K6_MAX_VUS }}
+            displayName: Run k6 ${{ k6Script }} on ${{ parameters.TARGET_ENV }}
+            timeoutInMinutes: 0
 
-                printf 'Comando: %s\n' "${cmd[*]}"
-                "${cmd[@]}"
-              env:
-                TARGET_ENV: ${{ parameters.TARGET_ENV }}
-                K6_SCENARIO_TYPE: ${{ parameters.K6_SCENARIO_TYPE }}
-                K6_DURATION: ${{ parameters.K6_DURATION }}
-                K6_ITERATIONS: ${{ parameters.K6_ITERATIONS }}
-                K6_VUS: ${{ parameters.K6_VUS }}
-                K6_RATE: ${{ parameters.K6_RATE }}
-                K6_TIME_UNIT: ${{ parameters.K6_TIME_UNIT }}
-                K6_RPS: ${{ parameters.K6_RPS }}
-                K6_START_VUS: ${{ parameters.K6_START_VUS }}
-                K6_PRE_ALLOCATED_VUS: ${{ parameters.K6_PRE_ALLOCATED_VUS }}
-                K6_MAX_VUS: ${{ parameters.K6_MAX_VUS }}
-              displayName: Run k6 ${{ k6Script }} on ${{ parameters.TARGET_ENV }}
-              timeoutInMinutes: 0
-
-        - task: PublishPipelineArtifact@1
-          displayName: 'Publishing results of k6 tests in folder: results'
-          condition: true
-          inputs:
-            artifact: 'results'
-            targetPath: 'results'
-            publishLocation: 'pipeline'
+      - task: PublishPipelineArtifact@1
+        displayName: 'Publishing results of k6 tests in folder: results'
+        condition: true
+        inputs:
+          artifact: 'results'
+          targetPath: 'results'
+          publishLocation: 'pipeline'
