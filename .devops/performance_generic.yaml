@@ -32,9 +32,9 @@ parameters:
   - name: 'K6_SCRIPT_PATH'
     displayName: 'k6 script da eseguire'
     type: string
-    default: 'test/performance/eie/pdvPerformance.js'
+    default: 'test/performance/pdv/pdvPerformance.js'
     values:
-      - 'test/performance/eie/pdvPerformance.js'
+      - 'test/performance/pdv/pdvPerformance.js'
 
   - name: 'K6_DURATION'
     displayName: 'k6 Durata test (CLI: --duration, es. 30s, 1m, 10m)'
@@ -120,7 +120,7 @@ jobs:
   - template: templates\job-type-switch.yml
     parameters:
       name: PerformanceTest
-      displayName: 'Running k6 scripts on ${{ parameters.TARGET_ENV }}'
+      displayName: '🚀 Running k6 scripts on ${{ parameters.TARGET_ENV }}'
       timeoutInMinutes: 0
       continueOnError: true
       dependsOn: xk6Build

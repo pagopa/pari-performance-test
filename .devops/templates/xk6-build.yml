@@ -10,7 +10,7 @@ parameters:
 
 jobs:
     - job: xk6Build
-      displayName: Building xk6
+      displayName: 📦 Building xk6
       timeoutInMinutes: 0
       steps:
           - task: Cache@2
