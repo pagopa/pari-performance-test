@@ -48,6 +48,17 @@ parameters:
     type: string
     default: '1s'
 
+  - name: 'K6_SCENARIO_TYPE'
+    displayName: 'Tipologia scenario (CLI: -e SCENARIO_TYPE_ENV)'
+    type: string
+    default: 'constantArrivalRate'
+    values:
+      - 'constantArrivalRate'
+      - 'perVuIterations'
+      - 'rampingArrivalRate'
+      - 'rampingGrowingArrivalRate'
+      - 'soakTest'
+
   - name: 'K6_RPS'
     displayName: 'Limite richieste al secondo (CLI: --rps, 0 = illimitato)'
     type: number
@@ -74,17 +85,6 @@ variables:
   - ${{ else }}:
       - name: selfHostedAgentPool
         value: cstar-prod-perf-linux
-
-  # PDV URL defaults; prod left blank intentionally because no endpoint is available
-  - ${{ if eq(parameters.TARGET_ENV, 'dev') }}:
-      - name: pdvUrl
-        value: https://idpay.itn.internal.dev.cstar.pagopa.it/mcshareddatavault
-  - ${{ elseif eq(parameters.TARGET_ENV, 'uat') }}:
-      - name: pdvUrl
-        value: https://idpay.itn.internal.uat.cstar.pagopa.it/mcshareddatavault
-  - ${{ else }}:
-      - name: pdvUrl
-        value: ''
 
   - name: xk6CacheKey
     value: '"xk6" | "0.57.0" | dotenv'
@@ -138,7 +138,7 @@ jobs:
                 rps=${{ parameters.K6_RPS }}
                 echo "Eseguo ./xk6 run $SCRIPT_PATH"
                 echo "  TARGET_ENV : $TARGET_ENV"
-                echo "  PDV_URL    : $PDV_URL"
+                echo "  PDV_URL    : resolved via services/environments.json"
                 echo "  DURATION   : $duration"
                 echo "  ITERATIONS : $iterations"
                 echo "  VUs        : $vus"
@@ -161,12 +161,13 @@ jobs:
                 "${cmd[@]}"
               env:
                 TARGET_ENV: ${{ parameters.TARGET_ENV }}
-                PDV_URL: $(pdvUrl)
-                URL: $(pdvUrl)
                 RATE: ${{ parameters.K6_RATE }}
                 TIME_UNIT: ${{ parameters.K6_TIME_UNIT }}
                 SCENARIO_DURATION_ENV: ${{ parameters.K6_DURATION }}
                 VUS_MAX_ENV: ${{ parameters.K6_VUS }}
+                ITERATIONS_ENV: ${{ parameters.K6_ITERATIONS }}
+                SCENARIO_TYPE_ENV: ${{ parameters.K6_SCENARIO_TYPE }}
+                SCENARIO_TIME_UNIT_ENV: ${{ parameters.K6_TIME_UNIT }}
               displayName: Run k6 ${{ k6Script }} on ${{ parameters.TARGET_ENV }}
               timeoutInMinutes: 0
 
