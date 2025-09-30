@@ -1,0 +1,188 @@
+# Generic pipeline to execute k6 scripts with environment-driven configuration
+
+trigger: none
+
+pool:
+  vmImage: ubuntu-22.04
+
+parameters:
+
+  - name: 'TARGET_ENV'
+    displayName: 'Target Environment'
+    type: string
+    default: 'uat'
+    values:
+      - 'dev'
+      - 'uat'
+      - 'prod'
+
+  - name: 'K6_SCRIPT_PATH'
+    displayName: 'Comma separated k6 script paths (relative to repo root)'
+    type: string
+    default: 'test/performance/eie/pdvPerformance.js'
+
+  - name: 'K6_SECURE_FILE'
+    displayName: 'Secure file name to download (optional)'
+    type: string
+    default: ''
+
+  - name: 'K6_DURATION'
+    displayName: 'k6 duration (es. 1m, 30s)'
+    type: string
+    default: '1m'
+
+  - name: 'K6_VUS'
+    displayName: 'k6 virtual users'
+    type: number
+    default: 50
+
+  - name: 'K6_RATE'
+    displayName: 'k6 constant arrival rate (req/s)'
+    type: number
+    default: 100
+
+  - name: 'K6_TIME_UNIT'
+    displayName: 'k6 time unit (es. 1s, 500ms)'
+    type: string
+    default: '1s'
+
+  - name: 'K6_ADDITIONAL_ARGS'
+    displayName: 'Additional CLI args for k6 (optional)'
+    type: string
+    default: ''
+
+  - name: 'K6_PDV_URL_OVERRIDE'
+    displayName: 'Override PDV URL (optional)'
+    type: string
+    default: ''
+
+variables:
+
+  - name: working-dir
+    value: '.'
+
+  - name: projectRoot
+    value: $(System.DefaultWorkingDirectory)/$(working-dir)
+
+  # comma separated list of k6 scripts to execute
+  - name: SCRIPTS_TO_EXECUTE
+    value: ${{ parameters.K6_SCRIPT_PATH }}
+
+  - ${{ if eq(parameters.TARGET_ENV, 'dev') }}:
+      - name: selfHostedAgentPool
+        value: cstar-dev-perf-linux
+  - ${{ elseif eq(parameters.TARGET_ENV, 'uat') }}:
+      - name: selfHostedAgentPool
+        value: cstar-uat-perf-linux
+  - ${{ else }}:
+      - name: selfHostedAgentPool
+        value: cstar-prod-perf-linux
+
+  # PDV URL defaults; prod left blank intentionally because no endpoint is available
+  - ${{ if ne(parameters.K6_PDV_URL_OVERRIDE, '') }}:
+      - name: pdvUrl
+        value: ${{ parameters.K6_PDV_URL_OVERRIDE }}
+  - ${{ elseif eq(parameters.TARGET_ENV, 'dev') }}:
+      - name: pdvUrl
+        value: https://idpay.itn.internal.dev.cstar.pagopa.it/mcshareddatavault
+  - ${{ elseif eq(parameters.TARGET_ENV, 'uat') }}:
+      - name: pdvUrl
+        value: https://idpay.itn.internal.uat.cstar.pagopa.it/mcshareddatavault
+  - ${{ else }}:
+      - name: pdvUrl
+        value: ''
+
+  - name: xk6CacheKey
+    value: '"xk6" | "0.57.0" | dotenv'
+
+jobs:
+  - template: templates\xk6-build.yml
+    parameters:
+      xk6CacheKey: '$(xk6CacheKey)'
+      k6Version: v0.57.0
+
+  - template: templates\job-type-switch.yml
+    parameters:
+      name: PerformanceTest
+      displayName: 'Running k6 scripts on ${{ parameters.TARGET_ENV }}'
+      timeoutInMinutes: 0
+      continueOnError: true
+      dependsOn: xk6Build
+
+      deploymentPoolName: $(selfHostedAgentPool)
+      deploymentEnvironment: '${{ upper(parameters.TARGET_ENV) }}'
+      steps:
+
+        - ${{ if ne(parameters.K6_SECURE_FILE, '') }}:
+            - task: DownloadSecureFile@1
+              name: k6_secrets
+              displayName: 'Download secure file ${{ parameters.K6_SECURE_FILE }}'
+              inputs:
+                secureFile: '${{ parameters.K6_SECURE_FILE }}'
+
+        - script: |
+            docker info | grep -i mem
+          displayName: Display Docker Memory Info
+
+        - script: |
+            mkdir -p results
+          displayName: Results folder creation
+
+        - task: Cache@2
+          inputs:
+            key: '$(xk6CacheKey)'
+            path: '$(Build.SourcesDirectory)'
+          displayName: Retrieve xk6 from Cache
+
+        - ${{ each k6Script in split(variables.SCRIPTS_TO_EXECUTE, ',') }}:
+            - script: |
+                set -euo pipefail
+                SCRIPT_PATH="$(echo "${{ k6Script }}" | xargs)"
+                if [ ! -f "$SCRIPT_PATH" ]; then
+                  echo "Script $SCRIPT_PATH non trovato"
+                  exit 1
+                fi
+
+                duration="${{ parameters.K6_DURATION }}"
+                vus="${{ parameters.K6_VUS }}"
+                rate="${{ parameters.K6_RATE }}"
+                time_unit="${{ parameters.K6_TIME_UNIT }}"
+                additional_args="${{ parameters.K6_ADDITIONAL_ARGS }}"
+
+                echo "Eseguo ./xk6 run $SCRIPT_PATH"
+                echo "  TARGET_ENV : $TARGET_ENV"
+                echo "  PDV_URL    : $PDV_URL"
+                echo "  DURATION   : $duration"
+                echo "  VUs        : $vus"
+                echo "  RATE       : $rate"
+                echo "  TIME_UNIT  : $time_unit"
+
+                cmd=(./xk6 run "$SCRIPT_PATH" --duration "$duration" --vus "$vus" --tag environment=${{ parameters.TARGET_ENV }})
+                if [ -n "$additional_args" ]; then
+                  # shellcheck disable=SC2206
+                  extra_args=($additional_args)
+                  cmd+=("${extra_args[@]}")
+                fi
+
+                printf 'Comando: %s\n' "${cmd[*]}"
+                "${cmd[@]}"
+              env:
+                TARGET_ENV: ${{ parameters.TARGET_ENV }}
+                PDV_URL: $(pdvUrl)
+                URL: $(pdvUrl)
+                RATE: ${{ parameters.K6_RATE }}
+                TIME_UNIT: ${{ parameters.K6_TIME_UNIT }}
+                SCENARIO_DURATION_ENV: ${{ parameters.K6_DURATION }}
+                VUS_MAX_ENV: ${{ parameters.K6_VUS }}
+                ${{ if ne(parameters.K6_SECURE_FILE, '') }}:
+                  SECRETS_FILE_PATH: $(k6_secrets.secureFilePath)
+              displayName: Run k6 ${{ k6Script }} on ${{ parameters.TARGET_ENV }}
+              timeoutInMinutes: 0
+
+        - task: PublishPipelineArtifact@1
+          displayName: 'Publishing results of k6 tests in folder: results'
+          condition: true
+          inputs:
+            artifact: 'results'
+            targetPath: 'results'
+            publishLocation: 'pipeline'
