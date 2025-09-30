@@ -16,40 +16,8 @@ parameters:
       - 'uat'
       - 'prod'
 
-  - name: 'K6_SCRIPT_PATH'
-    displayName: 'k6 script da eseguire'
-    type: string
-    default: 'test/performance/eie/pdvPerformance.js'
-    values:
-      - 'test/performance/eie/pdvPerformance.js'
-
-  - name: 'K6_DURATION'
-    displayName: 'Durata test (CLI: --duration, es. 30s, 1m, 10m)'
-    type: string
-    default: '1m'
-
-  - name: 'K6_ITERATIONS'
-    displayName: 'Numero iterazioni totali (CLI: --iterations, 0 = disabilitato)'
-    type: number
-    default: 0
-
-  - name: 'K6_VUS'
-    displayName: 'Virtual users (CLI: --vus)'
-    type: number
-    default: 50
-
-  - name: 'K6_RATE'
-    displayName: 'Valore env K6_RATE (CLI: -e K6_RATE=…, req/s per scenario)'
-    type: number
-    default: 100
-
-  - name: 'K6_TIME_UNIT'
-    displayName: 'Valore env K6_TIME_UNIT (CLI: -e K6_TIME_UNIT=…, es. 1s, 500ms)'
-    type: string
-    default: '1s'
-
   - name: 'K6_SCENARIO_TYPE'
-    displayName: 'Tipologia scenario (ENV: K6_SCENARIO_TYPE)'
+    displayName: 'k6 Tipologia scenario (ENV: K6_SCENARIO_TYPE)'
     type: string
     default: 'constant-arrival-rate'
     values:
@@ -61,28 +29,60 @@ parameters:
       - 'constant-arrival-rate'
       - 'ramping-arrival-rate'
 
+  - name: 'K6_SCRIPT_PATH'
+    displayName: 'k6 script da eseguire'
+    type: string
+    default: 'test/performance/eie/pdvPerformance.js'
+    values:
+      - 'test/performance/eie/pdvPerformance.js'
+
+  - name: 'K6_DURATION'
+    displayName: 'k6 Durata test (CLI: --duration, es. 30s, 1m, 10m)'
+    type: string
+    default: '1m'
+
+  - name: 'K6_ITERATIONS'
+    displayName: 'Numero iterazioni totali (CLI: --iterations, 0 = disabilitato)'
+    type: number
+    default: 0
+
+  - name: 'K6_VUS'
+    displayName: 'k6 Virtual users (CLI: --vus)'
+    type: number
+    default: 50
+
+  - name: 'K6_RATE'
+    displayName: 'Valore env K6_RATE (CLI: -e K6_RATE=…, req/s per scenario)'
+    type: number
+    default: 100
+
+  - name: 'K6_TIME_UNIT'
+    displayName: 'k6 Valore env K6_TIME_UNIT (CLI: -e K6_TIME_UNIT=…, es. 1s, 500ms)'
+    type: string
+    default: '1s'
+
   - name: 'K6_RPS'
-    displayName: 'Limite richieste al secondo (CLI: --rps, 0 = illimitato)'
+    displayName: 'k6 Limite richieste al secondo (CLI: --rps, 0 = illimitato)'
     type: number
     default: 0
 
   - name: 'K6_START_VUS'
-    displayName: 'VU iniziali per ramping-vus (ENV: K6_START_VUS)'
+    displayName: 'k6 VU iniziali per ramping-vus (ENV: K6_START_VUS)'
     type: number
     default: 1
 
   - name: 'K6_PRE_ALLOCATED_VUS'
-    displayName: 'VU pre-allocati (ENV: K6_PRE_ALLOCATED_VUS)'
+    displayName: 'k6 VU pre-allocati (ENV: K6_PRE_ALLOCATED_VUS)'
     type: number
     default: 0
 
   - name: 'K6_MAX_VUS'
-    displayName: 'Limite massimo di VU (ENV: K6_MAX_VUS, 0 = usa K6_VUS)'
+    displayName: 'k6 Limite massimo di VU (ENV: K6_MAX_VUS, 0 = usa K6_VUS)'
     type: number
     default: 0
 
   - name: 'K6_STAGES'
-    displayName: 'Definizione stages (ENV: K6_STAGES, JSON es. [{"duration":"30s","target":10}])'
+    displayName: 'k6 Definizione stages (ENV: K6_STAGES, JSON es. [{"duration":"30s","target":10}])'
     type: string
     default: ''
 
