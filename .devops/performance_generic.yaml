@@ -23,11 +23,6 @@ parameters:
     values:
       - 'test/performance/eie/pdvPerformance.js'
 
-  - name: 'K6_SECURE_FILE'
-    displayName: 'Secure file name to download (optional)'
-    type: string
-    default: ''
-
   - name: 'K6_DURATION'
     displayName: 'k6 duration (es. 1m, 30s)'
     type: string
@@ -115,13 +110,6 @@ jobs:
       deploymentEnvironment: '${{ upper(parameters.TARGET_ENV) }}'
       steps:
 
-        - ${{ if and(ne(parameters.K6_SECURE_FILE, ''), not(eq(parameters.K6_SECURE_FILE, null))) }}:
-            - task: DownloadSecureFile@1
-              name: k6_secrets
-              displayName: 'Download secure file ${{ parameters.K6_SECURE_FILE }}'
-              inputs:
-                secureFile: '${{ parameters.K6_SECURE_FILE }}'
-
         - script: |
             docker info | grep -i mem
           displayName: Display Docker Memory Info
@@ -176,8 +164,6 @@ jobs:
                 TIME_UNIT: ${{ parameters.K6_TIME_UNIT }}
                 SCENARIO_DURATION_ENV: ${{ parameters.K6_DURATION }}
                 VUS_MAX_ENV: ${{ parameters.K6_VUS }}
-                ${{ if and(ne(parameters.K6_SECURE_FILE, ''), not(eq(parameters.K6_SECURE_FILE, null))) }}:
-                  SECRETS_FILE_PATH: $(k6_secrets.secureFilePath)
               displayName: Run k6 ${{ k6Script }} on ${{ parameters.TARGET_ENV }}
               timeoutInMinutes: 0
 
