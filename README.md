@@ -13,11 +13,29 @@ Repository for performance test on computerized list of household appliances
 
 ### Common environment variables
 
-- `TARGET_ENV`: selects the folder under `services/` that provides URLs and credentials for the chosen environment (e.g., `dev`, `uat`).
-- `SCENARIO_TYPE_ENV`: picks the executor (`constant-arrival-rate`, `per-vu-iterations`, `constant-vus`); defaults to `constant-arrival-rate`.
-- `VUS_MAX_ENV`: upper bound on VUs allocated to the scenario; controls concurrency.
-- `RATE`: desired request rate for arrival-based executors; measured in iterations per `TIME_UNIT`.
-- `TIME_UNIT`: granularity for `RATE` (e.g., `1s`, `500ms`); only used by arrival-rate scenarios.
-- `SCENARIO_DURATION_ENV`: wall-clock duration for the scenario (e.g., `1m`, `5m`).
-- `ITERATIONS_ENV`: total iterations per VU for `per-vu-iterations`; ignored by duration-driven executors.
-- `K6_VUS`, `K6_DURATION`, `K6_ITERATIONS`, `K6_RPS`: pipeline-level knobs that are forwarded to k6 CLI flags (`--vus`, `--duration`, `--iterations`, `--rps`).
+- `TARGET_ENV`: selects the JSON file under `config/` that provides URLs for the chosen environment (e.g., `config/dev.json`).
+- `PDV_URL`: optional override for the API base URL; falls back to the value in `config/<env>.json`.
+- `K6_SCENARIO_TYPE`: selects the executor (`manual`, `shared-iterations`, `per-vu-iterations`, `constant-vus`, `ramping-vus`, `constant-arrival-rate`, `ramping-arrival-rate`).
+- `K6_VUS`, `K6_DURATION`, `K6_ITERATIONS`, `K6_RPS`: pipeline-driven knobs that are also passed to k6 CLI flags (`--vus`, `--duration`, `--iterations`, `--rps`).
+- `K6_RATE`, `K6_TIME_UNIT`: control arrival-rate executors (`rate`, `timeUnit`).
+- `K6_PRE_ALLOCATED_VUS`, `K6_MAX_VUS`, `K6_START_VUS`: fine-tune VU allocation for `constant-arrival-rate`, `ramping-arrival-rate`, e `ramping-vus`.
+- `K6_STAGES`: optional stage definition as JSON array (es. `[{"duration":"30s","target":100}]`) usata dagli executors ramping.
+
+### Running locally on macOS
+
+```
+TARGET_ENV=uat \
+K6_SCENARIO_TYPE=constant-arrival-rate \
+K6_RATE=300 K6_TIME_UNIT=1s \
+k6 run --vus 50 --duration 1m ./test/pdv/pdvPerformance.js
+```
+
+Override any variable inline to experiment with different load shapes:
+
+```
+TARGET_ENV=uat \
+K6_SCENARIO_TYPE=ramping-vus \
+K6_VUS=200 K6_START_VUS=50 K6_MAX_VUS=250 \
+K6_STAGES='[{"duration":"30s","target":100},{"duration":"1m","target":200},{"duration":"30s","target":0}]' \
+k6 run --vus 50 --duration 1m ./test/pdv/pdvPerformance.js
+```

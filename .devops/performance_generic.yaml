@@ -39,30 +39,52 @@ parameters:
     default: 50
 
   - name: 'K6_RATE'
-    displayName: 'Valore env RATE (CLI: -e RATE=…, req/s per scenario)'
+    displayName: 'Valore env K6_RATE (CLI: -e K6_RATE=…, req/s per scenario)'
     type: number
     default: 100
 
   - name: 'K6_TIME_UNIT'
-    displayName: 'Valore env TIME_UNIT (CLI: -e TIME_UNIT=…, es. 1s, 500ms)'
+    displayName: 'Valore env K6_TIME_UNIT (CLI: -e K6_TIME_UNIT=…, es. 1s, 500ms)'
     type: string
     default: '1s'
 
   - name: 'K6_SCENARIO_TYPE'
-    displayName: 'Tipologia scenario (CLI: -e SCENARIO_TYPE_ENV)'
+    displayName: 'Tipologia scenario (ENV: K6_SCENARIO_TYPE)'
     type: string
-    default: 'constantArrivalRate'
+    default: 'constant-arrival-rate'
     values:
-      - 'constantArrivalRate'
-      - 'perVuIterations'
-      - 'rampingArrivalRate'
-      - 'rampingGrowingArrivalRate'
-      - 'soakTest'
+      - 'manual'
+      - 'shared-iterations'
+      - 'per-vu-iterations'
+      - 'constant-vus'
+      - 'ramping-vus'
+      - 'constant-arrival-rate'
+      - 'ramping-arrival-rate'
 
   - name: 'K6_RPS'
     displayName: 'Limite richieste al secondo (CLI: --rps, 0 = illimitato)'
     type: number
     default: 0
+
+  - name: 'K6_START_VUS'
+    displayName: 'VU iniziali per ramping-vus (ENV: K6_START_VUS)'
+    type: number
+    default: 1
+
+  - name: 'K6_PRE_ALLOCATED_VUS'
+    displayName: 'VU pre-allocati (ENV: K6_PRE_ALLOCATED_VUS)'
+    type: number
+    default: 0
+
+  - name: 'K6_MAX_VUS'
+    displayName: 'Limite massimo di VU (ENV: K6_MAX_VUS, 0 = usa K6_VUS)'
+    type: number
+    default: 0
+
+  - name: 'K6_STAGES'
+    displayName: 'Definizione stages (ENV: K6_STAGES, JSON es. [{"duration":"30s","target":10}])'
+    type: string
+    default: ''
 
 variables:
 
@@ -137,14 +159,19 @@ jobs:
                 time_unit="${{ parameters.K6_TIME_UNIT }}"
                 rps=${{ parameters.K6_RPS }}
                 echo "Eseguo ./xk6 run $SCRIPT_PATH"
-                echo "  TARGET_ENV : $TARGET_ENV"
-                echo "  PDV_URL    : resolved via services/environments.json"
-                echo "  DURATION   : $duration"
-                echo "  ITERATIONS : $iterations"
-                echo "  VUs        : $vus"
-                echo "  RATE       : $rate"
-                echo "  TIME_UNIT  : $time_unit"
-                echo "  RPS        : $rps"
+                echo "  TARGET_ENV      : $TARGET_ENV"
+                echo "  PDV_URL         : resolved via config/${TARGET_ENV}.json (override with PDV_URL)"
+                echo "  K6_SCENARIO_TYPE: $K6_SCENARIO_TYPE"
+                echo "  K6_DURATION     : $duration"
+                echo "  K6_ITERATIONS   : $iterations"
+                echo "  K6_VUS          : $vus"
+                echo "  K6_RATE         : $rate"
+                echo "  K6_TIME_UNIT    : $time_unit"
+                echo "  K6_RPS          : $rps"
+                echo "  K6_START_VUS    : $K6_START_VUS"
+                echo "  K6_PRE_ALLOC_VUS: $K6_PRE_ALLOCATED_VUS"
+                echo "  K6_MAX_VUS      : $K6_MAX_VUS"
+                echo "  K6_STAGES       : $K6_STAGES"
 
                 cmd=(./xk6 run "$SCRIPT_PATH" --vus "$vus" --tag environment=${{ parameters.TARGET_ENV }})
                 if [ -n "$duration" ] && [ "$duration" != "0" ]; then
@@ -161,13 +188,17 @@ jobs:
                 "${cmd[@]}"
               env:
                 TARGET_ENV: ${{ parameters.TARGET_ENV }}
-                RATE: ${{ parameters.K6_RATE }}
-                TIME_UNIT: ${{ parameters.K6_TIME_UNIT }}
-                SCENARIO_DURATION_ENV: ${{ parameters.K6_DURATION }}
-                VUS_MAX_ENV: ${{ parameters.K6_VUS }}
-                ITERATIONS_ENV: ${{ parameters.K6_ITERATIONS }}
-                SCENARIO_TYPE_ENV: ${{ parameters.K6_SCENARIO_TYPE }}
-                SCENARIO_TIME_UNIT_ENV: ${{ parameters.K6_TIME_UNIT }}
+                K6_SCENARIO_TYPE: ${{ parameters.K6_SCENARIO_TYPE }}
+                K6_DURATION: ${{ parameters.K6_DURATION }}
+                K6_ITERATIONS: ${{ parameters.K6_ITERATIONS }}
+                K6_VUS: ${{ parameters.K6_VUS }}
+                K6_RATE: ${{ parameters.K6_RATE }}
+                K6_TIME_UNIT: ${{ parameters.K6_TIME_UNIT }}
+                K6_RPS: ${{ parameters.K6_RPS }}
+                K6_START_VUS: ${{ parameters.K6_START_VUS }}
+                K6_PRE_ALLOCATED_VUS: ${{ parameters.K6_PRE_ALLOCATED_VUS }}
+                K6_MAX_VUS: ${{ parameters.K6_MAX_VUS }}
+                K6_STAGES: ${{ parameters.K6_STAGES }}
               displayName: Run k6 ${{ k6Script }} on ${{ parameters.TARGET_ENV }}
               timeoutInMinutes: 0
 
