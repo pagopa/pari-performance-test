@@ -1,7 +1,11 @@
-// Esegui con: TARGET_ENV=dev SCENARIO_TYPE_ENV=constant-arrival-rate ./xk6 run test/pdv/pdvPerformance.js
+// macOS usage examples (execute from the repository root):
+//   Basic smoke (just pick the env and default constant-arrival scenario)
+//     TARGET_ENV=uat SCENARIO_TYPE_ENV=constant-arrival-rate k6 run ./test/pdv/pdvPerformance.js
+//   Full control (override VUs, rate, pacing, duration, iterations)
+//     TARGET_ENV=uat SCENARIO_TYPE_ENV=per-vu-iterations VUS_MAX_ENV=200 RATE=300 TIME_UNIT=500ms SCENARIO_DURATION_ENV=1m ITERATIONS_ENV=5 k6 run ./test/pdv/pdvPerformance.js
 import http from 'k6/http'
 import { check } from 'k6'
-import { randomString } from 'https://jslib.k6.io/k6-utils/1.2.0/index.js'
+import { randomString } from 'https://jslib.k6.io/k6-utils/1.6.0/index.js'
 
 const targetEnv = (__ENV.TARGET_ENV || 'dev').trim().toLowerCase()
 const scenarioType = (__ENV.SCENARIO_TYPE_ENV || 'constant-arrival-rate').trim()
