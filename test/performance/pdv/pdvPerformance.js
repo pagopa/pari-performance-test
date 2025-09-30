@@ -7,15 +7,15 @@
 import http from 'k6/http'
 import { check } from 'k6'
 import { randomString } from 'https://jslib.k6.io/k6-utils/1.6.0/index.js'
-import { loadEnvConfig } from '../common/loadEnv.js'
+import { loadEnvConfig } from '../../common/loadEnv.js'
 import {
     toPositiveNumber,
     toTrimmedString,
-} from '../common/basicUtils.js'
+} from '../../common/basicUtils.js'
 import {
     normalizeScenarioType,
     buildScenarioConfig,
-} from '../common/scenarioSetup.js'
+} from '../../common/scenarioSetup.js'
 
 const targetEnv = (__ENV.TARGET_ENV || 'dev').trim().toLowerCase()
 
