@@ -59,7 +59,7 @@ parameters:
     displayName: 'Pre-allocated virtual users (ENV: K6_PRE_ALLOCATED_VUS)'
     type: number
     default: 10
-  
+
   - name: 'K6_START_VUS'
     displayName: 'Starting virtual users for ramping scenarios (ENV: K6_START_VUS)'
     type: number
