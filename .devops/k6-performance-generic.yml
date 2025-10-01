@@ -55,6 +55,11 @@ parameters:
     type: number
     default: 30
 
+  - name: 'K6_MAX_VUS'
+    displayName: 'Maximum virtual users (ENV: K6_MAX_VUS, 0 uses K6_VUS)'
+    type: number
+    default: 0
+
   - name: 'K6_PRE_ALLOCATED_VUS'
     displayName: 'Pre-allocated virtual users (ENV: K6_PRE_ALLOCATED_VUS)'
     type: number
@@ -74,11 +79,6 @@ parameters:
     displayName: 'Time unit for arrival rate (ENV: K6_TIME_UNIT, e.g. 1s, 500ms)'
     type: string
     default: '1s'
-
-  - name: 'K6_MAX_VUS'
-    displayName: 'Maximum virtual users (ENV: K6_MAX_VUS, 0 uses K6_VUS)'
-    type: number
-    default: 0
 
   - name: 'K6_RPS'
     displayName: 'Global requests-per-second cap (CLI: --rps, 0 unlimited)'
