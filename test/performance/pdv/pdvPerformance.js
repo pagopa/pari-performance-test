@@ -39,6 +39,7 @@ const k6StartVus = Math.max(
     1,
     Math.min(k6MaxVus, toPositiveNumber(__ENV.K6_START_VUS) || k6Vus)
 )
+const k6StagesRaw = __ENV.K6_STAGES_JSON ?? __ENV.K6_STAGES
 
 const scenario = buildScenarioConfig(scenarioType, {
     duration: k6Duration,
@@ -49,7 +50,7 @@ const scenario = buildScenarioConfig(scenarioType, {
     preAllocatedVUs: k6PreAllocatedVus,
     maxVUs: k6MaxVus,
     startVUs: k6StartVus,
-    stagesRaw: __ENV.K6_STAGES,
+    stagesRaw: k6StagesRaw,
 })
 
 const testOptions = {

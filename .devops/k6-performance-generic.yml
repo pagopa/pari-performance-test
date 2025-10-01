@@ -157,7 +157,14 @@ jobs:
               rate="${{ parameters.K6_RATE }}"
               time_unit="${{ parameters.K6_TIME_UNIT }}"
               rps=${{ parameters.K6_RPS }}
-              stages_value="${K6_STAGES:-[]}"
+              unset K6_STAGES_JSON
+              stages_json='${{ convertToJson(parameters.K6_STAGES) }}'
+              if [ -z "$stages_json" ] || [ "$stages_json" = "null" ]; then
+                stages_json="[]"
+              fi
+              if [ "$stages_json" != "[]" ]; then
+                export K6_STAGES_JSON="$stages_json"
+              fi
               echo "Running ./xk6 run $SCRIPT_PATH"
               echo "Using environment variables:"
               echo "  TARGET_ENV      : $TARGET_ENV"
@@ -171,7 +178,7 @@ jobs:
               echo "  K6_START_VUS    : $K6_START_VUS"
               echo "  K6_PRE_ALLOCATED_VUS: $K6_PRE_ALLOCATED_VUS"
               echo "  K6_MAX_VUS      : $K6_MAX_VUS"
-              echo "  K6_STAGES       : $stages_value"
+              echo "  K6_STAGES_JSON  : $stages_json"
 
               cmd=(./xk6 run "$SCRIPT_PATH" --vus "$vus" --tag environment=${{ parameters.TARGET_ENV }})
               if [ -n "$duration" ] && [ "$duration" != "0" ]; then
@@ -198,8 +205,6 @@ jobs:
               K6_START_VUS: ${{ parameters.K6_START_VUS }}
               K6_PRE_ALLOCATED_VUS: ${{ parameters.K6_PRE_ALLOCATED_VUS }}
               K6_MAX_VUS: ${{ parameters.K6_MAX_VUS }}
-              ${{ if gt(length(parameters.K6_STAGES), 0) }}:
-                K6_STAGES: ${{ convertToJson(parameters.K6_STAGES) }}
             displayName: Run k6 ${{ k6Script }} on ${{ parameters.TARGET_ENV }}
             timeoutInMinutes: 0
 

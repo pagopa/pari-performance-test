@@ -21,9 +21,9 @@ Repository for performance testing on the computerized list of household applian
 - `K6_MAX_VUS`: upper bound of virtual users k6 may spin up beyond the baseline `K6_VUS`. With arrival-rate executors, k6 automatically increases VUs when needed to keep up with `K6_RATE`. Setting this to `0` means “do not go above `K6_VUS`”.
 - `K6_START_VUS`: starting point for `ramping-vus`. A low value softens the ramp, while matching `K6_VUS` removes any warm-up.
 - `K6_RPS`: global requests-per-second guard rail applied via the CLI. Even if the scenario attempts a higher throughput, k6 throttles actual HTTP requests to the specified cap. Use it to protect shared environments or mimic upstream throttling rules.
-- `K6_STAGES` (pipeline object parameter turned environment variable): optional JSON array of `{ duration, target }` objects consumed by `buildScenarioConfig`. Supply it in the pipeline as YAML (for example `K6_STAGES:
+- `K6_STAGES`: object parameter converted at runtime to the env var `K6_STAGES_JSON`. Provide it in YAML form (for example `K6_STAGES:
   - duration: "3m"
-    target: 1000`) or override it via CLI to control complex ramps beyond the defaults derived from `K6_DURATION`.
+    target: 1000`) and the pipeline will emit the compact JSON string that the script consumes. For local runs you can pass either `K6_STAGES_JSON='[...]'` or the legacy `K6_STAGES='[...]'`.
 - `K6_ITERATIONS`: total number of iterations to complete. When greater than zero it enables deterministic workloads in `shared-iterations` or `per-vu-iterations`; a value of `0` hands control back to duration-based execution.
 
 ## How the parameters interact
