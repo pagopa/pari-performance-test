@@ -40,6 +40,13 @@ parameters:
     displayName: 'Optional ramp stages (ENV: K6_STAGES)'
     type: object
     default: []
+    helpMarkDown: >-
+      Only used by scenario types that rely on staged ramps ("ramping-vus" and
+      "ramping-arrival-rate"). When set, avoid adding CLI `--stage` flags and
+      remember it has no effect with executors such as "manual",
+      "shared-iterations", "per-vu-iterations", "constant-vus" or
+      "constant-arrival-rate"; those will continue to use `K6_DURATION`,
+      `K6_VUS`, and `K6_RATE` instead.
 
   - name: 'K6_DURATION'
     displayName: 'k6 test duration (CLI: --duration, e.g. 30s, 1m, 10m)'
