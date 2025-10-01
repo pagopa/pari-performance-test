@@ -1,4 +1,4 @@
-import { randomString, randomIntBetween, } from 'https://jslib.k6.io/k6-utils/1.1.0/index.js'
+import { randomString, randomIntBetween } from 'https://jslib.k6.io/k6-utils/1.1.0/index.js'
 import papaparse from 'https://jslib.k6.io/papaparse/5.1.1/index.js'
 import exec from 'k6/execution'
 import { randomBytes } from 'k6/crypto';

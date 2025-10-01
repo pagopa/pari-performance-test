@@ -1,0 +1,174 @@
+# Generic pipeline to execute k6 scripts with environment-driven configuration
+
+trigger: none
+
+pool:
+  vmImage: ubuntu-22.04
+
+parameters:
+
+  - name: 'K6_SCRIPT_PATH'
+    displayName: 'k6 script path to execute'
+    type: string
+    default: 'test/performance/pdv/pdvPerformance.js'
+    values:
+      - 'test/performance/pdv/pdvPerformance.js'
+
+  - name: 'TARGET_ENV'
+    displayName: 'Target environment for configuration'
+    type: string
+    default: 'uat'
+    values:
+      - 'dev'
+      - 'uat'
+      - 'prod'
+
+  - name: 'K6_SCENARIO_TYPE'
+    displayName: 'k6 scenario executor (ENV: K6_SCENARIO_TYPE)'
+    type: string
+    default: 'constant-arrival-rate'
+    values:
+      - 'manual'
+      - 'shared-iterations'
+      - 'per-vu-iterations'
+      - 'constant-vus'
+      - 'ramping-vus'
+      - 'constant-arrival-rate'
+      - 'ramping-arrival-rate'
+
+  # Applies only to staged executors: `ramping-vus` and `ramping-arrival-rate`.
+  # Ignored by `manual`, `shared-iterations`, `per-vu-iterations`,
+  # `constant-vus`, and `constant-arrival-rate`, which depend on other knobs
+  # such as K6_DURATION, K6_VUS, and K6_RATE.
+  - name: 'K6_STAGES'
+    displayName: 'Optional ramp stages (ENV: K6_STAGES). ℹ️ Only for ramping-vus and ramping-arrival-rate scenarios.'
+    type: object
+    default: []
+
+  - name: 'K6_DURATION'
+    displayName: 'k6 test duration (CLI: --duration, e.g. 30s, 1m, 10m)'
+    type: string
+    default: '30s'
+
+  - name: 'K6_VUS'
+    displayName: 'k6 virtual users (CLI: --vus)'
+    type: number
+    default: 30
+
+  - name: 'K6_PRE_ALLOCATED_VUS'
+    displayName: 'Pre-allocated virtual users (ENV: K6_PRE_ALLOCATED_VUS)'
+    type: number
+    default: 10
+
+  - name: 'K6_START_VUS'
+    displayName: 'Starting virtual users for ramping scenarios (ENV: K6_START_VUS)'
+    type: number
+    default: 1
+
+  - name: 'K6_RATE'
+    displayName: 'Arrival rate per time unit (ENV: K6_RATE, req/s)'
+    type: number
+    default: 10
+
+  - name: 'K6_TIME_UNIT'
+    displayName: 'Time unit for arrival rate (ENV: K6_TIME_UNIT, e.g. 1s, 500ms)'
+    type: string
+    default: '1s'
+
+  - name: 'K6_MAX_VUS'
+    displayName: 'Maximum virtual users (ENV: K6_MAX_VUS, 0 uses K6_VUS)'
+    type: number
+    default: 0
+
+  - name: 'K6_RPS'
+    displayName: 'Global requests-per-second cap (CLI: --rps, 0 unlimited)'
+    type: number
+    default: 0
+
+  - name: 'K6_ITERATIONS'
+    displayName: 'Total iterations (CLI: --iterations, 0 disables)'
+    type: number
+    default: 0
+
+
+variables:
+
+  - name: working-dir
+    value: '.'
+
+  - name: projectRoot
+    value: $(System.DefaultWorkingDirectory)/$(working-dir)
+
+  # comma separated list of k6 scripts to execute
+  - name: SCRIPTS_TO_EXECUTE
+    value: ${{ parameters.K6_SCRIPT_PATH }}
+
+  - ${{ if eq(parameters.TARGET_ENV, 'dev') }}:
+      - name: selfHostedAgentPool
+        value: cstar-dev-perf-linux
+  - ${{ elseif eq(parameters.TARGET_ENV, 'uat') }}:
+      - name: selfHostedAgentPool
+        value: cstar-uat-perf-linux
+  - ${{ else }}:
+      - name: selfHostedAgentPool
+        value: cstar-prod-perf-linux
+
+  - name: xk6CacheKey
+    value: '"xk6" | "1.3.0" | dotenv'
+
+jobs:
+  - template: templates\xk6-build.yml
+    parameters:
+      xk6CacheKey: '$(xk6CacheKey)'
+      k6Version: v1.3.0
+
+  - job: PerformanceTest
+    displayName: '✈️ Running k6 scripts on ${{ parameters.TARGET_ENV }}'
+    timeoutInMinutes: 0
+    continueOnError: true
+    dependsOn: xk6Build
+    pool:
+      name: $(selfHostedAgentPool)
+    steps:
+
+      - script: |
+          docker info | grep -i mem
+        displayName: Display Docker Memory Info
+
+      - script: |
+          mkdir -p results
+        displayName: Create results folder
+
+      - task: Cache@2
+        inputs:
+          key: '$(xk6CacheKey)'
+          path: '$(Build.SourcesDirectory)'
+        displayName: Retrieve xk6 from Cache
+
+      - ${{ each k6Script in split(variables.SCRIPTS_TO_EXECUTE, ',') }}:
+          - script: |
+              python3 .devops/scripts/run_k6.py --script "${{ k6Script }}"
+            env:
+              TARGET_ENV: ${{ parameters.TARGET_ENV }}
+              K6_SCENARIO_TYPE: ${{ parameters.K6_SCENARIO_TYPE }}
+              K6_DURATION: ${{ parameters.K6_DURATION }}
+              K6_ITERATIONS: ${{ parameters.K6_ITERATIONS }}
+              K6_VUS: ${{ parameters.K6_VUS }}
+              K6_RATE: ${{ parameters.K6_RATE }}
+              K6_TIME_UNIT: ${{ parameters.K6_TIME_UNIT }}
+              K6_RPS: ${{ parameters.K6_RPS }}
+              K6_START_VUS: ${{ parameters.K6_START_VUS }}
+              K6_PRE_ALLOCATED_VUS: ${{ parameters.K6_PRE_ALLOCATED_VUS }}
+              K6_MAX_VUS: ${{ parameters.K6_MAX_VUS }}
+              ${{ if gt(length(parameters.K6_STAGES), 0) }}:
+                K6_STAGES_PARAM: ${{ convertToJson(parameters.K6_STAGES) }}
+            timeoutInMinutes: 0
+            displayName: '🚀 Run k6 script ${{ k6Script }}'
+
+      - task: PublishPipelineArtifact@1
+        displayName: 'Publishing results of k6 tests in folder: results'
+        condition: true
+        inputs:
+          artifact: 'results'
+          targetPath: 'results'
+          publishLocation: 'pipeline'
