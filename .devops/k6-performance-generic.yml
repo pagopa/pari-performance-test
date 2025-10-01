@@ -156,6 +156,7 @@ jobs:
               rate="${{ parameters.K6_RATE }}"
               time_unit="${{ parameters.K6_TIME_UNIT }}"
               rps=${{ parameters.K6_RPS }}
+              stages_value="${K6_STAGES:-[]}"
               echo "Running ./xk6 run $SCRIPT_PATH"
               echo "Using environment variables:"
               echo "  TARGET_ENV      : $TARGET_ENV"
@@ -169,7 +170,7 @@ jobs:
               echo "  K6_START_VUS    : $K6_START_VUS"
               echo "  K6_PRE_ALLOCATED_VUS: $K6_PRE_ALLOCATED_VUS"
               echo "  K6_MAX_VUS      : $K6_MAX_VUS"
-              echo "  K6_STAGES       : $K6_STAGES"
+              echo "  K6_STAGES       : $stages_value"
 
               cmd=(./xk6 run "$SCRIPT_PATH" --vus "$vus" --tag environment=${{ parameters.TARGET_ENV }})
               if [ -n "$duration" ] && [ "$duration" != "0" ]; then
