@@ -152,8 +152,8 @@ jobs:
               time_unit="${{ parameters.K6_TIME_UNIT }}"
               rps=${{ parameters.K6_RPS }}
               echo "Eseguo ./xk6 run $SCRIPT_PATH"
+              echo "With environment variables:"
               echo "  TARGET_ENV      : $TARGET_ENV"
-              echo "  PDV_URL         : resolved via config/${TARGET_ENV}.json (override with PDV_URL)"
               echo "  K6_SCENARIO_TYPE: $K6_SCENARIO_TYPE"
               echo "  K6_DURATION     : $duration"
               echo "  K6_ITERATIONS   : $iterations"
