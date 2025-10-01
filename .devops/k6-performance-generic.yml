@@ -119,7 +119,7 @@ jobs:
       k6Version: v1.3.0
 
   - job: PerformanceTest
-    displayName: '🚀 Running k6 scripts on ${{ parameters.TARGET_ENV }}'
+    displayName: '✈️ Running k6 scripts on ${{ parameters.TARGET_ENV }}'
     timeoutInMinutes: 0
     continueOnError: true
     dependsOn: xk6Build
@@ -142,7 +142,8 @@ jobs:
         displayName: Retrieve xk6 from Cache
 
       - ${{ each k6Script in split(variables.SCRIPTS_TO_EXECUTE, ',') }}:
-          - script: |
+          - name: 🚀 Run k6 ${{ k6Script }} on ${{ parameters.TARGET_ENV }}
+            script: |
               set -euo pipefail
               SCRIPT_PATH="$(echo "${{ k6Script }}" | xargs)"
               if [ ! -f "$SCRIPT_PATH" ]; then
