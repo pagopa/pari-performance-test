@@ -142,8 +142,7 @@ jobs:
         displayName: Retrieve xk6 from Cache
 
       - ${{ each k6Script in split(variables.SCRIPTS_TO_EXECUTE, ',') }}:
-          - name: 🚀 Run k6 ${{ k6Script }} on ${{ parameters.TARGET_ENV }}
-            script: |
+          - script: |
               set -euo pipefail
               SCRIPT_PATH="$(echo "${{ k6Script }}" | xargs)"
               if [ ! -f "$SCRIPT_PATH" ]; then
