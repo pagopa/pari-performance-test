@@ -48,17 +48,17 @@ parameters:
   - name: 'K6_DURATION'
     displayName: 'k6 test duration (CLI: --duration, e.g. 30s, 1m, 10m)'
     type: string
-    default: '1m'
+    default: '30s'
 
   - name: 'K6_VUS'
     displayName: 'k6 virtual users (CLI: --vus)'
     type: number
-    default: 50
+    default: 30
 
   - name: 'K6_PRE_ALLOCATED_VUS'
     displayName: 'Pre-allocated virtual users (ENV: K6_PRE_ALLOCATED_VUS)'
     type: number
-    default: 0
+    default: 10
   
   - name: 'K6_START_VUS'
     displayName: 'Starting virtual users for ramping scenarios (ENV: K6_START_VUS)'
@@ -68,7 +68,7 @@ parameters:
   - name: 'K6_RATE'
     displayName: 'Arrival rate per time unit (ENV: K6_RATE, req/s)'
     type: number
-    default: 100
+    default: 10
 
   - name: 'K6_TIME_UNIT'
     displayName: 'Time unit for arrival rate (ENV: K6_TIME_UNIT, e.g. 1s, 500ms)'
