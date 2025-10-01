@@ -143,55 +143,7 @@ jobs:
 
       - ${{ each k6Script in split(variables.SCRIPTS_TO_EXECUTE, ',') }}:
           - script: |
-              set -euo pipefail
-              SCRIPT_PATH="$(echo "${{ k6Script }}" | xargs)"
-              if [ ! -f "$SCRIPT_PATH" ]; then
-                echo "Script $SCRIPT_PATH not found"
-                exit 1
-              fi
-
-              duration="${{ parameters.K6_DURATION }}"
-              iterations=${{ parameters.K6_ITERATIONS }}
-              vus="${{ parameters.K6_VUS }}"
-              rate="${{ parameters.K6_RATE }}"
-              time_unit="${{ parameters.K6_TIME_UNIT }}"
-              rps=${{ parameters.K6_RPS }}
-              unset K6_STAGES_JSON
-              stages_json='${{ convertToJson(parameters.K6_STAGES) }}'
-              if [ -z "$stages_json" ] || [ "$stages_json" = "null" ]; then
-                stages_json="[]"
-              fi
-              if [ "$stages_json" != "[]" ]; then
-                export K6_STAGES_JSON="$stages_json"
-              fi
-              echo "Running ./xk6 run $SCRIPT_PATH"
-              echo "Using environment variables:"
-              echo "  TARGET_ENV      : $TARGET_ENV"
-              echo "  K6_SCENARIO_TYPE: $K6_SCENARIO_TYPE"
-              echo "  K6_DURATION     : $duration"
-              echo "  K6_ITERATIONS   : $iterations"
-              echo "  K6_VUS          : $vus"
-              echo "  K6_RATE         : $rate"
-              echo "  K6_TIME_UNIT    : $time_unit"
-              echo "  K6_RPS          : $rps"
-              echo "  K6_START_VUS    : $K6_START_VUS"
-              echo "  K6_PRE_ALLOCATED_VUS: $K6_PRE_ALLOCATED_VUS"
-              echo "  K6_MAX_VUS      : $K6_MAX_VUS"
-              echo "  K6_STAGES_JSON  : $stages_json"
-
-              cmd=(./xk6 run "$SCRIPT_PATH" --vus "$vus" --tag environment=${{ parameters.TARGET_ENV }})
-              if [ -n "$duration" ] && [ "$duration" != "0" ]; then
-                cmd+=(--duration "$duration")
-              fi
-              if [ "$iterations" -gt 0 ]; then
-                cmd+=(--iterations "$iterations")
-              fi
-              if [ "$rps" -gt 0 ]; then
-                cmd+=(--rps "$rps")
-              fi
-
-              printf 'Command: %s\n' "${cmd[*]}"
-              "${cmd[@]}"
+              python3 .devops/run_k6_script.py --script "${{ k6Script }}"
             env:
               TARGET_ENV: ${{ parameters.TARGET_ENV }}
               K6_SCENARIO_TYPE: ${{ parameters.K6_SCENARIO_TYPE }}
@@ -204,6 +156,7 @@ jobs:
               K6_START_VUS: ${{ parameters.K6_START_VUS }}
               K6_PRE_ALLOCATED_VUS: ${{ parameters.K6_PRE_ALLOCATED_VUS }}
               K6_MAX_VUS: ${{ parameters.K6_MAX_VUS }}
+              K6_STAGES_PARAM: ${{ convertToJson(parameters.K6_STAGES) }}
             timeoutInMinutes: 0
             displayName: '🚀 Run k6 script ${{ k6Script }}'
 

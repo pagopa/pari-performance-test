@@ -5,7 +5,7 @@ Repository for performance testing on the computerized list of household applian
 ## Project overview
 
 - Build phase: the pipeline compiles a custom `xk6` binary (via `templates\xk6-build.yml`) only when the cache is cold, keeping runs deterministic across environments.
-- Execution phase: each entry in `SCRIPTS_TO_EXECUTE` is executed sequentially against the selected environment using the executor requested through `K6_SCENARIO_TYPE`.
+- Execution phase: each entry in `SCRIPTS_TO_EXECUTE` is executed via the Python helper `.devops/run_k6_script.py`, which resolves parameters, expands stages into CLI flags, and launches `./xk6 run` against the selected environment.
 - Results: artifacts generated under `results/` are published at the end of the job for downstream analysis or manual inspection.
 
 ## k6 concepts defined in `.devops/performance_generic.yaml`
@@ -21,9 +21,9 @@ Repository for performance testing on the computerized list of household applian
 - `K6_MAX_VUS`: upper bound of virtual users k6 may spin up beyond the baseline `K6_VUS`. With arrival-rate executors, k6 automatically increases VUs when needed to keep up with `K6_RATE`. Setting this to `0` means “do not go above `K6_VUS`”.
 - `K6_START_VUS`: starting point for `ramping-vus`. A low value softens the ramp, while matching `K6_VUS` removes any warm-up.
 - `K6_RPS`: global requests-per-second guard rail applied via the CLI. Even if the scenario attempts a higher throughput, k6 throttles actual HTTP requests to the specified cap. Use it to protect shared environments or mimic upstream throttling rules.
-- `K6_STAGES`: object parameter converted at runtime to the env var `K6_STAGES_JSON`. Provide it in YAML form (for example `K6_STAGES:
+- `K6_STAGES`: object parameter converted at runtime to the env var `K6_STAGES_JSON` and mirrored as CLI `--stage <duration>:<target>` flags. Provide it in YAML form (for example `K6_STAGES:
   - duration: "3m"
-    target: 1000`) and the pipeline will emit the compact JSON string that the script consumes. For local runs you can pass either `K6_STAGES_JSON='[...]'` or the legacy `K6_STAGES='[...]'`.
+    target: 1000`) and the pipeline will emit both the compact JSON string consumed by the script and the equivalent CLI stages. For local runs you can pass either `K6_STAGES_JSON='[...]'`, the legacy `K6_STAGES='[...]'`, or explicit `--stage` arguments.
 - `K6_ITERATIONS`: total number of iterations to complete. When greater than zero it enables deterministic workloads in `shared-iterations` or `per-vu-iterations`; a value of `0` hands control back to duration-based execution.
 
 ## How the parameters interact
