@@ -205,7 +205,6 @@ jobs:
               K6_START_VUS: ${{ parameters.K6_START_VUS }}
               K6_PRE_ALLOCATED_VUS: ${{ parameters.K6_PRE_ALLOCATED_VUS }}
               K6_MAX_VUS: ${{ parameters.K6_MAX_VUS }}
-            displayName: Run k6 ${{ k6Script }} on ${{ parameters.TARGET_ENV }}
             timeoutInMinutes: 0
 
       - task: PublishPipelineArtifact@1
