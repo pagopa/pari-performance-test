@@ -96,7 +96,7 @@ export function setup() {
 export default function (data) {
     const token = data.tokenList[Math.floor(Math.random() * data.tokenList.length)]
 
-    const url = `${baseUrl}/idpay-itn/onboarding/${initiativeId}/status`
+    const url = `${baseUrl}/onboarding/${initiativeId}/status`
 
     const headers = {
         'X-Api-Version': 'v1',
