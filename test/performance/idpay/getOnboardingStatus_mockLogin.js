@@ -24,7 +24,6 @@ const targetEnv = (__ENV.TARGET_ENV || 'dev').trim().toLowerCase()
 
 const envConfig = loadEnvConfig(targetEnv)
 
-// todo url
 const baseUrl = toTrimmedString(__ENV.APIM_URL, envConfig.apimUrl || '')
 if (!baseUrl) {
     throw new Error(`Missing APIM_URL for environment: ${targetEnv}`)
@@ -44,8 +43,6 @@ const k6StartVus = Math.max(
     Math.min(k6MaxVus, toPositiveNumber(__ENV.K6_START_VUS) || k6Vus)
 )
 const k6StagesRaw = __ENV.K6_STAGES_JSON ?? __ENV.K6_STAGES
-
-const initiativeId = '68dd003ccce8c534d1da22bc'
 
 const scenario = buildScenarioConfig(scenarioType, {
     duration: k6Duration,
@@ -78,6 +75,8 @@ export function handleSummary(data) {
         stdout: textSummary(data, { indent: ' ', enableColors: true }),
     }
 }
+
+const initiativeId = '68dd003ccce8c534d1da22bc'
 
 export function setup() {
     const tokenList = []
