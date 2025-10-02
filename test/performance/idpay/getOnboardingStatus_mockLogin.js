@@ -7,6 +7,7 @@
 
 import http from 'k6/http'
 import { check } from 'k6'
+import { textSummary } from 'https://jslib.k6.io/k6-summary/0.0.2/index.js'
 import { getMockLogin } from '../../common/api/mockIOLogin.js'
 import {
     toPositiveNumber,
@@ -72,6 +73,12 @@ if (scenario) {
 
 export const options = testOptions
 
+export function handleSummary(data) {
+    return {
+        stdout: textSummary(data, { indent: ' ', enableColors: true }),
+    }
+}
+
 export function setup() {
     const tokenList = []
     const fcList = getFCList()
@@ -110,19 +117,17 @@ export default function (data) {
 
     check(res, {
         'is 404': (r) => r.status === 404,
-        'body is not empty': (r) => r.body.length > 0,
+        'body is not empty': (r) => r.body && r.body.length > 0,
         'body is a json': (r) => {
             try {
                 JSON.parse(r.body)
                 return true
             } catch (e) {
+                console.error(`Failed to parse JSON for token [...${token.slice(-10)}]: ${r.body}`)
                 return false
             }
         },
     })
-
-    console.log(`Response for token [${token}]: Status=${res.status}, Body=${res.body}`)
-    console.log(res)
 }
 
 // TARGET_ENV=uat K6_VUS=10 K6_DURATION=30s K6_RATE=10 python3 .devops/scripts/run_k6.py --script  test/performance/idpay/getOnboardingStatus_mockLogin.js
