@@ -9,7 +9,7 @@ const scenarioRampCustomStages = setStages(
 
 export default {
     rampingArrivalRate: {
-        executor: 'ramping-arrival-rate', 
+        executor: 'ramping-arrival-rate',
         timeUnit: `${CONFIG.SCENARIOS.RAMPS.STAGE_SECONDS_DURATION}s`,
         preAllocatedVUs: CONFIG.VIRTUAL_USERS,
         maxVUs: Math.min(
