@@ -288,6 +288,25 @@ def _prepare_environment(env, k6_run_settings):
     return stage_flags
 
 
+def _print_invalid_configuration_summary(script_path, k6_run_settings):
+    scenario_raw = k6_run_settings["scenario_type_raw"].strip() or "<missing>"
+    scenario_normalized = k6_run_settings["scenario_type"] or "<invalid>"
+
+    print(f"📋 Requested configuration for {script_path}:")
+    print(f"  TARGET_ENV        : {k6_run_settings['target_env']}")
+    print(f"  K6_SCENARIO_TYPE  : {scenario_raw} (normalized: {scenario_normalized})")
+    print(f"  K6_DURATION       : {_format_text_for_display(k6_run_settings['duration_value'])}")
+    print(f"  K6_ITERATIONS     : {_format_int_for_display(k6_run_settings['iterations'])}")
+    print(f"  K6_VUS            : {_format_int_for_display(k6_run_settings['vus'])}")
+    print(f"  K6_RATE           : {_format_int_for_display(k6_run_settings['rate'])}")
+    print(f"  K6_TIME_UNIT      : {_format_text_for_display(k6_run_settings['time_unit_value'])}")
+    print(f"  K6_RPS            : {_format_int_for_display(k6_run_settings['rps'])}")
+    print(f"  K6_START_VUS      : {_format_int_for_display(k6_run_settings['start_vus'])}")
+    print(f"  K6_PRE_ALLOCATED_VUS: {_format_int_for_display(k6_run_settings['pre_allocated_vus'])}")
+    print(f"  K6_MAX_VUS        : {_format_int_for_display(k6_run_settings['max_vus'])}")
+    print(f"  K6_STAGES (count) : {len(k6_run_settings['stages'])}")
+
+
 def _print_run_summary(script_path, k6_run_settings, env, stage_flags, ignored_params):
     print(f"🚀 Running ./xk6 run {script_path}")
     print("ℹ️ Using environment variables:")
@@ -335,6 +354,11 @@ def _build_command(script_path, k6_run_settings, stage_flags):
 def main() -> int:
     parser = argparse.ArgumentParser(description="Run a k6 script with pipeline configuration")
     parser.add_argument("--script", required=True, help="Path to the k6 script to execute")
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Validate configuration without invoking xk6",
+    )
     args = parser.parse_args()
 
     script_path = pathlib.Path(args.script.strip())
@@ -357,7 +381,8 @@ def main() -> int:
     ignored_params.update(ignored_from_validation)
 
     if errors:
-        print("❌ Configuration errors detected:", file=sys.stderr)
+        _print_invalid_configuration_summary(script_path, k6_run_settings)
+        print("❌ Parameter validation failed:", file=sys.stderr)
         for item in errors:
             print(f"  - {item}", file=sys.stderr)
         return 1
@@ -369,6 +394,10 @@ def main() -> int:
     cmd = _build_command(script_path, k6_run_settings, stage_flags)
 
     print(f"🛠️ Command: {' '.join(cmd)}")
+
+    if args.dry_run:
+        print("✅ Dry run successful; skipping xk6 execution.")
+        return 0
 
     completed = subprocess.run(cmd, env=env)
     return completed.returncode
