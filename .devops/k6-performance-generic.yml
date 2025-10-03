@@ -145,6 +145,8 @@ jobs:
               K6_START_VUS: ${{ parameters.K6_START_VUS }}
               K6_PRE_ALLOCATED_VUS: ${{ parameters.K6_PRE_ALLOCATED_VUS }}
               K6_MAX_VUS: ${{ parameters.K6_MAX_VUS }}
+              ${{ if gt(length(parameters.K6_STAGES), 0) }}:
+                K6_STAGES_PARAM: ${{ convertToJson(parameters.K6_STAGES) }}
 
   - job: PerformanceTest
     displayName: '✈️ Running k6 scripts on ${{ parameters.TARGET_ENV }}'
