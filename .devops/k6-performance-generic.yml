@@ -26,7 +26,6 @@ parameters:
   - name: 'K6_SCENARIO_TYPE'
     displayName: 'k6 scenario executor (ENV: K6_SCENARIO_TYPE)'
     type: string
-    default: 'constant-arrival-rate'
     values:
       - 'manual'
       - 'shared-iterations'
@@ -48,37 +47,37 @@ parameters:
   - name: 'K6_DURATION'
     displayName: 'k6 test duration (CLI: --duration, e.g. 30s, 1m, 10m)'
     type: string
-    default: '30s'
+    default: '0s'  # disabled: the helper script requires a positive duration when needed
 
   - name: 'K6_VUS'
     displayName: 'k6 virtual users (CLI: --vus)'
     type: number
-    default: 30
+    default: 0  # disabled: must be overridden for VU-based scenarios
 
   - name: 'K6_MAX_VUS'
-    displayName: 'Maximum virtual users (ENV: K6_MAX_VUS, 0 uses K6_VUS)'
+    displayName: 'Maximum virtual users (ENV: K6_MAX_VUS, required for arrival scenarios)'
     type: number
     default: 0
 
   - name: 'K6_PRE_ALLOCATED_VUS'
     displayName: 'Pre-allocated virtual users (ENV: K6_PRE_ALLOCATED_VUS)'
     type: number
-    default: 10
+    default: 0  # disabled: arrival-rate scenarios must size the pool explicitly
 
   - name: 'K6_START_VUS'
     displayName: 'Starting virtual users for ramping scenarios (ENV: K6_START_VUS)'
     type: number
-    default: 1
+    default: 0  # disabled: ramping scenarios must define start VUs
 
   - name: 'K6_RATE'
     displayName: 'Arrival rate per time unit (ENV: K6_RATE, req/s)'
     type: number
-    default: 10
+    default: 0  # disabled: arrival-rate scenarios must define an explicit rate
 
   - name: 'K6_TIME_UNIT'
     displayName: 'Time unit for arrival rate (ENV: K6_TIME_UNIT, e.g. 1s, 500ms)'
     type: string
-    default: '1s'
+    default: '0s'  # disabled placeholder interpreted as missing
 
   - name: 'K6_RPS'
     displayName: 'Global requests-per-second cap (CLI: --rps, 0 unlimited)'
