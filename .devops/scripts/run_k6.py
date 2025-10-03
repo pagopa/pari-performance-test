@@ -62,6 +62,21 @@ def _parse_stage_list(raw_value):
     return normalized
 
 
+def _apply_positive_env_value(env, key, value):
+    if value > 0:
+        env[key] = str(value)
+    else:
+        env.pop(key, None)
+
+
+def _format_int_for_display(value):
+    return str(value) if value > 0 else "<disabled>"
+
+
+def _format_text_for_display(value):
+    return value if value else "<disabled>"
+
+
 def _parse_configuration(env):
     errors = []
 
@@ -228,6 +243,96 @@ def _validate_configuration(k6_run_settings):
     return errors, ignored_params
 
 
+def _prepare_environment(env, k6_run_settings):
+    env["TARGET_ENV"] = k6_run_settings["target_env"]
+    env["K6_SCENARIO_TYPE"] = k6_run_settings["scenario_type"]
+
+    if k6_run_settings["duration_enabled"]:
+        env["K6_DURATION"] = k6_run_settings["duration_value"]
+    else:
+        env.pop("K6_DURATION", None)
+
+    _apply_positive_env_value(env, "K6_ITERATIONS", k6_run_settings["iterations"])
+    _apply_positive_env_value(env, "K6_VUS", k6_run_settings["vus"])
+    _apply_positive_env_value(env, "K6_RPS", k6_run_settings["rps"])
+
+    if k6_run_settings["scenario_type"] in ARRIVAL_SCENARIOS:
+        if k6_run_settings["time_unit_enabled"]:
+            env["K6_TIME_UNIT"] = k6_run_settings["time_unit_value"]
+        else:
+            env.pop("K6_TIME_UNIT", None)
+        _apply_positive_env_value(env, "K6_RATE", k6_run_settings["rate"])
+        _apply_positive_env_value(env, "K6_PRE_ALLOCATED_VUS", k6_run_settings["pre_allocated_vus"])
+        _apply_positive_env_value(env, "K6_MAX_VUS", k6_run_settings["max_vus"])
+    else:
+        env.pop("K6_TIME_UNIT", None)
+        for key in ("K6_RATE", "K6_PRE_ALLOCATED_VUS", "K6_MAX_VUS"):
+            env.pop(key, None)
+
+    if k6_run_settings["scenario_type"] == "ramping-vus":
+        _apply_positive_env_value(env, "K6_START_VUS", k6_run_settings["start_vus"])
+    else:
+        env.pop("K6_START_VUS", None)
+
+    stage_flags = []
+    if k6_run_settings["scenario_type"] in RAMPING_SCENARIOS and k6_run_settings["stages"]:
+        env["K6_STAGES_JSON"] = json.dumps(k6_run_settings["stages"])
+        stage_flags = [
+            flag
+            for stage in k6_run_settings["stages"]
+            for flag in ("--stage", f"{stage['duration']}:{stage['target']}")
+        ]
+    else:
+        env.pop("K6_STAGES_JSON", None)
+
+    return stage_flags
+
+
+def _print_run_summary(script_path, k6_run_settings, env, stage_flags, ignored_params):
+    print(f"🚀 Running ./xk6 run {script_path}")
+    print("ℹ️ Using environment variables:")
+    print(f"  TARGET_ENV      : {k6_run_settings['target_env']}")
+    print(f"  K6_SCENARIO_TYPE: {k6_run_settings['scenario_type']}")
+    print(f"  K6_DURATION     : {_format_text_for_display(k6_run_settings['duration_value'])}")
+    print(f"  K6_ITERATIONS   : {_format_int_for_display(k6_run_settings['iterations'])}")
+    print(f"  K6_VUS          : {_format_int_for_display(k6_run_settings['vus'])}")
+    print(f"  K6_RATE         : {_format_int_for_display(k6_run_settings['rate'])}")
+    print(f"  K6_TIME_UNIT    : {_format_text_for_display(k6_run_settings['time_unit_value'])}")
+    print(f"  K6_RPS          : {_format_int_for_display(k6_run_settings['rps'])}")
+    print(f"  K6_START_VUS    : {_format_int_for_display(k6_run_settings['start_vus'])}")
+    print(f"  K6_PRE_ALLOCATED_VUS: {_format_int_for_display(k6_run_settings['pre_allocated_vus'])}")
+    print(f"  K6_MAX_VUS      : {_format_int_for_display(k6_run_settings['max_vus'])}")
+    print(f"  K6_STAGES_JSON  : {env.get('K6_STAGES_JSON', '[]')}")
+    print(f"  CLI --stage args: {stage_flags if stage_flags else '[]'}")
+
+    if ignored_params:
+        ignored_list = ", ".join(sorted(ignored_params))
+        print(
+            f"⚠️ Ignoring parameters for scenario '{k6_run_settings['scenario_type']}': {ignored_list}",
+            file=sys.stderr,
+        )
+
+
+def _build_command(script_path, k6_run_settings, stage_flags):
+    cmd = ["./xk6", "run", str(script_path)]
+
+    if k6_run_settings["vus"] > 0:
+        cmd.extend(["--vus", str(k6_run_settings["vus"])])
+
+    cmd.extend(["--tag", f"environment={k6_run_settings['target_env']}"])
+
+    if k6_run_settings["duration_value"]:
+        cmd.extend(["--duration", k6_run_settings["duration_value"]])
+    if k6_run_settings["iterations"] > 0:
+        cmd.extend(["--iterations", str(k6_run_settings["iterations"])])
+    if k6_run_settings["rps"] > 0:
+        cmd.extend(["--rps", str(k6_run_settings["rps"])])
+    if stage_flags:
+        cmd.extend(stage_flags)
+
+    return cmd
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Run a k6 script with pipeline configuration")
     parser.add_argument("--script", required=True, help="Path to the k6 script to execute")
@@ -258,103 +363,13 @@ def main() -> int:
             print(f"  - {item}", file=sys.stderr)
         return 1
 
-    env["TARGET_ENV"] = k6_run_settings["target_env"]
-    env["K6_SCENARIO_TYPE"] = k6_run_settings["scenario_type"]
+    stage_flags = _prepare_environment(env, k6_run_settings)
 
-    if k6_run_settings["duration_enabled"]:
-        env["K6_DURATION"] = k6_run_settings["duration_value"]
-    else:
-        env.pop("K6_DURATION", None)
+    _print_run_summary(script_path, k6_run_settings, env, stage_flags, ignored_params)
 
-    def _apply_positive_env_value(key, value):
-        if value > 0:
-            env[key] = str(value)
-        else:
-            env.pop(key, None)
+    cmd = _build_command(script_path, k6_run_settings, stage_flags)
 
-    _apply_positive_env_value("K6_ITERATIONS", k6_run_settings["iterations"])
-    _apply_positive_env_value("K6_VUS", k6_run_settings["vus"])
-    _apply_positive_env_value("K6_RPS", k6_run_settings["rps"])
-
-    if k6_run_settings["scenario_type"] in ARRIVAL_SCENARIOS:
-        if k6_run_settings["time_unit_enabled"]:
-            env["K6_TIME_UNIT"] = k6_run_settings["time_unit_value"]
-        else:
-            env.pop("K6_TIME_UNIT", None)
-        _apply_positive_env_value("K6_RATE", k6_run_settings["rate"])
-        _apply_positive_env_value("K6_PRE_ALLOCATED_VUS", k6_run_settings["pre_allocated_vus"])
-        _apply_positive_env_value("K6_MAX_VUS", k6_run_settings["max_vus"])
-    else:
-        env.pop("K6_TIME_UNIT", None)
-        for key in ("K6_RATE", "K6_PRE_ALLOCATED_VUS", "K6_MAX_VUS"):
-            env.pop(key, None)
-
-    if k6_run_settings["scenario_type"] == "ramping-vus":
-        _apply_positive_env_value("K6_START_VUS", k6_run_settings["start_vus"])
-    else:
-        env.pop("K6_START_VUS", None)
-
-    stage_flags = []
-    if k6_run_settings["scenario_type"] in RAMPING_SCENARIOS and k6_run_settings["stages"]:
-        env["K6_STAGES_JSON"] = json.dumps(k6_run_settings["stages"])
-        stage_flags = [
-            flag
-            for stage in k6_run_settings["stages"]
-            for flag in ("--stage", f"{stage['duration']}:{stage['target']}")
-        ]
-    else:
-        env.pop("K6_STAGES_JSON", None)
-
-    def _format_int_display(value):
-        return str(value) if value > 0 else "<disabled>"
-
-    def _format_text_display(value):
-        return value if value else "<disabled>"
-
-    print(f"🚀 Running ./xk6 run {script_path}")
-    print("ℹ️ Using environment variables:")
-    print(f"  TARGET_ENV      : {k6_run_settings['target_env']}")
-    print(f"  K6_SCENARIO_TYPE: {k6_run_settings['scenario_type']}")
-    print(f"  K6_DURATION     : {_format_text_display(k6_run_settings['duration_value'])}")
-    print(f"  K6_ITERATIONS   : {_format_int_display(k6_run_settings['iterations'])}")
-    print(f"  K6_VUS          : {_format_int_display(k6_run_settings['vus'])}")
-    print(f"  K6_RATE         : {_format_int_display(k6_run_settings['rate'])}")
-    print(f"  K6_TIME_UNIT    : {_format_text_display(k6_run_settings['time_unit_value'])}")
-    print(f"  K6_RPS          : {_format_int_display(k6_run_settings['rps'])}")
-    print(f"  K6_START_VUS    : {_format_int_display(k6_run_settings['start_vus'])}")
-    print(f"  K6_PRE_ALLOCATED_VUS: {_format_int_display(k6_run_settings['pre_allocated_vus'])}")
-    print(f"  K6_MAX_VUS      : {_format_int_display(k6_run_settings['max_vus'])}")
-    print(f"  K6_STAGES_JSON  : {env.get('K6_STAGES_JSON', '[]')}")
-    print(f"  CLI --stage args: {stage_flags if stage_flags else '[]'}")
-
-    if ignored_params:
-        ignored_list = ", ".join(sorted(ignored_params))
-        print(
-            f"⚠️ Ignoring parameters for scenario '{k6_run_settings['scenario_type']}': {ignored_list}",
-            file=sys.stderr,
-        )
-
-    cmd = [
-        "./xk6",
-        "run",
-        str(script_path),
-    ]
-
-    if k6_run_settings["vus"] > 0:
-        cmd.extend(["--vus", str(k6_run_settings["vus"])])
-
-    cmd.extend(["--tag", f"environment={k6_run_settings['target_env']}"])
-
-    if k6_run_settings["duration_value"]:
-        cmd.extend(["--duration", k6_run_settings["duration_value"]])
-    if k6_run_settings["iterations"] > 0:
-        cmd.extend(["--iterations", str(k6_run_settings["iterations"])])
-    if k6_run_settings["rps"] > 0:
-        cmd.extend(["--rps", str(k6_run_settings["rps"])])
-    if stage_flags:
-        cmd.extend(stage_flags)
-
-    print(f"🛠️ Command: {' '.join(shlex.quote(part) for part in cmd)}")
+    print(f"🛠️ Command: {' '.join(cmd)}")
 
     completed = subprocess.run(cmd, env=env)
     return completed.returncode
