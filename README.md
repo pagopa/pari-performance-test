@@ -1,138 +1,143 @@
-# pari-performance-test — Guida in Italiano (per ingegneri IT)
+# pari-performance-test - Guida alla pipeline k6
 
-Repository per test di performance sulla piattaforma "computerized list of household appliances".
+Repository dedicato ai test di performance della piattaforma "computerized list of household appliances".
+
+Questa guida descrive come utilizzare la pipeline Azure DevOps definita in `.devops/k6-performance-generic.yml`. Tutte le variabili e gli esempi fanno riferimento a quella pipeline e allo script di orchestrazione `.devops/scripts/run_k6.py`.
 
 ## Panoramica del progetto
 
-* **Build**: la pipeline compila un binario custom `xk6` (template `templates/xk6-build.yml`) solo quando la cache è fredda, così le esecuzioni restano deterministiche tra ambienti.
-* **Esecuzione**: ogni voce in `SCRIPTS_TO_EXECUTE` viene lanciata tramite l'helper Python `.devops/run_k6_script.py`, che risolve i parametri, espande eventuali `stages` in flag CLI, e avvia `./xk6 run` contro l’ambiente selezionato.
-* **Risultati**: gli artifact sotto `results/` sono pubblicati a fine job per analisi downstream o ispezione manuale.
+- **Build**: la pipeline compila il binario personalizzato `xk6` (template `templates/xk6-build.yml`) solo quando la cache è assente, così i run successivi riutilizzano l'eseguibile e i risultati restano confrontabili tra ambienti.
+- **Esecuzione**: ogni percorso elencato nella variabile `SCRIPTS_TO_EXECUTE` viene lanciato tramite `python3 .devops/scripts/run_k6.py`, che convalida i parametri, prepara le variabili di ambiente e costruisce la chiamata `./xk6 run` coerente con lo scenario selezionato.
+- **Risultati**: la cartella `results/` contiene gli output aggregati e viene pubblicata come artifact a fine job per analisi successive o per estrazioni manuali.
 
----
+## Flusso della pipeline di riferimento
 
-## Parameter catalog (ordinato come nella pipeline AZDO)
+1. Il job `xk6Build` (template `templates/xk6-build.yml`) compila `xk6` e memorizza i binari nella cache condivisa (`$(xk6CacheKey)`).
+2. Il job `PerformanceTest` seleziona l'agent pool in base a `TARGET_ENV` (`dev`, `uat`, `prod`) e prepara l'ambiente di esecuzione.
+3. Per ogni script elencato in `SCRIPTS_TO_EXECUTE` viene eseguito `python3 .devops/scripts/run_k6.py --script <percorso>`, alimentato dai parametri dichiarati nel file di pipeline.
+4. Al termine, la directory `results/` viene pubblicata tramite `PublishPipelineArtifact@1`.
 
-> Regola generale: tutti i "knobs" sono **disabilitati per default** (0 o `0s`). La pipeline **fallisce** quando il parametro richiesto dallo **scenario** scelto non è stato impostato, prevenendo carichi errati.
+## Catalogo dei parametri (ordine come nella pipeline Azure DevOps)
 
-| Parametro              | Scopo                                                                         | Obbligatorio per                                                             | Ignorato quando                                               | Note pratiche                                                                                                                                       | Conflitti / comportamento anomalo                                                              |
-| ---------------------- | ----------------------------------------------------------------------------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| `K6_SCRIPT_PATH`       | Path relativo dell’entrypoint k6.                                             | Tutti.                                                                       | Mai.                                                          | Sorgente da eseguire; è anche la base per tagging/logging nel runner.                                                                               | Nessuno.                                                                                       |
-| `TARGET_ENV`           | Seleziona il blocco di configurazione (URL, credenziali) e tagga i risultati. | Tutti.                                                                       | Mai.                                                          | Pilota variabili d’ambiente e pool agent.                                                                                                           | Nessuno.                                                                                       |
-| `K6_SCENARIO_TYPE`     | Sceglie l’esecutore k6.                                                       | Tutti.                                                                       | Mai.                                                          | Valori ammessi: `manual`, `shared-iterations`, `per-vu-iterations`, `constant-vus`, `ramping-vus`, `constant-arrival-rate`, `ramping-arrival-rate`. | Non va combinato con scenari diversi: un solo scenario per run.                                |
-| `K6_STAGES`            | Definisce step di rampa.                                                      | `ramping-vus`, `ramping-arrival-rate`.                                       | Tutti gli altri.                                              | YAML/JSON array. Durata totale = somma stage.                                                                                                       | Con `K6_DURATION` se copre l’intero test: `K6_DURATION` diventa ridondante.                    |
-| `K6_DURATION`          | Finestra tempo del test; agisce anche come `maxDuration`.                     | `manual`, `constant-vus`, `constant-arrival-rate`, fallback per `ramping-*`. | Ignorato se lo scenario copre tutta la timeline con `stages`. | Sempre utile come kill-switch.                                                                                                                      | Con `K6_STAGES` completi → può essere ignorato.                                                |
-| `K6_VUS`               | Concorrenza base.                                                             | `manual`, `shared-iterations`, `per-vu-iterations`, `constant-vus`.          | Ignorato da scenari a *arrival*.                              | Controlla il numero di VU attivi.                                                                                                                   | Con `K6_PRE_ALLOCATED_VUS`/`K6_MAX_VUS`: questi ultimi hanno priorità negli scenari *arrival*. |
-| `K6_MAX_VUS`           | Tetto di VU per autoscaling.                                                  | *Arrival*.                                                                   | Altri scenari.                                                | ≥ `PRE_ALLOCATED_VUS`.                                                                                                                              | Nessuno, ma se < `PRE_ALLOCATED_VUS` il run fallisce.                                          |
-| `K6_PRE_ALLOCATED_VUS` | Pool pre-warm.                                                                | *Arrival*.                                                                   | Altri scenari.                                                | Evita cold start.                                                                                                                                   | Ignorato con `K6_VUS`.                                                                         |
-| `K6_START_VUS`         | Valore iniziale VU.                                                           | `ramping-vus`.                                                               | Tutti gli altri.                                              | Consistente con il primo stage.                                                                                                                     | Nessuno.                                                                                       |
-| `K6_RATE`              | Throughput target.                                                            | `constant-arrival-rate`; fallback per `ramping-arrival-rate`.                | Ignorato da manual/VU-based.                                  | Usato con `K6_TIME_UNIT`.                                                                                                                           | Con `K6_ITERATIONS` non ha senso: iterazioni totali ignorano rate.                             |
-| `K6_TIME_UNIT`         | Contesto per `K6_RATE`.                                                       | *Arrival*.                                                                   | Manual e VU-based.                                            | Tipico: `1s`.                                                                                                                                       | Nessuno.                                                                                       |
-| `K6_RPS`               | Limite globale richieste/s.                                                   | Opzionale.                                                                   | Mai (0=illimitato).                                           | Safety-net.                                                                                                                                         | Nessuno, ma se troppo basso può troncare test.                                                 |
-| `K6_ITERATIONS`        | Numero totale di iterazioni.                                                  | Iteration-based.                                                             | Ignorato da VU e *arrival*.                                   | In `per-vu-iterations`: per-VU = `ITER/VUS`.                                                                                                        | Con `K6_RATE`/`K6_TIME_UNIT` irrilevante.                                                      |
+> Regola generale: i valori numerici pari a 0 (`0`, `0s`, `0.0`) disattivano il parametro corrispondente. Lo script `.devops/scripts/run_k6.py` interrompe l'esecuzione quando uno scenario non riceve i requisiti minimi, prevenendo run con carichi errati.
 
----
+| Parametro              | Descrizione                                                                                 | Obbligatorio per                                                                                           | Ignorato quando                                               | Note pratiche                                                                                                                             | Errori / conflitti                                                                                          |
+| ---------------------- | ------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `K6_SCRIPT_PATH`       | Percorso relativo allo script k6 da eseguire.                                               | Tutti gli scenari.                                                                                         | Mai.                                                          | Deve esistere nel repository; se il file non viene trovato il job fallisce.                                                              | Nessuno.                                                                                                    |
+| `TARGET_ENV`           | Ambiente di destinazione (configurazione URL, credenziali, agent pool).                     | Tutti gli scenari.                                                                                         | Mai.                                                          | Valori ammessi: `dev`, `uat`, `prod`. Controlla i tag usati nei report.                                                                   | Nessuno.                                                                                                    |
+| `K6_SCENARIO_TYPE`     | Executor k6 da utilizzare.                                                                  | Tutti gli scenari.                                                                                         | Mai.                                                          | Valori ammessi: `manual`, `shared-iterations`, `per-vu-iterations`, `constant-vus`, `ramping-vus`, `constant-arrival-rate`, `ramping-arrival-rate`. | Se il valore non è nella lista, lo script termina con errore.                                              |
+| `K6_STAGES`            | Sequenza di rampe (lista di oggetti `{duration,target}`).                                   | `ramping-vus`, `ramping-arrival-rate`.                                                                     | Tutti gli altri scenari.                                      | Può essere impostato come array YAML nella pipeline; lo script lo converte automaticamente in JSON e in flag `--stage`.                  | Fornire `K6_STAGES` senza scenario ramping genera un avviso di ignorato.                                   |
+| `K6_DURATION`          | Durata complessiva del test (flag `--duration`).                                            | `manual` (se non si usano iterazioni), `constant-vus`, `constant-arrival-rate` e come fallback per i ramping. | Ignorato se gli stage coprono l'intera timeline.              | Utile come kill switch di sicurezza anche quando non strettamente necessario.                                                           | Se mancante per uno scenario che lo richiede, lo script esce con errore.                                  |
+| `K6_VUS`               | Numero di virtual user da mantenere attivi.                                                 | `manual`, `shared-iterations`, `per-vu-iterations`, `constant-vus`.                                         | Scenari a tasso di arrivo.                                   | Definisce la concorrenza base; per run locali usare valori moderati prima di crescere.                                                   | Incompatibile con `K6_ITERATIONS` negli scenari `constant-vus` (errore).                                   |
+| `K6_MAX_VUS`           | Limite superiore di virtual user che k6 può allocare.                                      | `constant-arrival-rate`, `ramping-arrival-rate`.                                                            | Scenari basati su VU.                                         | Deve essere maggiore o uguale a `K6_PRE_ALLOCATED_VUS`; fornisce margine per autoscaling.                                               | Se inferiore a `K6_PRE_ALLOCATED_VUS`, lo script blocca l'esecuzione.                                      |
+| `K6_PRE_ALLOCATED_VUS` | Pool iniziale di virtual user riservati.                                                    | `constant-arrival-rate`, `ramping-arrival-rate`.                                                            | Scenari VU-based e iteration-based.                           | Impostare un valore leggermente superiore al throughput atteso per evitare warning `insufficient VUs`.                                   | Se rimane 0 in uno scenario a tasso di arrivo, il job fallisce.                                            |
+| `K6_START_VUS`         | Numero di virtual user da cui parte la rampa.                                              | `ramping-vus`.                                                                                              | Tutti gli altri scenari.                                      | Deve essere coerente con il primo elemento di `K6_STAGES`.                                                                               | Mancanza o valore 0 causa errore di validazione.                                                           |
+| `K6_RATE`              | Iterazioni per unità di tempo.                                                              | `constant-arrival-rate`.                                                                                   | VU-based e iteration-based; negli scenari ramping-arrival-rate prevalgono i target degli stage. | Usare insieme a `K6_TIME_UNIT`; lasciare 0 quando le rampe definiscono interamente il carico.                                           | Valori >0 in scenari non a tasso di arrivo vengono ignorati.                                               |
+| `K6_TIME_UNIT`         | Unità di tempo per interpretare `K6_RATE` o gli stage a tasso di arrivo.                    | `constant-arrival-rate`, `ramping-arrival-rate`.                                                            | Scenari VU-based e iteration-based.                           | Valori tipici: `1s`, `500ms`.                                                                                                            | Se omesso in scenari a tasso di arrivo, il job fallisce.                                                   |
+| `K6_RPS`               | Limite globale alle richieste al secondo.                                                   | Nessuno (opzionale).                                                                                        | Mai (0 equivale a illimitato).                               | Agisce come safety net per proteggere ambienti condivisi.                                                                                | Se impostato troppo basso può troncare il test prima del previsto.                                       |
+| `K6_ITERATIONS`        | Numero totale di iterazioni da completare.                                                  | `shared-iterations`, `per-vu-iterations`, e opzionalmente `manual`.                                         | `constant-vus`, `ramping-vus`, `constant-arrival-rate`, `ramping-arrival-rate`. | In `per-vu-iterations` ogni VU esegue `K6_ITERATIONS / K6_VUS`.                                                                            | Valori >0 in scenari non supportati generano un errore.                                                   |
 
-### Quando un parametro è ignorato: alternative
+### Regole di esclusione e precedenza
 
-* `K6_VUS` → usato solo con iteration/VU-based. Negli scenari *arrival* si usano `K6_PRE_ALLOCATED_VUS`/`K6_MAX_VUS`.
-* `K6_STAGES` → solo per ramping. Negli altri scenari si usano `K6_DURATION` e/o `K6_VUS` o `K6_RATE`.
-* `K6_DURATION` → utile come stop timer, ma non richiesto se gli stages coprono tutta la timeline.
-* `K6_RATE`/`K6_TIME_UNIT` → validi solo per *arrival*; con iteration/VU-based si usano `K6_ITERATIONS`/`K6_VUS`.
+- **Scenari a iterazioni** (`shared-iterations`, `per-vu-iterations`): richiedono `K6_ITERATIONS` e `K6_VUS`; ignorano `K6_RATE`, `K6_TIME_UNIT` e `K6_STAGES`.
+- **Scenari basati sui VU** (`manual`, `constant-vus`, `ramping-vus`): utilizzano `K6_VUS`; nelle rampe sono obbligatori `K6_START_VUS` e `K6_STAGES`. `K6_MAX_VUS` e `K6_PRE_ALLOCATED_VUS` vengono rimossi.
+- **Scenari a tasso di arrivo** (`constant-arrival-rate`, `ramping-arrival-rate`): richiedono `K6_PRE_ALLOCATED_VUS` e `K6_MAX_VUS`, ignorano `K6_VUS`.
+- `K6_RPS` è indipendente e applicabile a qualunque scenario.
 
----
-
-## Esclusività e precedenze
-
-* **Iteration-based**: `K6_ITERATIONS>0`, `K6_VUS>0`; ignorano `K6_RATE`, `K6_TIME_UNIT`, `K6_STAGES`.
-* **VU-based**: `K6_VUS>0`; per `ramping-vus` gli `stages` sono obbligatori.
-* **Arrival-based**: `K6_PRE_ALLOCATED_VUS>0`, `K6_MAX_VUS>=PRE_ALLOCATED_VUS`; ignorano `K6_VUS`.
-* `K6_RPS` è indipendente.
-
----
-
-## Scenario catalog with numerical examples
+## Catalogo degli scenari con esempi numerici
 
 - **manual**
-  - **Goal**: run the script without relying on a predefined k6 executor to debug locally or validate basic flows before longer campaigns.
-  - **Required inputs and usage**: no scenario parameters are needed. Invoke `k6 run` directly, choosing the desired VUs and duration; pipeline variables stay optional.
-  - **Example**:
-    - Without stages: `k6 run --vus 100 --duration 5m scripts/pdv.js` starts 100 virtual users locally for five minutes.
+  - **Obiettivo**: eseguire rapidamente uno script senza affidarsi a un executor k6 predefinito, utile per debug locale o verifiche preliminari.
+  - **Parametri minimi**: `K6_SCENARIO_TYPE=manual`, `K6_VUS>0`, più `K6_DURATION` o `K6_ITERATIONS`.
+  - **Esempio**: `TARGET_ENV=uat K6_SCENARIO_TYPE=manual K6_VUS=50 K6_DURATION=2m python3 .devops/scripts/run_k6.py --script test/performance/pdv/pdvPerformance.js`.
 
 - **shared-iterations**
-  - **Goal**: measure how quickly a pool of virtual users finishes a fixed amount of business transactions, highlighting throughput and latency regressions between builds.
-  - **Required inputs and usage**: set `K6_SCENARIO_TYPE=shared-iterations`, provide `K6_ITERATIONS` plus either `K6_VUS=100` or `K6_VUS=1000`. `K6_DURATION` remains the safety window to avoid runaway executions.
-  - **Example**:
-    - Without stages: `K6_ITERATIONS=20000 K6_VUS=100 K6_DURATION=10m ./devops/run_k6_script.py` forces 100 VUs to finish 20k iterations inside ten minutes.
+  - **Obiettivo**: misurare quanto rapidamente un gruppo di VU completa un numero fisso di transazioni, evidenziando regressioni di throughput o latenza.
+  - **Parametri minimi**: `K6_SCENARIO_TYPE=shared-iterations`, `K6_ITERATIONS>0`, `K6_VUS>0`; `K6_DURATION` rimane un limite di sicurezza.
+  - **Esempio**: `TARGET_ENV=uat K6_SCENARIO_TYPE=shared-iterations K6_ITERATIONS=20000 K6_VUS=100 K6_DURATION=10m python3 .devops/scripts/run_k6.py --script test/performance/pdv/pdvPerformance.js`.
 
 - **per-vu-iterations**
-  - **Goal**: ensure every virtual user repeats the same number of iterations, revealing issues that surface after warm-up or when per-user caches are involved.
-  - **Required inputs and usage**: set `K6_SCENARIO_TYPE=per-vu-iterations`, then define `K6_ITERATIONS` together with `K6_VUS=100` or `K6_VUS=1000`. Each VU executes `K6_ITERATIONS / K6_VUS`, with `K6_DURATION` still acting as a guard rail.
-  - **Example**:
-    - Without stages: `K6_ITERATIONS=10000 K6_VUS=100 K6_DURATION=10m ./devops/run_k6_script.py` makes every VU run 100 iterations.
+  - **Obiettivo**: assicurare che ogni VU ripeta lo stesso volume di iterazioni, facendo emergere problemi che compaiono dopo il warm-up o con cache per-utente.
+  - **Parametri minimi**: `K6_SCENARIO_TYPE=per-vu-iterations`, `K6_ITERATIONS>0`, `K6_VUS>0`, `K6_DURATION` come guard rail.
+  - **Esempio**: `TARGET_ENV=uat K6_SCENARIO_TYPE=per-vu-iterations K6_ITERATIONS=10000 K6_VUS=100 K6_DURATION=10m python3 .devops/scripts/run_k6.py --script test/performance/pdv/pdvPerformance.js`.
 
 - **constant-vus**
-  - **Goal**: keep concurrency flat for the full duration to study steady-state resource usage or run short soak tests.
-  - **Required inputs and usage**: choose `K6_SCENARIO_TYPE=constant-vus` and set `K6_VUS` to either 100 or 1000 alongside `K6_DURATION`. Optionally add `K6_RPS` to cap throughput on shared environments.
-  - **Example**:
-    - Without stages: `K6_VUS=1000 K6_DURATION=10m K6_RPS=5000 ./devops/run_k6_script.py` sustains 1000 concurrent users for ten minutes.
+  - **Obiettivo**: mantenere costante la concorrenza per osservare lo steady state dell'applicazione o eseguire soak test brevi.
+  - **Parametri minimi**: `K6_SCENARIO_TYPE=constant-vus`, `K6_VUS>0`, `K6_DURATION`; `K6_RPS` opzionale come limite superiore.
+  - **Esempio**: `TARGET_ENV=uat K6_SCENARIO_TYPE=constant-vus K6_VUS=1000 K6_DURATION=10m K6_RPS=5000 python3 .devops/scripts/run_k6.py --script test/performance/pdv/pdvPerformance.js`.
 
 - **ramping-vus**
-  - **Goal**: model controlled user growth or cooldown by changing the active VU count over time.
-  - **Required inputs and usage**: set `K6_SCENARIO_TYPE=ramping-vus` and provide `K6_STAGES` (`K6_STAGES_JSON` works as well). Targets should use 0, 100, or 1000 VUs; manage limits with `K6_MAX_VUS` and `K6_START_VUS` if needed. Total duration equals the sum of stage durations.
-  - **Example**:
-    - With stages: `K6_STAGES='[{"duration":"3m","target":100},{"duration":"4m","target":1000},{"duration":"3m","target":0}]' K6_MAX_VUS=1000 ./devops/run_k6_script.py` ramps from idle to 1000 VUs, holds, then ramps down over ten minutes.
-    - Without stages: not applicable; this executor always relies on stages. Use `constant-vus` for a flat plateau.
+  - **Obiettivo**: modellare una crescita o una riduzione controllata del numero di VU attivi.
+  - **Parametri minimi**: `K6_SCENARIO_TYPE=ramping-vus`, `K6_START_VUS>0`, `K6_STAGES` con coppie `duration`/`target`; `K6_DURATION` facoltativo.
+  - **Esempio**: `TARGET_ENV=uat K6_SCENARIO_TYPE=ramping-vus K6_START_VUS=100 K6_STAGES='[{"duration":"3m","target":100},{"duration":"4m","target":1000},{"duration":"3m","target":0}]' python3 .devops/scripts/run_k6.py --script test/performance/pdv/pdvPerformance.js`.
 
 - **constant-arrival-rate**
-  - **Goal**: keep the number of iterations per time unit constant, decoupling throughput validation from how quickly virtual users finish their work.
-  - **Required inputs and usage**: configure `K6_SCENARIO_TYPE=constant-arrival-rate`, then provide `K6_RATE`, `K6_TIME_UNIT`, and size the pool with `K6_PRE_ALLOCATED_VUS` set to 100 or 1000. Use `K6_MAX_VUS=1000` when you expect k6 to scale the pool.
-  - **Example**:
-    - Without stages: `K6_RATE=400 K6_TIME_UNIT=1s K6_PRE_ALLOCATED_VUS=100 K6_MAX_VUS=1000 K6_DURATION=10m ./devops/run_k6_script.py` keeps roughly 400 iterations per second for ten minutes.
+  - **Obiettivo**: mantenere costante il numero di iterazioni per unità di tempo, indipendentemente dal tempo che ogni VU impiega a completarle.
+  - **Parametri minimi**: `K6_SCENARIO_TYPE=constant-arrival-rate`, `K6_RATE>0`, `K6_TIME_UNIT`, `K6_PRE_ALLOCATED_VUS>0`, `K6_MAX_VUS>=K6_PRE_ALLOCATED_VUS`, `K6_DURATION`.
+  - **Esempio**: `TARGET_ENV=uat K6_SCENARIO_TYPE=constant-arrival-rate K6_RATE=400 K6_TIME_UNIT=1s K6_PRE_ALLOCATED_VUS=100 K6_MAX_VUS=1000 K6_DURATION=10m python3 .devops/scripts/run_k6.py --script test/performance/pdv/pdvPerformance.js`.
 
 - **ramping-arrival-rate**
-  - **Goal**: vary the request arrival rate to reproduce progressive marketing launches or sudden demand spikes while letting k6 expand the worker pool automatically.
-  - **Required inputs and usage**: pick `K6_SCENARIO_TYPE=ramping-arrival-rate`, define `K6_STAGES` with arrival targets (for example 100 to 1000 req/s), set `K6_TIME_UNIT`, and dimension `K6_PRE_ALLOCATED_VUS` / `K6_MAX_VUS` using 100 or 1000 VUs.
-  - **Example**:
-    - With stages: `K6_STAGES='[{"duration":"2m","target":100},{"duration":"5m","target":1000},{"duration":"3m","target":1000}]' K6_TIME_UNIT=1s K6_PRE_ALLOCATED_VUS=100 K6_MAX_VUS=1000 ./devops/run_k6_script.py` ramps the arrival rate from 100 to 1000 iterations per second and sustains the peak for the final three minutes of a ten-minute test.
-    - Without stages: not applicable; use `constant-arrival-rate` for a fixed arrival curve.
+  - **Obiettivo**: variare il tasso di arrivo per simulare lanci progressivi o picchi improvvisi, consentendo a k6 di espandere il pool.
+  - **Parametri minimi**: `K6_SCENARIO_TYPE=ramping-arrival-rate`, `K6_STAGES` con target di arrivo, `K6_TIME_UNIT`, `K6_PRE_ALLOCATED_VUS>0`, `K6_MAX_VUS>0`.
+  - **Esempio**: `TARGET_ENV=uat K6_SCENARIO_TYPE=ramping-arrival-rate K6_STAGES='[{"duration":"2m","target":100},{"duration":"5m","target":1000},{"duration":"3m","target":1000}]' K6_TIME_UNIT=1s K6_PRE_ALLOCATED_VUS=100 K6_MAX_VUS=1000 python3 .devops/scripts/run_k6.py --script test/performance/pdv/pdvPerformance.js`.
 
-## Operational tips for local and CI usage
+## Playbook di configurazione della pipeline
 
-- Validate configuration locally with `TARGET_ENV=uat k6 run --vus 100 --duration 30s <script>` before scaling up in CI to ensure environment variables and secrets resolve correctly.
-- Keep `K6_PRE_ALLOCATED_VUS` slightly above the expected steady-state VUs when using arrival executors; undersizing here is a common source of `insufficient VUs` warnings and unstable rates.
-- Version control custom `K6_STAGES` definitions alongside your test plan so reviewers can understand the intended load shape together with the scenario type.
-- Monitor published artifacts in Azure DevOps; exporting them to k6 Cloud or Grafana Loki provides longer retention and shared dashboards for trend analysis.
-
-## Pipeline configuration playbook
-
-- **Sustainable concurrency ceiling (1000 VUs steady for 10 minutes)**
+- **Piatto stabile a 1000 VU per 10 minuti**
   - Scenario: `constant-vus`
-  - Parameters: `K6_VUS=1000`, `K6_DURATION=10m`, optional `K6_RPS=5000`, `TARGET_ENV=uat`
-  - Outcome: validates the highest supported number of concurrent users the environment can sustain for ten minutes without severe degradation; focus on response stability under 1000 steady VUs.
-- **Controlled growth of active users (ramp 100 to 1000 VUs in 10 minutes)**
+  - Parametri consigliati: `K6_VUS=1000`, `K6_DURATION=10m`, `K6_RPS=5000` (opzionale), `TARGET_ENV=uat`
+  - Risultato atteso: verifica che l'ambiente sostenga 1000 utenti virtuali simultanei per tutta la durata, mantenendo latenza e errori entro le soglie definite.
+
+- **Rampa controllata 100 -> 1000 VU in 10 minuti**
   - Scenario: `ramping-vus`
-  - Parameters: `K6_STAGES='[{"duration":"3m","target":100},{"duration":"4m","target":1000},{"duration":"3m","target":0}]'`, `K6_MAX_VUS=1000`, `K6_START_VUS=100`, `TARGET_ENV=uat`
-  - Outcome: observes how services react as the active population climbs from 100 to 1000 users, highlighting autoscaling latency and protection rules before a controlled ramp-down.
-- **Sudden spike resilience (jump to 1000 req/s backed by 1000 VUs)**
-  - Scenario: `ramping-arrival-rate`
-  - Parameters: `K6_STAGES='[{"duration":"1m","target":100},{"duration":"1m","target":1000},{"duration":"8m","target":1000}]'`, `K6_TIME_UNIT=1s`, `K6_PRE_ALLOCATED_VUS=1000`, `K6_MAX_VUS=1000`, `K6_RPS=5000`
-  - Outcome: verifies how long the platform tolerates an abrupt demand spike sustained for eight minutes, with the worker pool capped at 1000 VUs.
-- **Rapid resilience check (target: 5k req/s achieved within 5 minutes and held for 10 more)**
-  - Scenario: `ramping-arrival-rate`
-  - Parameters: `K6_STAGES='[{"duration":"5m","target":5000},{"duration":"10m","target":5000}]'`, `K6_TIME_UNIT=1s`, `K6_PRE_ALLOCATED_VUS=1000`, `K6_MAX_VUS=1000`, `K6_RPS=5000`
-  - Outcome: the test reaches 5k req/s by minute five, then maintains that pressure for ten minutes. The RPS cap prevents overshoot while the pool remains bounded at 1000 VUs.
-- **Throughput smoke test (ensure 1k requests complete in <2 minutes)**
-  - Scenario: `shared-iterations`
-  - Parameters: `K6_ITERATIONS=1000`, `K6_VUS=100`, `K6_DURATION=2m`
-  - Outcome: 100 VUs share the 1k iterations and must finish before the 2-minute deadline, exposing regressions that slow individual iterations.
-- **Soak test (sustain ~100 concurrent sessions for one hour)**
-  - Scenario: `constant-vus`
-  - Parameters: `K6_VUS=100`, `K6_DURATION=1h`, optional `K6_RPS=500`
-  - Outcome: holds a stable level of concurrency to reveal slow memory leaks or resource degradation that emerges only with long-lived sessions.
-- **Warm-up plus peak verification (step from 100 to 1000 req/s)**
-  - Scenario: `ramping-arrival-rate`
-  - Parameters: `K6_STAGES='[{"duration":"3m","target":100},{"duration":"2m","target":1000},{"duration":"5m","target":1000}]'`, `K6_TIME_UNIT=1s`, `K6_PRE_ALLOCATED_VUS=1000`, `K6_MAX_VUS=1000`
-  - Outcome: lets services warm up at 100 req/s, then forces a sharp increase to 1000 req/s to validate autoscaling and circuit breaker behavior during sudden peaks.
+  - Parametri consigliati: `K6_START_VUS=100`, `TARGET_ENV=uat`; lasciare `K6_DURATION` disattivato (0s) così la durata totale coincide con la somma degli stage
+  - `K6_STAGES`:
+    ```yaml
+    - duration: 3m
+      target: 100
+    - duration: 4m
+      target: 1000
+    - duration: 3m
+      target: 0
+    ```
+  - Risultato atteso: osserva come il sistema scala mentre la concorrenza cresce fino a 1000 VU e poi torna a zero in modo controllato.
 
+- **Spike improvviso a 1000 richieste/s sostenuto per 8 minuti**
+  - Scenario: `ramping-arrival-rate`
+  - Parametri consigliati: `K6_TIME_UNIT=1s`, `K6_PRE_ALLOCATED_VUS=1000`, `K6_MAX_VUS=1000`, `K6_RPS=5000`, `TARGET_ENV=uat`
+  - `K6_STAGES`:
+    ```yaml
+    - duration: 1m
+      target: 100
+    - duration: 1m
+      target: 1000
+    - duration: 8m
+      target: 1000
+    ```
+  - Risultato atteso: valida la resilienza del sistema quando il carico passa da 100 a 1000 richieste al secondo in modo repentino e rimane al picco.
+
+- **Plateau costante a 1000 richieste/s per 15 minuti**
+  - Scenario: `constant-arrival-rate`
+  - Parametri consigliati: `K6_RATE=1000`, `K6_TIME_UNIT=1s`, `K6_PRE_ALLOCATED_VUS=900`, `K6_MAX_VUS=1200`, `K6_DURATION=15m`, `TARGET_ENV=uat`
+  - Risultato atteso: conferma che l'infrastruttura mantiene 1000 iterazioni al secondo con sufficiente margine di VU per assorbire code e ritardi temporanei.
+
+- **Smoke test di throughput (1000 iterazioni entro 2 minuti)**
+  - Scenario: `shared-iterations`
+  - Parametri consigliati: `K6_ITERATIONS=1000`, `K6_VUS=100`, `K6_DURATION=2m`, `TARGET_ENV=uat`
+  - Risultato atteso: 100 VU completano le 1000 iterazioni entro 120 secondi; se il tempo aumenta l'espansione a 1000 VU potrebbe non essere sostenibile.
+
+- **Stress progressivo oltre la soglia (1000 -> 1200 richieste/s)**
+  - Scenario: `ramping-arrival-rate`
+  - Parametri consigliati: `K6_TIME_UNIT=1s`, `K6_PRE_ALLOCATED_VUS=1000`, `K6_MAX_VUS=1300`, `TARGET_ENV=uat`
+  - `K6_STAGES`:
+    ```yaml
+    - duration: 4m
+      target: 600
+    - duration: 4m
+      target: 1000
+    - duration: 4m
+      target: 1200
+    ```
+  - Risultato atteso: individua il punto in cui il sistema inizia a degradare oltre la soglia di riferimento (1000 richieste/s), fornendo indicazioni sui trigger per meccanismi di autoscaling o throttling.
 
 ---
