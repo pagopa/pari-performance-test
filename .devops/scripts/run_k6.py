@@ -316,11 +316,10 @@ def _print_run_summary(script_path, k6_run_settings, env, stage_flags, ignored_p
 def _build_command(script_path, k6_run_settings, stage_flags):
     cmd = ["./xk6", "run", str(script_path)]
 
+    cmd.extend(["--tag", f"environment={k6_run_settings['target_env']}"])
+    
     if k6_run_settings["vus"] > 0:
         cmd.extend(["--vus", str(k6_run_settings["vus"])])
-
-    cmd.extend(["--tag", f"environment={k6_run_settings['target_env']}"])
-
     if k6_run_settings["duration_value"]:
         cmd.extend(["--duration", k6_run_settings["duration_value"]])
     if k6_run_settings["iterations"] > 0:
