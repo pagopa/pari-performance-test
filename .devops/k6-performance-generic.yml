@@ -26,7 +26,6 @@ parameters:
   - name: 'K6_SCENARIO_TYPE'
     displayName: 'k6 scenario executor (ENV: K6_SCENARIO_TYPE)'
     type: string
-    default: 'constant-arrival-rate'
     values:
       - 'manual'
       - 'shared-iterations'
@@ -48,37 +47,37 @@ parameters:
   - name: 'K6_DURATION'
     displayName: 'k6 test duration (CLI: --duration, e.g. 30s, 1m, 10m)'
     type: string
-    default: '30s'
+    default: '0s'  # disabled: the helper script requires a positive duration when needed
 
   - name: 'K6_VUS'
     displayName: 'k6 virtual users (CLI: --vus)'
     type: number
-    default: 30
+    default: 0  # disabled: must be overridden for VU-based scenarios
+
+  - name: 'K6_MAX_VUS'
+    displayName: 'Maximum virtual users (ENV: K6_MAX_VUS, required for arrival scenarios)'
+    type: number
+    default: 0
 
   - name: 'K6_PRE_ALLOCATED_VUS'
     displayName: 'Pre-allocated virtual users (ENV: K6_PRE_ALLOCATED_VUS)'
     type: number
-    default: 10
+    default: 0  # disabled: arrival-rate scenarios must size the pool explicitly
 
   - name: 'K6_START_VUS'
     displayName: 'Starting virtual users for ramping scenarios (ENV: K6_START_VUS)'
     type: number
-    default: 1
+    default: 0  # disabled: ramping scenarios must define start VUs
 
   - name: 'K6_RATE'
     displayName: 'Arrival rate per time unit (ENV: K6_RATE, req/s)'
     type: number
-    default: 10
+    default: 0  # disabled: arrival-rate scenarios must define an explicit rate
 
   - name: 'K6_TIME_UNIT'
     displayName: 'Time unit for arrival rate (ENV: K6_TIME_UNIT, e.g. 1s, 500ms)'
     type: string
-    default: '1s'
-
-  - name: 'K6_MAX_VUS'
-    displayName: 'Maximum virtual users (ENV: K6_MAX_VUS, 0 uses K6_VUS)'
-    type: number
-    default: 0
+    default: '0s'  # disabled placeholder interpreted as missing
 
   - name: 'K6_RPS'
     displayName: 'Global requests-per-second cap (CLI: --rps, 0 unlimited)'
@@ -122,11 +121,40 @@ jobs:
       xk6CacheKey: '$(xk6CacheKey)'
       k6Version: v1.3.0
 
+  - job: ValidateParameters
+    displayName: '✅ Validating k6 configuration for ${{ parameters.TARGET_ENV }}'
+    dependsOn: []
+    pool:
+      vmImage: ubuntu-22.04
+    steps:
+      - checkout: self
+
+      - ${{ each k6Script in split(variables.SCRIPTS_TO_EXECUTE, ',') }}:
+          - script: |
+              python3 .devops/scripts/run_k6.py --script "${{ k6Script }}" --dry-run
+            displayName: Validate parameters for ${{ k6Script }}
+            env:
+              TARGET_ENV: ${{ parameters.TARGET_ENV }}
+              K6_SCENARIO_TYPE: ${{ parameters.K6_SCENARIO_TYPE }}
+              K6_DURATION: ${{ parameters.K6_DURATION }}
+              K6_ITERATIONS: ${{ parameters.K6_ITERATIONS }}
+              K6_VUS: ${{ parameters.K6_VUS }}
+              K6_RATE: ${{ parameters.K6_RATE }}
+              K6_TIME_UNIT: ${{ parameters.K6_TIME_UNIT }}
+              K6_RPS: ${{ parameters.K6_RPS }}
+              K6_START_VUS: ${{ parameters.K6_START_VUS }}
+              K6_PRE_ALLOCATED_VUS: ${{ parameters.K6_PRE_ALLOCATED_VUS }}
+              K6_MAX_VUS: ${{ parameters.K6_MAX_VUS }}
+              ${{ if gt(length(parameters.K6_STAGES), 0) }}:
+                K6_STAGES_PARAM: ${{ convertToJson(parameters.K6_STAGES) }}
+
   - job: PerformanceTest
     displayName: '✈️ Running k6 scripts on ${{ parameters.TARGET_ENV }}'
     timeoutInMinutes: 0
     continueOnError: true
-    dependsOn: xk6Build
+    dependsOn:
+      - xk6Build
+      - ValidateParameters
     pool:
       name: $(selfHostedAgentPool)
     steps:
