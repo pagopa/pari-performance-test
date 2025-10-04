@@ -183,7 +183,7 @@ jobs:
       - ${{ each k6Script in split(variables.SCRIPTS_TO_EXECUTE, ',') }}:
           - script: |
               python3 .devops/scripts/run_k6.py --script "${{ k6Script }}" --dry-run
-            displayName: Validate parameters for ${{ k6Script }}
+            displayName: 📌 Validate parameters for ${{ k6Script }}
             condition: ne(variables.k6_running_mode, 'simple')
             env:
               TARGET_ENV: ${{ parameters.TARGET_ENV }}
