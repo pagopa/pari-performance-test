@@ -225,15 +225,15 @@ jobs:
               set -euo pipefail
 
               trim() {
-                  local input="${1-}"
-                  local cleaned
-                  cleaned=$(printf '%s' "${input:-}" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
-                  printf '%s' "$cleaned"
+                  local value="${1-}"
+                  value="${value#${value%%[![:space:]]*}}"
+                  value="${value%${value##*[![:space:]]}}"
+                  printf '%s' "$value"
               }
 
-              script_path="$(trim "${SIMPLE_K6_SCRIPT}")"
+              script_path="$(trim "${SIMPLE_K6_SCRIPT-}")"
               if [[ -z "$script_path" ]]; then
-                  echo "❌ Script path is empty" >&2
+                  echo "❌ k6Script is empty" >&2
                   exit 1
               fi
 
@@ -243,131 +243,100 @@ jobs:
               fi
 
               if [[ ! -x ./xk6 ]]; then
-                  echo "❌ ./xk6 binary not found. Ensure the xk6 build job completed successfully." >&2
+                  echo "❌ ./xk6 binary not found. Ensure the xk6 build stage completed successfully." >&2
                   exit 1
               fi
 
-              target_env="$(trim "${TARGET_ENV:-}")"
-              scenario_type="$(trim "${K6_SCENARIO_TYPE:-}")"
-              duration="$(trim "${K6_DURATION:-}")"
-              vus="$(trim "${K6_VUS:-}")"
-              max_vus="$(trim "${K6_MAX_VUS:-}")"
-              pre_allocated_vus="$(trim "${K6_PRE_ALLOCATED_VUS:-}")"
-              start_vus="$(trim "${K6_START_VUS:-}")"
-              rate="$(trim "${K6_RATE:-}")"
-              time_unit="$(trim "${K6_TIME_UNIT:-}")"
-              rps="$(trim "${K6_RPS:-}")"
-              iterations="$(trim "${K6_ITERATIONS:-}")"
+              target_env="$(trim "${TARGET_ENV-}")"
+              scenario_type="$(trim "${K6_SCENARIO_TYPE-}")"
 
               if [[ -z "$target_env" ]]; then
-                  echo "❌ TARGET_ENV must be provided for simple mode." >&2
+                  echo "❌ TARGET_ENV must be provided" >&2
                   exit 1
               fi
 
               if [[ -z "$scenario_type" ]]; then
-                  echo "❌ K6_SCENARIO_TYPE must be provided for simple mode." >&2
+                  echo "❌ K6_SCENARIO_TYPE must be provided" >&2
                   exit 1
               fi
 
               cli_cmd=("./xk6" "run" "$script_path" "--tag" "environment=${target_env}")
-              cli_flags=()
-              env_exports=("TARGET_ENV=${target_env}" "K6_SCENARIO_TYPE=${scenario_type}")
-              ignored_defaults=()
+              env_vars=("TARGET_ENV=${target_env}" "K6_SCENARIO_TYPE=${scenario_type}")
 
-              add_cli_flag() {
+              add_cli() {
                   local flag="$1"
-                  local value="$(trim "$2")"
-                  local default="$3"
-                  local source="$4"
-
+                  local env_key="$2"
+                  shift 2
+                  local value
+                  value="$(trim "${!env_key-}")"
                   if [[ -z "$value" ]]; then
+                      unset "$env_key"
                       return
                   fi
-
-                  if [[ "$value" == "$default" ]]; then
-                      ignored_defaults+=("${source}=${value} → skipped CLI ${flag}")
-                  else
-                      cli_flags+=("$flag" "$value")
-                  fi
+                  for default in "$@"; do
+                      if [[ "$value" == "$default" ]]; then
+                          unset "$env_key"
+                          return
+                      fi
+                  done
+                  cli_cmd+=("$flag" "$value")
               }
 
-              add_env_var() {
-                  local name="$1"
-                  local value="$(trim "$2")"
-                  local default="$3"
-
+              add_env() {
+                  local env_key="$1"
+                  shift
+                  local value
+                  value="$(trim "${!env_key-}")"
                   if [[ -z "$value" ]]; then
+                      unset "$env_key"
                       return
                   fi
-
-                  if [[ "$value" == "$default" ]]; then
-                      ignored_defaults+=("${name}=${value} → skipped env export")
-                  else
-                      env_exports+=("${name}=${value}")
-                  fi
+                  for default in "$@"; do
+                      if [[ "$value" == "$default" ]]; then
+                          unset "$env_key"
+                          return
+                      fi
+                  done
+                  env_vars+=("${env_key}=${value}")
               }
 
-              add_cli_flag "--duration" "$duration" "0s" "K6_DURATION"
-              add_cli_flag "--vus" "$vus" "0" "K6_VUS"
-              add_cli_flag "--iterations" "$iterations" "0" "K6_ITERATIONS"
-              add_cli_flag "--rps" "$rps" "0" "K6_RPS"
+              add_cli "--duration" K6_DURATION 0 0s
+              add_cli "--vus" K6_VUS 0
+              add_cli "--iterations" K6_ITERATIONS 0
+              add_cli "--rps" K6_RPS 0
 
-              add_env_var "K6_MAX_VUS" "$max_vus" "0"
-              add_env_var "K6_PRE_ALLOCATED_VUS" "$pre_allocated_vus" "0"
-              add_env_var "K6_START_VUS" "$start_vus" "0"
-              add_env_var "K6_RATE" "$rate" "0"
-              add_env_var "K6_TIME_UNIT" "$time_unit" "0s"
+              add_env K6_MAX_VUS 0
+              add_env K6_PRE_ALLOCATED_VUS 0
+              add_env K6_START_VUS 0
+              add_env K6_RATE 0
+              add_env K6_TIME_UNIT 0 0s
 
-              stages_json="$(trim "${K6_STAGES_JSON:-}")"
+              stages_json="$(trim "${K6_STAGES_JSON-}")"
               if [[ -n "$stages_json" && "$stages_json" != '[]' && "$stages_json" != 'null' ]]; then
-                  ignored_defaults+=("K6_STAGES=${stages_json} → ignored in simple mode")
+                  echo "ℹ️ K6_STAGES is ignored in simple mode"
               fi
+              unset K6_STAGES_JSON
 
               echo "▶️ Simple mode for script: $script_path"
-              echo "Passing CLI flags:"
-              if (( ${#cli_flags[@]} == 0 )); then
-                  echo "  (none)"
-              else
-                  for ((i = 0; i < ${#cli_flags[@]}; i += 2)); do
-                      printf '  %s %s\n' "${cli_flags[i]}" "${cli_flags[i+1]}"
-                  done
-              fi
 
-              echo "Environment exports:"
-              if (( ${#env_exports[@]} == 0 )); then
-                  echo "  (none)"
-              else
-                  for entry in "${env_exports[@]}"; do
-                      printf '  %s\n' "$entry"
-                  done
-              fi
-
-              echo "Ignored defaults:"
-              if (( ${#ignored_defaults[@]} == 0 )); then
-                  echo "  (none)"
-              else
-                  for entry in "${ignored_defaults[@]}"; do
-                      printf '  %s\n' "$entry"
-                  done
-              fi
-
-              full_cmd=("${cli_cmd[@]}" "${cli_flags[@]}")
-
-              printf 'Full command:'
-              for token in "${full_cmd[@]}"; do
-                  printf ' %q' "$token"
-              done
+              printf 'CLI command:\n'
+              printf '  '
+              printf '%q ' "${cli_cmd[@]}"
               printf '\n'
 
-              if (( ${#env_exports[@]} > 0 )); then
-                  printf 'With env:'
-                  for entry in "${env_exports[@]}"; do
-                      printf ' %q' "$entry"
+              printf 'Environment overrides:\n'
+              if ((${#env_vars[@]} > 0)); then
+                  for entry in "${env_vars[@]}"; do
+                      printf '  %s\n' "$entry"
                   done
-                  printf '\n'
-                  env "${env_exports[@]}" "${full_cmd[@]}"
               else
-                  "${full_cmd[@]}"
+                  printf '  (none)\n'
+              fi
+
+              if ((${#env_vars[@]} > 0)); then
+                  env "${env_vars[@]}" "${cli_cmd[@]}"
+              else
+                  "${cli_cmd[@]}"
               fi
             displayName: '▶️ Run ${{ k6Script }} (simple mode)'
             env:
