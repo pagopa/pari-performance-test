@@ -324,13 +324,15 @@ jobs:
                   printf '  (none)\n'
               fi
 
+
               if ((${#env_vars[@]} > 0)); then
-                  printf 'Executing: env '
+                  printf '🚀 Executing with env: '
                   printf '%q ' "${env_vars[@]}" "${cli_cmd[@]}"
                   printf '\n'
+                  # env xyz.. permette di eseguire il comando con le variabili d'ambiente specificate caricandole prima
                   env "${env_vars[@]}" "${cli_cmd[@]}"
               else
-                  printf 'Executing: '
+                  printf '▶️ Executing: '
                   printf '%q ' "${cli_cmd[@]}"
                   printf '\n'
                   "${cli_cmd[@]}"
