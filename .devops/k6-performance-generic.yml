@@ -224,16 +224,9 @@ jobs:
           - script: |
               set -euo pipefail
 
-              trim() {
-                  local value="${1-}"
-                  value="${value#${value%%[![:space:]]*}}"
-                  value="${value%${value##*[![:space:]]}}"
-                  printf '%s' "$value"
-              }
-
-              script_path="$(trim "${SIMPLE_K6_SCRIPT-}")"
+              script_path="${{ k6Script }}"
               if [[ -z "$script_path" ]]; then
-                  echo "❌ k6Script is empty" >&2
+                  echo "❌ k6Script value is empty" >&2
                   exit 1
               fi
 
@@ -247,8 +240,8 @@ jobs:
                   exit 1
               fi
 
-              target_env="$(trim "${TARGET_ENV-}")"
-              scenario_type="$(trim "${K6_SCENARIO_TYPE-}")"
+              target_env="${TARGET_ENV:-}"
+              scenario_type="${K6_SCENARIO_TYPE:-}"
 
               if [[ -z "$target_env" ]]; then
                   echo "❌ TARGET_ENV must be provided" >&2
@@ -267,9 +260,8 @@ jobs:
                   local flag="$1"
                   local env_key="$2"
                   shift 2
-                  local value
-                  value="$(trim "${!env_key-}")"
-                  if [[ -z "$value" ]]; then
+                  local value="${!env_key-}"
+                  if [[ -z "${value-}" ]]; then
                       unset "$env_key"
                       return
                   fi
@@ -285,9 +277,8 @@ jobs:
               add_env() {
                   local env_key="$1"
                   shift
-                  local value
-                  value="$(trim "${!env_key-}")"
-                  if [[ -z "$value" ]]; then
+                  local value="${!env_key-}"
+                  if [[ -z "${value-}" ]]; then
                       unset "$env_key"
                       return
                   fi
@@ -300,18 +291,18 @@ jobs:
                   env_vars+=("${env_key}=${value}")
               }
 
-              add_cli "--duration" K6_DURATION 0 0s
-              add_cli "--vus" K6_VUS 0
-              add_cli "--iterations" K6_ITERATIONS 0
-              add_cli "--rps" K6_RPS 0
+              add_cli "--duration" "K6_DURATION" "0" "0s"
+              add_cli "--vus" "K6_VUS" "0"
+              add_cli "--iterations" "K6_ITERATIONS" "0"
+              add_cli "--rps" "K6_RPS" "0"
 
-              add_env K6_MAX_VUS 0
-              add_env K6_PRE_ALLOCATED_VUS 0
-              add_env K6_START_VUS 0
-              add_env K6_RATE 0
-              add_env K6_TIME_UNIT 0 0s
+              add_env "K6_MAX_VUS" "0"
+              add_env "K6_PRE_ALLOCATED_VUS" "0"
+              add_env "K6_START_VUS" "0"
+              add_env "K6_RATE" "0"
+              add_env "K6_TIME_UNIT" "0" "0s"
 
-              stages_json="$(trim "${K6_STAGES_JSON-}")"
+              stages_json="${K6_STAGES_JSON:-}"
               if [[ -n "$stages_json" && "$stages_json" != '[]' && "$stages_json" != 'null' ]]; then
                   echo "ℹ️ K6_STAGES is ignored in simple mode"
               fi
@@ -334,13 +325,18 @@ jobs:
               fi
 
               if ((${#env_vars[@]} > 0)); then
+                  printf 'Executing: env '
+                  printf '%q ' "${env_vars[@]}" "${cli_cmd[@]}"
+                  printf '\n'
                   env "${env_vars[@]}" "${cli_cmd[@]}"
               else
+                  printf 'Executing: '
+                  printf '%q ' "${cli_cmd[@]}"
+                  printf '\n'
                   "${cli_cmd[@]}"
               fi
             displayName: '▶️ Run ${{ k6Script }} (simple mode)'
             env:
-              SIMPLE_K6_SCRIPT: ${{ k6Script }}
               TARGET_ENV: ${{ parameters.TARGET_ENV }}
               K6_SCENARIO_TYPE: ${{ parameters.K6_SCENARIO_TYPE }}
               K6_DURATION: ${{ parameters.K6_DURATION }}
