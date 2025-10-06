@@ -97,12 +97,11 @@ export function handleSummary(data) {
 
 const initiativeId = '68de7fc681ce9e35a476e985'
 
-// Load the list of 10M CFs from a CSV file
+// Load the list of 10K CFs from a CSV file
 const fiscalCodes = new SharedArray('fiscalCodes', () => {
-    const csv = open('../../../assets/fc_list_10M.csv');
+    const csv = open('../../../assets/fc_list_10k.csv');
     console.log('loading csv file with fiscal codes')
     return csv.split('\n')
-        .slice(1, 10000)
         .map(line => line.trim())
         .filter(line => line && line !== 'CF');
 });
