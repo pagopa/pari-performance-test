@@ -11,7 +11,5 @@ export function getMockLogin(fiscalCode) {
 
     const res = http.post(url, null, { responseType: 'text' })
 
-    logResult(apiName, res)
-
     return res
 }
