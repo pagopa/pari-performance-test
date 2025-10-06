@@ -4,7 +4,7 @@ import { assert, statusOk } from '../../common/assertions.js'
 import defaultHandleSummaryBuilder from '../../common/handleSummaryBuilder.js'
 import { defaultApiOptionsBuilder } from '../../common/dynamicScenarios/defaultOptions.js'
 import { getRandomCategory } from '../../common/utils.js'
-import { setupUtils } from '../../common/setupUtils.js'
+import { setupWithProducts } from '../../common/setupUtils.js'
 
 const application = 'register'
 const testName = 'getProducts'
@@ -13,7 +13,7 @@ export const options = defaultApiOptionsBuilder(application, testName)
 export const handleSummary = defaultHandleSummaryBuilder(application, testName)
 
 export function setup() {
-    return setupUtils()
+    return setupWithProducts()
 }
 
 export default function (data) {

@@ -158,11 +158,11 @@ export function getRandomCategory() {
 }
 
 export const ORG_IDS = {
-  dev_eie: '72c2c5f8-1c71-4614-a4b3-95e3aee71c3d',
-  uat_eie: '8bd31e63-a8e8-4cbc-b06d-bc69f32c3fde'
+  dev: '72c2c5f8-1c71-4614-a4b3-95e3aee71c3d',
+  uat: '8bd31e63-a8e8-4cbc-b06d-bc69f32c3fde'
 }
 
-export function getOrgId(operationAvailableEnvs, system) {
+export function getOrgId(operationAvailableEnvs) {
   const env = CONFIG.TARGET_ENV
 
   if (
@@ -172,7 +172,7 @@ export function getOrgId(operationAvailableEnvs, system) {
     return null
   }
 
-  const key = `${env}_${system}`
+  const key = `${env}`
   const orgId = ORG_IDS[key]
 
   if (!orgId) {

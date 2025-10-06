@@ -7,11 +7,64 @@ export const REGISTER_AUTH_API_NAMES = {
   authToken: 'register/token/test',
 }
 
-const REGISTERED_ENVS = [DEV, UAT]
-const innerBaseUrl = `${getBaseUrl(REGISTERED_ENVS, 'eie')}`
-const orgId = getOrgId(REGISTERED_ENVS, 'eie')
+export const KEYCLOAK_AUTH_API_NAMES = {
+  authToken: 'protocol/openid-connect/token',
+}
 
-export function getJwtToken() {
+export const IO_AUTH_API_NAMES = {
+  authToken: 'rtd/mock-io/login',
+}
+
+const REGISTERED_ENVS = [DEV, UAT]
+const keycloakBaseUrl = getBaseUrl(REGISTERED_ENVS).keycloakBaseUrl
+const innerBaseUrl =  getBaseUrl(REGISTERED_ENVS).baseUrl
+const orgId = getOrgId(REGISTERED_ENVS)
+
+export function getTokenKeycloak(email, password) {
+  const apiName = KEYCLOAK_AUTH_API_NAMES.authToken
+  const url = keycloakBaseUrl
+
+  const payload =
+    `client_id=frontend` +
+    `&username=${encodeURIComponent(email)}` +
+    `&password=${encodeURIComponent(password)}` +
+    `&grant_type=password`
+
+    console.log("TEST NUMERO 2",payload)
+  const headers = {
+    'Content-Type': 'application/x-www-form-urlencoded',
+  }
+
+  const res = http.post(url, payload, { headers, tags: { apiName } })
+
+  if (res.status !== 200) {
+    console.error(`[ERROR] Token not received. Status: ${res.status}, Body: ${res.body}`)
+  }
+
+  logResult(apiName, res)
+  return { tokenKeycloakResponse: res }
+}
+
+export function getTokenIO(cf = '') {
+  const apiName = IO_AUTH_API_NAMES.authToken
+  const urlBase = 'https://api-io.dev.cstar.pagopa.it/rtd/mock-io/login'
+  const url = cf ? `${urlBase}?fiscalCode=${encodeURIComponent(cf)}` : urlBase
+
+  const params = {
+    headers: { 'Content-Type': 'application/json', 'Ocp-Apim-Trace': 'true' },
+    tags: { apiName },
+  }
+
+  const res = http.post(url, null, params)
+
+  if (res.status !== 200) {
+    console.error(`[getIOToken] Token request failed. status=${res.status}`)
+  }
+  logResult(apiName, res)
+  return { tokenIOResponse: res }
+}
+
+export function getTokenRegister() {
   const apiName = REGISTER_AUTH_API_NAMES.authToken
   const url = `${innerBaseUrl}/register/token/test`
 
