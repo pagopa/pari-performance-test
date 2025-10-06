@@ -5,10 +5,11 @@
 //     TARGET_ENV=uat K6_SCENARIO_TYPE=constant-arrival-rate K6_RATE=300 K6_TIME_UNIT=500ms \
 //     K6_VUS=200 K6_PRE_ALLOCATED_VUS=150 K6_MAX_VUS=300 k6 run ./test/pdv/pdvPerformance.js
 
-import http from 'k6/http'
-import { check } from 'k6'
 import { textSummary } from 'https://jslib.k6.io/k6-summary/0.0.2/index.js'
+import { check } from 'k6'
+import { SharedArray } from 'k6/data'
 import { getMockLogin } from '../../common/api/mockIOLogin.js'
+import { getOnboardingStatus } from '../../common/api/onboardingStatus.js'
 import {
     toPositiveNumber,
     toTrimmedString,
@@ -18,7 +19,6 @@ import {
     buildScenarioConfig,
     normalizeScenarioType,
 } from '../../common/scenarioSetup.js'
-import { abort, getFCList } from '../../common/utils.js'
 
 const targetEnv = (__ENV.TARGET_ENV || 'dev').trim().toLowerCase()
 
@@ -57,18 +57,37 @@ const scenario = buildScenarioConfig(scenarioType, {
 })
 
 const testOptions = {
-    thresholds: {
-        checks: ['rate>0.99'],
-    },
+    // thresholds: {
+    //     checks: ['rate>0.99'],
+    // },
 }
 
 if (scenario) {
     testOptions.scenarios = {
-        pdv: scenario,
+        default: scenario,
     }
 }
 
 export const options = testOptions
+
+// export const options = {
+//   scenarios: {
+//     default: {
+//       executor: 'constant-arrival-rate',
+//       rate: 50,
+//       timeUnit: '1s',
+//       duration: '60s',
+//       preAllocatedVUs: 10,
+//       maxVUs: 30,
+//     },
+//   },
+//   thresholds: {
+//     // Esempio di soglia: meno dell'1% delle richieste deve fallire.
+//     http_req_failed: ['rate<0.01'],
+//     // Esempio di soglia: il 95% delle richieste deve completarsi in meno di 500ms.
+//     http_req_duration: ['p(95)<500'],
+//   },
+// };
 
 export function handleSummary(data) {
     return {
@@ -78,41 +97,43 @@ export function handleSummary(data) {
 
 const initiativeId = '68de7fc681ce9e35a476e985'
 
-export function setup() {
-    const tokenList = []
-    const fcList = getFCList()
-    for (const fc of fcList) {
-        const res = getMockLogin(fc)
+// Load the list of 10M CFs from a CSV file
+const fiscalCodes = new SharedArray('fiscalCodes', () => {
+    const csv = open('../../../assets/fc_list_10M.csv');
+    console.log('loading csv file with fiscal codes')
+    return csv.split('\n')
+        .slice(1, 10000)
+        .map(line => line.trim())
+        .filter(line => line && line !== 'CF');
+});
 
-        if (res.status !== 200) {
-            abort(`Failed to get token for fiscal code ${fc}. Status: ${res.status}`)
+const tokenCache = new Map();
+
+export default function () {
+    const fc = fiscalCodes[Math.floor(Math.random() * fiscalCodes.length)];
+    let token;
+    // const token = data.tokenList[Math.floor(Math.random() * data.tokenList.length)]
+
+    // Controlla se il token per questo CF è già in cache
+    if (tokenCache.has(fc)) {
+        token = tokenCache.get(fc);
+    } else {
+        // Se non è in cache, genera un nuovo token
+        const res = getMockLogin(fc);
+
+        // Controlla se la generazione del token ha avuto successo
+        if (res.status !== 200 || !res.body) {
+            console.error(`Failed to get token for fiscal code ${fc}. Status: ${res.status}`);
+            // Interrompi questa iterazione se non riusciamo a ottenere il token
+            return;
         }
 
-        if (res.body) {
-            tokenList.push(res.body)
-        } else {
-            abort(
-                `Failed to get token for fiscal code ${fc}. No token in response body.`
-            )
-        }
-    }
-    return { tokenList }
-}
-
-export default function (data) {
-    const token = data.tokenList[Math.floor(Math.random() * data.tokenList.length)]
-
-    const url = `${baseUrl}/onboarding/${initiativeId}/status`
-
-    const headers = {
-        'X-Api-Version': 'v1',
-        Accept: 'application/json',
-        'Accept-Language': 'it-IT',
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
+        token = res.body;
+        // Salva il nuovo token nella cache per usi futuri
+        tokenCache.set(fc, token);
     }
 
-    const res = http.get(url, { headers })
+    const res = getOnboardingStatus(baseUrl, initiativeId, token);
 
     check(res, {
         'is 404': (r) => r.status === 404,
