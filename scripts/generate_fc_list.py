@@ -1,6 +1,5 @@
 import os
 import csv
-import random
 from datetime import date
 import codicefiscale
 
@@ -9,17 +8,22 @@ NUM_CODES = 10000000
 OUTPUT_FOLDER = 'assets'
 OUTPUT_FILE = 'fc_list_10M.csv'
 OUTPUT_PATH = os.path.join(OUTPUT_FOLDER, OUTPUT_FILE)
+START_YEAR = 2200
+END_YEAR = 2299  # 100 years window
+START_MUNICIPALITY = 1
+MAX_MUNICIPALITY = 999  # Z001-Z999
 # -------------------
+
+def get_fake_municipality(idx):
+    # Returns a fake codice catastale in the form Z001, Z002, ..., Z999
+    return f"Z{idx:03d}"
 
 def generate_fiscal_codes():
     """
-    Generates a CSV file with a specified number of random but valid
+    Generates a CSV file with a specified number of deterministic, unique, and valid
     Italian fiscal codes using fake data.
     The script will not overwrite an existing file.
     """
-    # Ensure deterministic behavior by setting a fixed random seed
-    random.seed(42)
-
     # Ensure the assets directory exists
     if not os.path.exists(OUTPUT_FOLDER):
         os.makedirs(OUTPUT_FOLDER)
@@ -34,16 +38,23 @@ def generate_fiscal_codes():
     try:
         with open(OUTPUT_PATH, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile)
-            # Write header
             writer.writerow(['CF'])
 
-            # Generate and write fiscal codes
+            year_range = END_YEAR - START_YEAR + 1
+            municipality_range = MAX_MUNICIPALITY - START_MUNICIPALITY + 1
+
             for i in range(NUM_CODES):
                 surname = f"Cognome{i}"
                 name = f"Nome{i}"
-                birthday = date(2200, random.randint(1, 12), random.randint(1, 28))
-                sex = random.choice(['M', 'F'])
-                municipality = 'Z999'  # Fake codice catastale
+                # Deterministic date: day 1-28, month 1-12, year cycles in window
+                day = (i % 28) + 1
+                month = (i % 12) + 1
+                year = START_YEAR + (i % year_range)
+                birthday = date(year, month, day)
+                sex = 'M' if i % 2 == 0 else 'F'
+                # Deterministic fake municipality
+                municipality_idx = (i % municipality_range) + START_MUNICIPALITY
+                municipality = get_fake_municipality(municipality_idx)
 
                 cf = codicefiscale.build(
                     surname=surname,
@@ -61,7 +72,6 @@ def generate_fiscal_codes():
 
     except Exception as e:
         print(f"An error occurred: {e}")
-        # Clean up partially created file on error
         if os.path.exists(OUTPUT_PATH):
             os.remove(OUTPUT_PATH)
 
@@ -69,4 +79,3 @@ if __name__ == "__main__":
     print("--- Fiscal Code List Generator ---")
     generate_fiscal_codes()
     print("----------------------------------")
-

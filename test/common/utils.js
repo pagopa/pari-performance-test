@@ -183,7 +183,7 @@ export function getOrgId(operationAvailableEnvs, system) {
   return orgId
 }
 
-const fcList = papaparse.parse(open(`../../assets/fc_list.csv`), {
+const fcList = papaparse.parse(open(`../../assets/fc_list_10M.csv`), {
     header: true,
 }).data;
 

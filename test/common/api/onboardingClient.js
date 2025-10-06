@@ -21,11 +21,9 @@ export function saveOnboarding(baseUrl, token, payload, acceptLanguage = 'it-IT'
 
   const res = http.put(url, JSON.stringify(payload), { headers, tags: { apiName: 'saveOnboarding' } });
 
-  logResult('saveOnboarding', res);
-
-  if (res.status !== 200) {
+  if (res.status !== 202) {
     throw new Error(`API Error: ${res.status} - ${res.body}`);
   }
 
-  return res.json();
+  return res;
 }

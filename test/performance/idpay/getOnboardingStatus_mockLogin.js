@@ -129,4 +129,4 @@ export default function (data) {
     })
 }
 
-// TARGET_ENV=uat K6_VUS=10 K6_DURATION=30s K6_RATE=10 python3 .devops/scripts/run_k6.py --script  test/performance/idpay/getOnboardingStatus_mockLogin.js
+// K6_SCENARIO_TYPE=constant-arrival-rate K6_TIME_UNIT=1s TARGET_ENV=uat K6_VUS=2 K6_DURATION=10s K6_RATE=10 K6_PRE_ALLOCATED_VUS=1 python3 .devops/scripts/run_k6.py --script  test/performance/idpay/getOnboardingStatus_mockLogin.js
