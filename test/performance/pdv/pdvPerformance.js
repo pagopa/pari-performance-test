@@ -64,9 +64,11 @@ if (scenario) {
 
 export const options = testOptions
 
-export default function () {
+export function setup() {
     logScenarioDetails(scenarioType, scenarioOptions)
+}
 
+export default function () {
     const payload = {
         pii: randomString(8, 'abcdefghijklmnopqrstuvwxyz01234567890'),
     }
