@@ -152,6 +152,22 @@ jobs:
           environment="${TARGET_ENV:-}"
           script_path="${K6_SCRIPT_PATH:-}"
 
+          build_number_source="${BUILD_BUILDNUMBER:-}"
+          date_part=""
+          run_part=""
+          if [[ "$build_number_source" =~ ^([0-9]{8})\.([0-9]+) ]]; then
+            date_part="${BASH_REMATCH[1]}"
+            run_part="${BASH_REMATCH[2]}"
+          fi
+          if [[ -z "$date_part" || -z "$run_part" ]]; then
+            date_part="$(date -u +%Y%m%d)"
+            build_id="${BUILD_BUILDID:-0}"
+            run_candidate=$(( build_id % 100 ))
+            run_part="$(printf '%02d' "$run_candidate")"
+          fi
+          build_number_formatted="${date_part}.${run_part}"
+          auto_prefix_raw="#${build_number_formatted} •"
+
           base="${script_path##*/}"
           base="${base%.js}"
 
@@ -170,12 +186,14 @@ jobs:
           scenario_safe="$(sanitize "$scenario" "scenario")"
           environment_safe="$(sanitize "$environment" "env")"
           prefix_safe="$(sanitize "$prefix" "custom")"
+          auto_prefix_safe="$(sanitize "$auto_prefix_raw" "run")"
 
           if [[ -n "$prefix" ]]; then
-            name="${prefix_safe}__${environment_safe}-${scenario_safe}-${base_safe}"
+            core_segment="${prefix_safe}-${environment_safe}-${scenario_safe}-${base_safe}"
           else
-            name="${environment_safe}-${scenario_safe}-${base_safe}"
+            core_segment="${environment_safe}-${scenario_safe}-${base_safe}"
           fi
+          name="${auto_prefix_safe}-${core_segment}"
 
           max_length=256
           if (( ${#name} > max_length )); then
@@ -191,15 +209,19 @@ jobs:
           fi
 
           emoji_segments=()
+          emoji_segments+=("🗓️ ${auto_prefix_raw}")
           if [[ -n "$prefix" ]]; then
             emoji_segments+=("🏷️ ${prefix_safe}")
           fi
           emoji_segments+=("🌍 ${environment_safe}")
-          emoji_segments+=("🏷️ ${scenario_safe}")
-          emoji_segments+=("💣 ${base_safe}")
+          emoji_segments+=("🎯 ${scenario_safe}")
+          emoji_segments+=("📜 ${base_safe}")
+
+          display_name="${auto_prefix_raw} ${core_segment}"
 
           printf 'Segments -> %s\n' "$(IFS=' | '; echo "${emoji_segments[*]}")"
-          echo "Pipeline run name -> $name"
+          echo "Display pipeline run name -> ${display_name}"
+          echo "Sanitized pipeline run name -> $name"
           echo "##vso[task.setvariable variable=ComputedPipelineName]$name"
           echo "##vso[task.setvariable variable=ComputedPipelineName;isOutput=true]$name"
           echo "##vso[build.updatebuildnumber]$name"
