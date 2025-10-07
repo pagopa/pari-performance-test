@@ -142,11 +142,6 @@ jobs:
       k6ScenarioType: ${{ parameters.K6PERF_SCENARIO_TYPE }}
       targetEnv: ${{ parameters.TARGET_ENV }}
 
-  - template: templates\xk6-build.yml
-    parameters:
-      xk6CacheKey: '$(xk6CacheKey)'
-      k6Version: v1.3.0
-
   - job: ValidateParameters
     displayName: '✅ Validating k6 configuration for ${{ parameters.TARGET_ENV }}'
     dependsOn:
@@ -219,6 +214,11 @@ jobs:
               K6PERF_MAX_VUS: ${{ parameters.K6PERF_MAX_VUS }}
               ${{ if gt(length(parameters.K6PERF_STAGES), 0) }}:
                 K6PERF_STAGES_PARAM: ${{ convertToJson(parameters.K6PERF_STAGES) }}
+  
+  - template: templates\xk6-build.yml
+    parameters:
+      xk6CacheKey: '$(xk6CacheKey)'
+      k6Version: v1.3.0
 
   - job: simplePerformanceRun
     displayName: '⚡ Simple k6 run on ${{ parameters.TARGET_ENV }}'
