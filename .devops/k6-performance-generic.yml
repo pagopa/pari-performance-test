@@ -256,6 +256,11 @@ jobs:
           path: '$(Build.SourcesDirectory)'
         displayName: Retrieve xk6 from Cache
 
+      - script: |
+          echo "🔎 Checking k6 version..."
+          ./xk6/xk6 version || echo "⚠️ xk6 binary not found"
+        displayName: "Show k6 version"
+
       - ${{ each k6Script in split(variables.SCRIPTS_TO_EXECUTE, ',') }}:
           - script: |
               set -euo pipefail
