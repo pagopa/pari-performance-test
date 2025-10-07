@@ -10,7 +10,7 @@ parameters:
   - name: 'PIPELINE_NAME_PREFIX'
     displayName: '(Optional) pipeline run name prefix'
     type: string
-    default: ''
+    default: '-'
 
   - name: 'k6_running_mode'
     displayName: 'k6 execution mode'
@@ -145,6 +145,9 @@ jobs:
           set -euo pipefail
 
           prefix="${PIPELINE_NAME_PREFIX:-}"
+          if [[ "$prefix" == "-" ]]; then
+            prefix=""
+          fi
           scenario="${K6_SCENARIO_TYPE:-}"
           environment="${TARGET_ENV:-}"
           script_path="${K6_SCRIPT_PATH:-}"
