@@ -90,30 +90,32 @@ parameters:
     type: number
     default: 0
 
-  - name: 'CF'
-    displayName: 'User CF'
-    type: string
-    default: ''
+  - ${{ if eq(parameters.K6_SCRIPT_PATH, 'test/performance/payment/payment.js') }}:
+      - name: 'CF'
+        displayName: 'User CF'
+        type: string
+        default: ''
 
-  - name: 'USER_EMAIL'
-    displayName: 'User email'
-    type: string
-    default: ''
+      - name: 'USER_EMAIL'
+        displayName: 'User email keycloak'
+        type: string
+        default: ''
 
-  - name: 'USER_PASSWORD'
-    displayName: 'User password'
-    type: string
-    default: ''
+      - name: 'USER_PASSWORD'
+        displayName: 'User password keycloak'
+        type: string
+        default: ''
 
-  - name: 'USER_ID'
-    displayName: 'User ID'
-    type: string
-    default: ''
+      - name: 'USER_ID'
+        displayName: 'User ID'
+        type: string
+        default: ''
 
-  - name: 'INITIATIVE_ID'
-    displayName: 'Initiative ID'
-    type: string
-    default: ''
+      - name: 'INITIATIVE_ID'
+        displayName: 'Initiative ID'
+        type: string
+        default: ''
+
 
 variables:
 
