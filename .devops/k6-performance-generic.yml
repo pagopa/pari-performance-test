@@ -330,7 +330,7 @@ jobs:
                   exit 1
               fi
 
-              cli_cmd=("./xk6" "run" "$script_path" "--tag" "environment=${target_env}" "--http-debug=failed")
+              cli_cmd=("./xk6" "run" "$script_path" "--tag" "environment=${target_env}")
               env_vars=("TARGET_ENV=${target_env}" "K6_SCENARIO_TYPE=${scenario_type}")
 
               add_cli() {
