@@ -74,9 +74,9 @@ jobs:
           build_number_safe="$(sanitize "$build_number_raw" "run")"
 
           if [[ -n "$prefix_name" ]]; then
-            core_segment="${prefix_name_safe} • ${environment_safe}-${scenario_safe}-${base_safe}"
+            core_segment="${prefix_name_safe} • ${environment_safe}_${scenario_safe}_${base_safe}"
           else
-            core_segment="${environment_safe}-${scenario_safe}-${base_safe}"
+            core_segment="${environment_safe}_${scenario_safe}_${base_safe}"
           fi
           name="${build_number_safe} • ${core_segment}"
 
