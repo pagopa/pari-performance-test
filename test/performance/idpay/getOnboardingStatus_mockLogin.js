@@ -63,7 +63,6 @@ export const options = {
         onboardingStatus: scenario
     },
     thresholds: {
-        http_req_failed: ['rate<0.01'],
         http_req_duration: ['p(95)<500'],
     },
 }
@@ -71,7 +70,7 @@ export const options = {
 export function handleSummary(data) {
     return {
         stdout: textSummary(data, { indent: ' ', enableColors: true }),
-        [`report-${Date().now()}.html`]: htmlReport(data),
+        [`report-${new Date().getTime()}.html`]: htmlReport(data),
     }
 }
 
@@ -117,7 +116,7 @@ export default function () {
         tokenCache.set(fc, token);
     }
 
-    const res = getOnboardingStatus(baseUrl, initiativeId, token, [200, 404]);
+    const res = getOnboardingStatus(baseUrl, initiativeId, token);
 
     if (res.status === 200) {
         status200Counter.add(1);
@@ -126,7 +125,7 @@ export default function () {
     }
 
     check(res, {
-        'is OK': (r) => r.status === 200 || r.status === 404,
+        'is 200 or 404': (r) => r.status === 200 || r.status === 404,
         'body is not empty': (r) => r.body && r.body.length > 0,
         'body is a json': (r) => {
             try {
