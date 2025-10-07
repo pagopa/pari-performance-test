@@ -17,7 +17,7 @@ jobs:
         inputs:
           key: 'xk6-${{ parameters.k6Version }}-dotenv-v0.2.0'
           path: '$(Build.SourcesDirectory)/xk6'
-          cacheHitVar: XK6_RESTORED
+          cacheHitVar: never
         displayName: Retrieve xk6 from Cache
 
       - script: |
