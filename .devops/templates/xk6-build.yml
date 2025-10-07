@@ -15,7 +15,7 @@ jobs:
     steps:
       - task: Cache@2
         inputs:
-          key: 'xk6 | ${{ parameters.k6Version }} | dotenv-v0.2.0'
+          key: 'xk6 | v1.3.0 | dotenv-v0.2.0'
           path: '$(Build.SourcesDirectory)/xk6'
           cacheHitVar: XK6_RESTORED
         displayName: Retrieve xk6 from Cache
