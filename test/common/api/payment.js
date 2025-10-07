@@ -47,11 +47,6 @@ export function createBarCode(payload, headers) {
     headers,
     tags: { apiName },
   })
-  console.log("TEST")
-  console.log(url)
-  console.log(payload)
-  console.log(headers)
-  console.log(res)
   return validateResponse(apiName, res)
 }
 
