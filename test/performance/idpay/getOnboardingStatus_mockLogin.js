@@ -6,20 +6,16 @@
 //     K6_VUS=200 K6_PRE_ALLOCATED_VUS=150 K6_MAX_VUS=300 k6 run ./test/pdv/pdvPerformance.js
 
 import { textSummary } from 'https://jslib.k6.io/k6-summary/0.0.2/index.js'
+import { htmlReport } from 'https://raw.githubusercontent.com/benc-uk/k6-reporter/main/dist/bundle.js'
 import { check } from 'k6'
 import { SharedArray } from 'k6/data'
 import { getMockLogin } from '../../common/api/mockIOLogin.js'
 import { getOnboardingStatus } from '../../common/api/onboardingStatus.js'
 import {
-    toPositiveNumber,
-    toTrimmedString,
+    toTrimmedString
 } from '../../common/basicUtils.js'
 import { loadEnvConfig } from '../../common/loadEnv.js'
-import {
-    buildScenarioConfig,
-    normalizeScenarioType,
-} from '../../common/scenarioSetup.js'
-import { htmlReport } from 'https://raw.githubusercontent.com/benc-uk/k6-reporter/main/dist/bundle.js'
+import { Counter } from 'k6/metrics';
 
 const targetEnv = (__ENV.TARGET_ENV || 'dev').trim().toLowerCase()
 
@@ -72,22 +68,22 @@ if (!baseUrl) {
 // export const options = testOptions
 
 export const options = {
-  scenarios: {
-    onboardingStatus: {
-      executor: 'constant-arrival-rate',
-      rate: 50,
-      timeUnit: '1s',
-      duration: '60s',
-      preAllocatedVUs: 10,
-      maxVUs: 30,
+    scenarios: {
+        onboardingStatus: {
+            executor: 'constant-arrival-rate',
+            rate: 50,
+            timeUnit: '1s',
+            duration: '60s',
+            preAllocatedVUs: 10,
+            maxVUs: 30,
+        },
     },
-  },
-  thresholds: {
-    // Esempio di soglia: meno dell'1% delle richieste deve fallire.
-    http_req_failed: ['rate<0.01'],
-    // Esempio di soglia: il 95% delle richieste deve completarsi in meno di 500ms.
-    http_req_duration: ['p(95)<500'],
-  },
+    thresholds: {
+        // Esempio di soglia: meno dell'1% delle richieste deve fallire.
+        http_req_failed: ['rate<0.01'],
+        // Esempio di soglia: il 95% delle richieste deve completarsi in meno di 500ms.
+        http_req_duration: ['p(95)<500'],
+    },
 };
 
 export function handleSummary(data) {
@@ -107,6 +103,9 @@ const fiscalCodes = new SharedArray('fiscalCodes', () => {
         .map(line => line.trim())
         .filter(line => line && line !== 'CF');
 });
+
+const status200Counter = new Counter('status_200_onboarding_status');
+const status404Counter = new Counter('status_404_onboarding_status');
 
 const tokenCache = new Map();
 
@@ -135,6 +134,12 @@ export default function () {
     }
 
     const res = getOnboardingStatus(baseUrl, initiativeId, token, [200, 404]);
+
+    if (res.status === 200) {
+        status200Counter.add(1);
+    } else if (res.status === 404) {
+        status404Counter.add(1);
+    }
 
     check(res, {
         'is OK': (r) => r.status === 200 || r.status === 404,
