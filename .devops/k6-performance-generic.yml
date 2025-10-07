@@ -150,7 +150,7 @@ variables:
         value: cstar-prod-perf-linux
 
   - name: xk6CacheKey
-    value: xk6-$(k6Version)-dotenv-v0.2.0
+    value: xk6-v1.3.0-dotenv-v0.2.0
 
 jobs:
   - template: templates\xk6-build.yml
