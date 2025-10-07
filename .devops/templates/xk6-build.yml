@@ -15,11 +15,10 @@ jobs:
     steps:
       - task: Cache@2
         inputs:
-          key: 'xk6-${{ parameters.k6Version }}-dotenv-v0.2.0'
+          key: 'xk6 | ${{ parameters.k6Version }} | dotenv-v0.2.0'
           path: '$(Build.SourcesDirectory)/xk6'
-          cacheHitVar: never
+          cacheHitVar: XK6_RESTORED
         displayName: Retrieve xk6 from Cache
-
       - script: |
           mkdir -p $(Build.SourcesDirectory)/xk6
           docker run --rm \
@@ -36,3 +35,10 @@ jobs:
           ./xk6/xk6 version || echo "⚠️ Could not print xk6 version"
           ./xk6/xk6 run --help | grep dotenv && echo "✅ xk6-dotenv extension detected" || echo "❌ xk6-dotenv NOT found"
         displayName: Verify xk6 build and extensions
+
+      - task: Cache@2
+        inputs:
+          key: 'xk6 | ${{ parameters.k6Version }} | dotenv-v0.2.0'
+          path: '$(Build.SourcesDirectory)/xk6'
+        displayName: Save xk6 to Cache
+        condition: ne(variables.XK6_RESTORED, 'true')
