@@ -197,8 +197,8 @@ jobs:
 
       - ${{ each k6Script in split(variables.SCRIPTS_TO_EXECUTE, ',') }}:
           - script: |
-              python3 .devops/scripts/run_k6.py --script "${{ k6Script }}" --dry-run
-            displayName: 📌 Validate parameters for ${{ k6Script }}
+              node .devops/scripts/validate_scenario.mjs
+            displayName: '✅ Validate scenario via scenarioSetup.js'
             condition: ne(variables.k6_running_mode, 'simple')
             env:
               TARGET_ENV: ${{ parameters.TARGET_ENV }}
@@ -213,8 +213,8 @@ jobs:
               K6PERF_PRE_ALLOCATED_VUS: ${{ parameters.K6PERF_PRE_ALLOCATED_VUS }}
               K6PERF_MAX_VUS: ${{ parameters.K6PERF_MAX_VUS }}
               ${{ if gt(length(parameters.K6PERF_STAGES), 0) }}:
-                K6PERF_STAGES_PARAM: ${{ convertToJson(parameters.K6PERF_STAGES) }}
-  
+                K6PERF_STAGES_JSON: ${{ convertToJson(parameters.K6PERF_STAGES) }}
+
   - template: templates\xk6-build.yml
     parameters:
       xk6CacheKey: '$(xk6CacheKey)'
