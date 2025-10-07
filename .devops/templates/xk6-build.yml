@@ -25,7 +25,8 @@ jobs:
             -u "$(id -u):$(id -g)" \
             -v "$(Build.SourcesDirectory)/xk6:/xk6" \
             grafana/xk6:latest build ${{ parameters.k6Version }} \
-            --output xk6 ${{ parameters.xk6Extensions }}
+            --with github.com/szkiba/xk6-dotenv@v0.2.0 \
+            --output /xk6/xk6
         displayName: Build xk6 binary
         condition: ne(variables.XK6_RESTORED, 'true')
 
