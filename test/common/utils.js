@@ -1,8 +1,8 @@
-import { randomString, randomIntBetween } from 'https://jslib.k6.io/k6-utils/1.1.0/index.js'
-import papaparse from 'https://jslib.k6.io/papaparse/5.1.1/index.js'
-import exec from 'k6/execution'
+import { randomIntBetween, randomString } from 'https://jslib.k6.io/k6-utils/1.1.0/index.js';
+import papaparse from 'https://jslib.k6.io/papaparse/5.1.1/index.js';
 import { randomBytes } from 'k6/crypto';
-import { CONFIG } from './dynamicScenarios/envVars.js'
+import exec from 'k6/execution';
+import { CONFIG } from './dynamicScenarios/envVars.js';
 
 
 export function randomFiscalCode() {
@@ -106,7 +106,7 @@ export function abort(description) {
 }
 
 export function generateUUID() {
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
         let r = randomBytes(1)[0] % 16;
         let v = c == 'x' ? r : (r & 0x3 | 0x8);
         return v.toString(16);
@@ -164,21 +164,23 @@ export const ORG_IDS = {
 
 export function getOrgId(operationAvailableEnvs) {
   const env = CONFIG.TARGET_ENV
+export function getOrgId(operationAvailableEnvs, system) {
+    const env = CONFIG.TARGET_ENV
 
-  if (
-    !operationAvailableEnvs.includes(env)
-  ) {
-    abort('Environment selected not allowed for orgId resolution')
-    return null
-  }
+    if (
+        !operationAvailableEnvs.includes(env)
+    ) {
+        abort('Environment selected not allowed for orgId resolution')
+        return null
+    }
 
   const key = `${env}`
   const orgId = ORG_IDS[key]
 
-  if (!orgId) {
-    abort(`Missing orgId for key: ${key}`)
-    return null
-  }
+    if (!orgId) {
+        abort(`Missing orgId for key: ${key}`)
+        return null
+    }
 
-  return orgId
+    return orgId
 }

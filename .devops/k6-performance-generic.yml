@@ -21,6 +21,7 @@ parameters:
     default: 'test/performance/pdv/pdvPerformance.js'
     values:
       - 'test/performance/pdv/pdvPerformance.js'
+      - 'test/performance/idpay/getOnboardingStatus_mockLogin.js'
       - 'test/performance/payment/payment.js'
 
   - name: 'TARGET_ENV'

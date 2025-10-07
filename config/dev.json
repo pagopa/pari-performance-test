@@ -1,3 +1,4 @@
 {
-    "pdvUrl": "https://idpay.itn.internal.dev.cstar.pagopa.it/mcshareddatavault"
+    "pdvUrl": "https://idpay.itn.internal.dev.cstar.pagopa.it/mcshareddatavault",
+    "apimUrl": "https://api-io.dev.cstar.pagopa.it/idpay-itn"
 }

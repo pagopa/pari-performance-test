@@ -1,5 +1,4 @@
 import { coalesce } from '../utils.js'
-import dotenv from 'k6/x/dotenv'
 
 const vu = parseInt(coalesce(__ENV.VUS_MAX_ENV, 3),10)// NOSONAR
 
@@ -71,5 +70,4 @@ export const CONFIG = {
         RESULTS_DIR: __ENV.RESULTS_DIR,
     },
 
-    AUTH_KEYS: dotenv.parse(open(__ENV.SECRETS_FILE_PATH))
 }
