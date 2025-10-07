@@ -163,8 +163,6 @@ export const ORG_IDS = {
 }
 
 export function getOrgId(operationAvailableEnvs) {
-  const env = CONFIG.TARGET_ENV
-export function getOrgId(operationAvailableEnvs, system) {
     const env = CONFIG.TARGET_ENV
 
     if (

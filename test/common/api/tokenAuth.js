@@ -30,13 +30,11 @@ export function getTokenKeycloak(email, password) {
     `&password=${encodeURIComponent(password)}` +
     `&grant_type=password`
 
-    console.log("TEST NUMERO 2",payload)
   const headers = {
     'Content-Type': 'application/x-www-form-urlencoded',
   }
 
   const res = http.post(url, payload, { headers, tags: { apiName } })
-
   if (res.status !== 200) {
     console.error(`[ERROR] Token not received. Status: ${res.status}, Body: ${res.body}`)
   }
