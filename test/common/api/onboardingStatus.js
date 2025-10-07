@@ -7,7 +7,7 @@ import http from 'k6/http'
  * @param {string} token - The Bearer token for authorization.
  * @returns {Response} - The k6 HTTP response object.
  */
-export function getOnboardingStatus(baseUrl, initiativeId, token) {
+export function getOnboardingStatus(baseUrl, initiativeId, token, expectedStatuses = [200]) {
     const url = `${baseUrl}/onboarding/${initiativeId}/status`
     const headers = {
         'X-Api-Version': 'v1',
@@ -16,5 +16,11 @@ export function getOnboardingStatus(baseUrl, initiativeId, token) {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
     }
-    return http.get(url, { headers })
+
+    const params = {
+        headers,
+        expectedStatuses,
+    }
+
+    return http.get(url, params)
 }

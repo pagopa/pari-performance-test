@@ -19,6 +19,7 @@ import {
     buildScenarioConfig,
     normalizeScenarioType,
 } from '../../common/scenarioSetup.js'
+import { htmlReport } from 'https://raw.githubusercontent.com/benc-uk/k6-reporter/main/dist/bundle.js'
 
 const targetEnv = (__ENV.TARGET_ENV || 'dev').trim().toLowerCase()
 
@@ -92,6 +93,7 @@ export const options = {
 export function handleSummary(data) {
     return {
         stdout: textSummary(data, { indent: ' ', enableColors: true }),
+        [outputHtmlSummaryFile]: htmlReport(data),
     }
 }
 
@@ -132,7 +134,7 @@ export default function () {
         tokenCache.set(fc, token);
     }
 
-    const res = getOnboardingStatus(baseUrl, initiativeId, token);
+    const res = getOnboardingStatus(baseUrl, initiativeId, token, [200, 404]);
 
     check(res, {
         'is OK': (r) => r.status === 200 || r.status === 404,
