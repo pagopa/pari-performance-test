@@ -113,6 +113,20 @@ function optionLabel(key) {
     return optionEnvNames[key] || key
 }
 
+function readScenarioOptionsFromEnv(env) {
+    return {
+        duration: env.K6PERF_DURATION,
+        iterations: env.K6PERF_ITERATIONS,
+        vus: env.K6PERF_VUS,
+        rate: env.K6PERF_RATE,
+        timeUnit: env.K6PERF_TIME_UNIT,
+        preAllocatedVUs: env.K6PERF_PRE_ALLOCATED_VUS,
+        maxVUs: env.K6PERF_MAX_VUS,
+        startVUs: env.K6PERF_START_VUS,
+        stagesRaw: env.K6PERF_STAGES_JSON ?? env.K6PERF_STAGES,
+    }
+}
+
 function getRequiredPositiveNumberOption(scenarioType, options, key) {
     const rawValue = options[key]
     const parsed = toPositiveNumber(rawValue)
@@ -259,6 +273,40 @@ export function buildScenarioConfig(scenarioType, options) {
 
 export function getScenarioDebugSnapshot(scenarioType, options) {
     return computeScenarioConfig(scenarioType, options)
+}
+
+export function prepareScenario({ env, logger = console.log, logOnPrepare = false } = {}) {
+    const effectiveEnv = env || (typeof __ENV !== 'undefined' ? __ENV : {})
+    const scenarioTypeRaw = effectiveEnv.K6PERF_SCENARIO_TYPE
+    const scenarioTypeValue = toTrimmedString(scenarioTypeRaw, undefined)
+
+    if (!scenarioTypeValue) {
+        throw new Error(
+            `Missing required environment variable: K6PERF_SCENARIO_TYPE (received ${formatValueForMessage(
+                scenarioTypeRaw
+            )})`
+        )
+    }
+
+    const scenarioType = normalizeScenarioType(scenarioTypeValue)
+    const scenarioOptions = readScenarioOptionsFromEnv(effectiveEnv)
+    const { resolvedScenarioType, scenarioConfig } = getScenarioDebugSnapshot(
+        scenarioType,
+        scenarioOptions
+    )
+    const logScenario = () => logScenarioDetails(scenarioType, scenarioOptions, logger)
+
+    if (logOnPrepare) {
+        logScenario()
+    }
+
+    return {
+        scenarioType,
+        resolvedScenarioType,
+        scenarioOptions,
+        scenarioConfig,
+        logScenario,
+    }
 }
 
 export function logScenarioDetails(scenarioType, options, logger = console.log) {

@@ -8,12 +8,8 @@ import http from 'k6/http'
 import { check } from 'k6'
 import { randomString } from 'https://jslib.k6.io/k6-utils/1.6.0/index.js'
 import { loadEnvConfig } from '../../common/loadEnv.js'
-import { toTrimmedString, formatValueForMessage } from '../../common/basicUtils.js'
-import {
-    normalizeScenarioType,
-    buildScenarioConfig,
-    logScenarioDetails,
-} from '../../common/scenarioSetup.js'
+import { toTrimmedString } from '../../common/basicUtils.js'
+import { prepareScenario } from '../../common/scenarioSetup.js'
 
 const targetEnv = (__ENV.TARGET_ENV || 'dev').trim().toLowerCase()
 
@@ -24,30 +20,7 @@ if (!pdvUrl) {
     throw new Error(`Missing PDV_URL for environment: ${targetEnv}`)
 }
 
-const scenarioTypeRaw = __ENV.K6PERF_SCENARIO_TYPE
-const scenarioTypeValue = toTrimmedString(scenarioTypeRaw, undefined)
-if (!scenarioTypeValue) {
-    throw new Error(
-        `Missing required environment variable: K6PERF_SCENARIO_TYPE (received ${formatValueForMessage(
-            scenarioTypeRaw
-        )})`
-    )
-}
-const scenarioType = normalizeScenarioType(scenarioTypeValue)
-
-const scenarioOptions = {
-    duration: __ENV.K6PERF_DURATION,
-    iterations: __ENV.K6PERF_ITERATIONS,
-    vus: __ENV.K6PERF_VUS,
-    rate: __ENV.K6PERF_RATE,
-    timeUnit: __ENV.K6PERF_TIME_UNIT,
-    preAllocatedVUs: __ENV.K6PERF_PRE_ALLOCATED_VUS,
-    maxVUs: __ENV.K6PERF_MAX_VUS,
-    startVUs: __ENV.K6PERF_START_VUS,
-    stagesRaw: __ENV.K6PERF_STAGES_JSON ?? __ENV.K6PERF_STAGES,
-}
-
-const scenario = buildScenarioConfig(scenarioType, scenarioOptions)
+const { scenarioConfig, logScenario } = prepareScenario({ env: __ENV })
 
 const testOptions = {
     discardResponseBodies: true,
@@ -56,16 +29,16 @@ const testOptions = {
     },
 }
 
-if (scenario) {
+if (scenarioConfig) {
     testOptions.scenarios = {
-        pdv: scenario,
+        pdv: scenarioConfig,
     }
 }
 
 export const options = testOptions
 
 export function setup() {
-    logScenarioDetails(scenarioType, scenarioOptions)
+    logScenario()
 }
 
 export default function () {
