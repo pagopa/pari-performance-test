@@ -377,6 +377,11 @@ jobs:
               K6_PRE_ALLOCATED_VUS: ${{ parameters.K6_PRE_ALLOCATED_VUS }}
               K6_MAX_VUS: ${{ parameters.K6_MAX_VUS }}
               K6_STAGES_JSON: ${{ convertToJson(parameters.K6_STAGES) }}
+              CF: ${{ parameters.CF }}
+              USER_EMAIL: ${{ parameters.USER_EMAIL }}
+              USER_PASSWORD: ${{ parameters.USER_PASSWORD }}
+              USER_ID: ${{ parameters.USER_ID }}
+              INITIATIVE_ID: ${{ parameters.INITIATIVE_ID }}
 
   - job: managedPerformanceTests
     displayName: '✈️ Managed k6 scripts on ${{ parameters.TARGET_ENV }}'

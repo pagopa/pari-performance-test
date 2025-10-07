@@ -6,7 +6,7 @@ parameters:
     default: v1.3.0
   - name: 'xk6Extensions'
     type: string
-    default: '--with=github.com/szkiba/xk6-dotenv@v0.2.0'
+    default: '--with github.com/szkiba/xk6-dotenv@v0.2.0'
 
 jobs:
   - job: xk6Build
@@ -15,30 +15,12 @@ jobs:
     steps:
       - task: Cache@2
         inputs:
-          key: 'xk6 | v1.3.0 | dotenv-v0.2.0'
+          key: '$(xk6CacheKey)'
           path: '$(Build.SourcesDirectory)/xk6'
           cacheHitVar: XK6_RESTORED
         displayName: Retrieve xk6 from Cache
       - script: |
-          mkdir -p $(Build.SourcesDirectory)/xk6
-          docker run --rm \
-            -u "$(id -u):$(id -g)" \
-            -v "$(Build.SourcesDirectory)/xk6:/xk6" \
-            grafana/xk6:latest build ${{ parameters.k6Version }} \
-            --output xk6 ${{ parameters.xk6Extensions }}
+          mkdir xk6
+          docker run --rm -u "$(id -u):$(id -g)" -v "${PWD}/xk6:/xk6" grafana/xk6:latest build ${{ parameters.k6Version }} --output xk6 ${{ parameters.xk6Extensions }}
         displayName: Build xk6 binary
-        condition: ne(variables.XK6_RESTORED, 'true')
-
-      - script: |
-          echo "🔍 Verifying built xk6 binary..."
-          ls -lah $(Build.SourcesDirectory)/xk6
-          ./xk6/xk6 version || echo "⚠️ Could not print xk6 version"
-          ./xk6/xk6 run --help | grep dotenv && echo "✅ xk6-dotenv extension detected" || echo "❌ xk6-dotenv NOT found"
-        displayName: Verify xk6 build and extensions
-
-      - task: Cache@2
-        inputs:
-          key: 'xk6 | ${{ parameters.k6Version }} | dotenv-v0.2.0'
-          path: '$(Build.SourcesDirectory)/xk6'
-        displayName: Save xk6 to Cache
         condition: ne(variables.XK6_RESTORED, 'true')
