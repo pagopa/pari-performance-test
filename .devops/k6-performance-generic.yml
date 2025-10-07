@@ -7,12 +7,21 @@ pool:
 
 parameters:
 
+  - name: 'k6_running_mode'
+    displayName: 'k6 execution mode'
+    type: string
+    default: 'simple'
+    values:
+      - 'simple'
+      - 'managed'
+
   - name: 'K6_SCRIPT_PATH'
     displayName: 'k6 script path to execute'
     type: string
     default: 'test/performance/pdv/pdvPerformance.js'
     values:
       - 'test/performance/pdv/pdvPerformance.js'
+      - 'test/performance/payment/payment.js'
 
   - name: 'TARGET_ENV'
     displayName: 'Target environment for configuration'
@@ -89,6 +98,31 @@ parameters:
     type: number
     default: 0
 
+  # Optional user-related params, only used for payment.js
+  - name: 'CF'
+    displayName: 'User CF (only for payment test)'
+    type: string
+    default: 'CF'
+
+  - name: 'USER_EMAIL'
+    displayName: 'User email keycloak (only for payment test)'
+    type: string
+    default: 'USER_EMAIL'
+
+  - name: 'USER_PASSWORD'
+    displayName: 'User password keycloak (only for payment test)'
+    type: string
+    default: 'USER_PASSWORD'
+
+  - name: 'USER_ID'
+    displayName: 'User ID (only for payment test)'
+    type: string
+    default: 'USER_ID'
+
+  - name: 'INITIATIVE_ID'
+    displayName: 'Initiative ID (only for payment test)'
+    type: string
+    default: 'INITIATIVE_ID'
 
 variables:
 
@@ -97,6 +131,9 @@ variables:
 
   - name: projectRoot
     value: $(System.DefaultWorkingDirectory)/$(working-dir)
+
+  - name: k6_running_mode
+    value: ${{ parameters.k6_running_mode }}
 
   # comma separated list of k6 scripts to execute
   - name: SCRIPTS_TO_EXECUTE
@@ -113,7 +150,7 @@ variables:
         value: cstar-prod-perf-linux
 
   - name: xk6CacheKey
-    value: '"xk6" | "1.3.0" | dotenv'
+    value: xk6-v1.3.0-dotenv-v0.2.0
 
 jobs:
   - template: templates\xk6-build.yml
@@ -129,10 +166,61 @@ jobs:
     steps:
       - checkout: self
 
+      - script: |
+          set -euo pipefail
+
+          header_divider=$(printf '%0.s-' {1..24})
+          value_divider=$(printf '%0.s-' {1..60})
+
+          printf '%-24s | %s\n' 'PARAMETER' 'VALUE'
+          printf '%s-+-%s\n' "$header_divider" "$value_divider"
+
+          printf '%-24s | %s\n' 'k6_running_mode' "${K6_RUNNING_MODE}"
+          printf '%-24s | %s\n' 'K6_SCRIPT_PATH' "${K6_SCRIPT_PATH}"
+          printf '%-24s | %s\n' 'TARGET_ENV' "${TARGET_ENV}"
+          printf '%-24s | %s\n' 'K6_SCENARIO_TYPE' "${K6_SCENARIO_TYPE}"
+          printf '%-24s | %s\n' 'K6_DURATION' "${K6_DURATION}"
+          printf '%-24s | %s\n' 'K6_VUS' "${K6_VUS}"
+          printf '%-24s | %s\n' 'K6_MAX_VUS' "${K6_MAX_VUS}"
+          printf '%-24s | %s\n' 'K6_PRE_ALLOCATED_VUS' "${K6_PRE_ALLOCATED_VUS}"
+          printf '%-24s | %s\n' 'K6_START_VUS' "${K6_START_VUS}"
+          printf '%-24s | %s\n' 'K6_RATE' "${K6_RATE}"
+          printf '%-24s | %s\n' 'K6_TIME_UNIT' "${K6_TIME_UNIT}"
+          printf '%-24s | %s\n' 'K6_RPS' "${K6_RPS}"
+          printf '%-24s | %s\n' 'K6_ITERATIONS' "${K6_ITERATIONS}"
+          printf '%-24s | %s\n' 'K6_STAGES' "${K6_STAGES_JSON}"
+          printf '%-24s | %s\n' 'K6_STAGES' "${CF}"
+          printf '%-24s | %s\n' 'K6_STAGES' "${USER_EMAIL}"
+          printf '%-24s | %s\n' 'K6_STAGES' "${USER_PASSWORD}"
+          printf '%-24s | %s\n' 'K6_STAGES' "${USER_ID}"
+          printf '%-24s | %s\n' 'K6_STAGES' "${INITIATIVE_ID}"
+        displayName: '🔍 Pipeline parameters snapshot'
+        env:
+          K6_RUNNING_MODE: ${{ parameters.k6_running_mode }}
+          K6_SCRIPT_PATH: ${{ parameters.K6_SCRIPT_PATH }}
+          TARGET_ENV: ${{ parameters.TARGET_ENV }}
+          K6_SCENARIO_TYPE: ${{ parameters.K6_SCENARIO_TYPE }}
+          K6_DURATION: ${{ parameters.K6_DURATION }}
+          K6_VUS: ${{ parameters.K6_VUS }}
+          K6_MAX_VUS: ${{ parameters.K6_MAX_VUS }}
+          K6_PRE_ALLOCATED_VUS: ${{ parameters.K6_PRE_ALLOCATED_VUS }}
+          K6_START_VUS: ${{ parameters.K6_START_VUS }}
+          K6_RATE: ${{ parameters.K6_RATE }}
+          K6_TIME_UNIT: ${{ parameters.K6_TIME_UNIT }}
+          K6_RPS: ${{ parameters.K6_RPS }}
+          K6_ITERATIONS: ${{ parameters.K6_ITERATIONS }}
+          K6_STAGES_JSON: ${{ convertToJson(parameters.K6_STAGES) }}
+          CF: ${{ parameters.CF }}
+          USER_EMAIL: ${{ parameters.USER_EMAIL }}
+          USER_PASSWORD: ${{ parameters.USER_PASSWORD }}
+          USER_ID: ${{ parameters.USER_ID }}
+          INITIATIVE_ID: ${{ parameters.INITIATIVE_ID }}
+
       - ${{ each k6Script in split(variables.SCRIPTS_TO_EXECUTE, ',') }}:
           - script: |
               python3 .devops/scripts/run_k6.py --script "${{ k6Script }}" --dry-run
-            displayName: Validate parameters for ${{ k6Script }}
+            displayName: 📌 Validate parameters for ${{ k6Script }}
+            condition: ne(variables.k6_running_mode, 'simple')
             env:
               TARGET_ENV: ${{ parameters.TARGET_ENV }}
               K6_SCENARIO_TYPE: ${{ parameters.K6_SCENARIO_TYPE }}
@@ -148,13 +236,171 @@ jobs:
               ${{ if gt(length(parameters.K6_STAGES), 0) }}:
                 K6_STAGES_PARAM: ${{ convertToJson(parameters.K6_STAGES) }}
 
-  - job: PerformanceTest
-    displayName: '✈️ Running k6 scripts on ${{ parameters.TARGET_ENV }}'
+  - job: simplePerformanceRun
+    displayName: '⚡ Simple k6 run on ${{ parameters.TARGET_ENV }}'
     timeoutInMinutes: 0
     continueOnError: true
     dependsOn:
       - xk6Build
       - ValidateParameters
+    condition: eq(variables.k6_running_mode, 'simple')
+    pool:
+      name: $(selfHostedAgentPool)
+    steps:
+
+      - checkout: self
+
+      - task: Cache@2
+        inputs:
+          key: '$(xk6CacheKey)'
+          path: '$(Build.SourcesDirectory)'
+        displayName: Retrieve xk6 from Cache
+
+      - script: |
+          echo "🔎 Checking k6 version..."
+          ./xk6/xk6 version || echo "⚠️ xk6 binary not found"
+        displayName: "Show k6 version"
+
+      - ${{ each k6Script in split(variables.SCRIPTS_TO_EXECUTE, ',') }}:
+          - script: |
+              set -euo pipefail
+
+              script_path="${{ k6Script }}"
+              if [[ -z "$script_path" ]]; then
+                  echo "❌ k6Script value is empty" >&2
+                  exit 1
+              fi
+
+              if [[ ! -f "$script_path" ]]; then
+                  echo "❌ Script '$script_path' not found" >&2
+                  exit 1
+              fi
+
+              if [[ ! -x ./xk6 ]]; then
+                  echo "❌ ./xk6 binary not found. Ensure the xk6 build stage completed successfully." >&2
+                  exit 1
+              fi
+
+              target_env="${TARGET_ENV:-}"
+              scenario_type="${K6_SCENARIO_TYPE:-}"
+
+              if [[ -z "$target_env" ]]; then
+                  echo "❌ TARGET_ENV must be provided" >&2
+                  exit 1
+              fi
+
+              if [[ -z "$scenario_type" ]]; then
+                  echo "❌ K6_SCENARIO_TYPE must be provided" >&2
+                  exit 1
+              fi
+
+              cli_cmd=("./xk6" "run" "$script_path" "--tag" "environment=${target_env}")
+              env_vars=("TARGET_ENV=${target_env}" "K6_SCENARIO_TYPE=${scenario_type}")
+
+              add_cli() {
+                  local flag="$1"
+                  local env_key="$2"
+                  shift 2
+                  local value="${!env_key-}"
+                  if [[ -z "${value-}" ]]; then
+                      unset "$env_key"
+                      return
+                  fi
+                  for default in "$@"; do
+                      if [[ "$value" == "$default" ]]; then
+                          unset "$env_key"
+                          return
+                      fi
+                  done
+                  cli_cmd+=("$flag" "$value")
+              }
+
+              add_env() {
+                  local env_key="$1"
+                  shift
+                  local value="${!env_key-}"
+                  if [[ -z "${value-}" ]]; then
+                      unset "$env_key"
+                      return
+                  fi
+                  for default in "$@"; do
+                      if [[ "$value" == "$default" ]]; then
+                          unset "$env_key"
+                          return
+                      fi
+                  done
+                  env_vars+=("${env_key}=${value}")
+              }
+
+              add_cli "--duration" "K6_DURATION" "0" "0s"
+              add_cli "--vus" "K6_VUS" "0"
+              add_cli "--iterations" "K6_ITERATIONS" "0"
+              add_cli "--rps" "K6_RPS" "0"
+
+              add_env "K6_MAX_VUS" "0"
+              add_env "K6_PRE_ALLOCATED_VUS" "0"
+              add_env "K6_START_VUS" "0"
+              add_env "K6_RATE" "0"
+              add_env "K6_TIME_UNIT" "0" "0s"
+
+              stages_json="${K6_STAGES_JSON:-}"
+              if [[ -n "$stages_json" && "$stages_json" != '[]' && "$stages_json" != 'null' ]]; then
+                  echo "ℹ️ K6_STAGES is ignored in simple mode"
+              fi
+              unset K6_STAGES_JSON
+
+              echo "▶️ Simple mode for script: $script_path"
+
+              printf 'CLI command:\n'
+              printf '  '
+              printf '%q ' "${cli_cmd[@]}"
+              printf '\n'
+
+              printf 'Environment overrides:\n'
+              if ((${#env_vars[@]} > 0)); then
+                  for entry in "${env_vars[@]}"; do
+                      printf '  %s\n' "$entry"
+                  done
+              else
+                  printf '  (none)\n'
+              fi
+
+
+              if ((${#env_vars[@]} > 0)); then
+                  printf '🚀 Executing with env: '
+                  printf '%q ' "${env_vars[@]}" "${cli_cmd[@]}"
+                  printf '\n'
+                  # env xyz.. permette di eseguire il comando con le variabili d'ambiente specificate caricandole prima
+                  env "${env_vars[@]}" "${cli_cmd[@]}"
+              else
+                  printf '▶️ Executing: '
+                  printf '%q ' "${cli_cmd[@]}"
+                  printf '\n'
+                  "${cli_cmd[@]}"
+              fi
+            displayName: '▶️ Run ${{ k6Script }} (simple mode)'
+            env:
+              TARGET_ENV: ${{ parameters.TARGET_ENV }}
+              K6_SCENARIO_TYPE: ${{ parameters.K6_SCENARIO_TYPE }}
+              K6_DURATION: ${{ parameters.K6_DURATION }}
+              K6_ITERATIONS: ${{ parameters.K6_ITERATIONS }}
+              K6_VUS: ${{ parameters.K6_VUS }}
+              K6_RATE: ${{ parameters.K6_RATE }}
+              K6_TIME_UNIT: ${{ parameters.K6_TIME_UNIT }}
+              K6_RPS: ${{ parameters.K6_RPS }}
+              K6_START_VUS: ${{ parameters.K6_START_VUS }}
+              K6_PRE_ALLOCATED_VUS: ${{ parameters.K6_PRE_ALLOCATED_VUS }}
+              K6_MAX_VUS: ${{ parameters.K6_MAX_VUS }}
+              K6_STAGES_JSON: ${{ convertToJson(parameters.K6_STAGES) }}
+
+  - job: managedPerformanceTests
+    displayName: '✈️ Managed k6 scripts on ${{ parameters.TARGET_ENV }}'
+    timeoutInMinutes: 0
+    continueOnError: true
+    dependsOn:
+      - xk6Build
+      - ValidateParameters
+    condition: eq(variables.k6_running_mode, 'managed')
     pool:
       name: $(selfHostedAgentPool)
     steps:
@@ -172,6 +418,12 @@ jobs:
           key: '$(xk6CacheKey)'
           path: '$(Build.SourcesDirectory)'
         displayName: Retrieve xk6 from Cache
+
+      - script: |
+          echo "✅ Verifying custom xk6 binary before running tests"
+          ls -lah $(Build.SourcesDirectory)/xk6
+          $(Build.SourcesDirectory)/xk6/xk6 version || echo "⚠️ xk6 binary not found"
+        displayName: Verify custom xk6 binary
 
       - ${{ each k6Script in split(variables.SCRIPTS_TO_EXECUTE, ',') }}:
           - script: |
