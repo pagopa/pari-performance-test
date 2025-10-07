@@ -5,7 +5,7 @@ import {
     formatValueForMessage,
 } from './basicUtils.js'
 
-const scenarioAliases = {
+const SCENARIO_TYPE_ALIASES = {
     manual: 'manual',
     none: 'manual',
     'shared-iterations': 'shared-iterations',
@@ -22,6 +22,8 @@ const scenarioAliases = {
     rampingarrivalrate: 'ramping-arrival-rate',
 }
 
+const DEFAULT_SCENARIO_TYPE = 'constant-arrival-rate'
+
 export function normalizeScenarioType(value) {
     const canonical = (value || '')
         .toString()
@@ -29,21 +31,19 @@ export function normalizeScenarioType(value) {
         .toLowerCase()
         .replace(/\s+/g, '-')
         .replace(/_+/g, '-')
-    return scenarioAliases[canonical] || (canonical ? canonical : 'constant-arrival-rate')
+    return SCENARIO_TYPE_ALIASES[canonical] || (canonical ? canonical : DEFAULT_SCENARIO_TYPE)
 }
 
-export function resolveScenarioType(env = {}) {
-    const scenarioTypeRaw = env.K6PERF_SCENARIO_TYPE
-    const scenarioTypeValue = toTrimmedString(scenarioTypeRaw, undefined)
+export function resolveScenarioType(rawValue) {
+    const scenarioTypeValue = toTrimmedString(rawValue, undefined)
     if (!scenarioTypeValue) {
         throw new Error(
             `Missing required environment variable: K6PERF_SCENARIO_TYPE (received ${formatValueForMessage(
-                scenarioTypeRaw
+                rawValue
             )})`
         )
     }
-    const scenarioType = normalizeScenarioType(scenarioTypeValue)
-    return { scenarioType, scenarioTypeValue, scenarioTypeRaw }
+    return normalizeScenarioType(scenarioTypeValue)
 }
 
 export function parseStages(raw) {
@@ -73,34 +73,7 @@ export function parseStages(raw) {
         )
     }
 
-    const stages = parsed.map((stage, index) => {
-        if (!stage || typeof stage !== 'object') {
-            throw new Error(
-                `K6PERF_STAGES[${index}] must be an object with duration and target fields; received ${formatValueForMessage(
-                    stage
-                )}`
-            )
-        }
-        const durationRaw = stage.duration
-        const targetRaw = stage.target
-        const duration = toTrimmedString(durationRaw, '')
-        const target = toNonNegativeNumber(targetRaw)
-        if (!duration) {
-            throw new Error(
-                `K6PERF_STAGES[${index}] is missing a valid duration; received ${formatValueForMessage(
-                    durationRaw
-                )}`
-            )
-        }
-        if (target === undefined) {
-            throw new Error(
-                `K6PERF_STAGES[${index}] is missing a numeric target >= 0; received ${formatValueForMessage(
-                    targetRaw
-                )}`
-            )
-        }
-        return { duration, target }
-    })
+    const stages = parsed.map((stage, index) => parseSingleStage(stage, index))
 
     if (stages.length === 0) {
         throw new Error(
@@ -111,7 +84,37 @@ export function parseStages(raw) {
     return stages
 }
 
-export const optionEnvNames = {
+function parseSingleStage(candidate, index) {
+    if (!candidate || typeof candidate !== 'object') {
+        throw new Error(
+            `K6PERF_STAGES[${index}] must be an object with duration and target fields; received ${formatValueForMessage(
+                candidate
+            )}`
+        )
+    }
+
+    const duration = toTrimmedString(candidate.duration, '')
+    const target = toNonNegativeNumber(candidate.target)
+
+    if (!duration) {
+        throw new Error(
+            `K6PERF_STAGES[${index}] is missing a valid duration; received ${formatValueForMessage(
+                candidate.duration
+            )}`
+        )
+    }
+    if (target === undefined) {
+        throw new Error(
+            `K6PERF_STAGES[${index}] is missing a numeric target >= 0; received ${formatValueForMessage(
+                candidate.target
+            )}`
+        )
+    }
+
+    return { duration, target }
+}
+
+export const SCENARIO_OPTION_ENV_NAMES = {
     duration: 'K6PERF_DURATION',
     iterations: 'K6PERF_ITERATIONS',
     vus: 'K6PERF_VUS',
@@ -138,40 +141,38 @@ export function readScenarioOptionsFromEnv(env = {}) {
 }
 
 function optionLabel(key) {
-    return optionEnvNames[key] || key
+    return SCENARIO_OPTION_ENV_NAMES[key] || key
 }
 
-function getRequiredPositiveNumberOption(scenarioType, options, key) {
-    const rawValue = options[key]
-    const parsed = toPositiveNumber(rawValue)
+function requirePositiveNumber(scenarioType, options, key) {
+    const parsed = toPositiveNumber(options[key])
     if (parsed === undefined) {
         throw new Error(
             `Scenario "${scenarioType}" requires ${optionLabel(
                 key
-            )} to be a positive number; received ${formatValueForMessage(rawValue)}`
+            )} to be a positive number; received ${formatValueForMessage(options[key])}`
         )
     }
     return parsed
 }
 
-function getRequiredStringOption(scenarioType, options, key) {
-    const rawValue = options[key]
-    const value = toTrimmedString(rawValue, undefined)
+function requireString(scenarioType, options, key) {
+    const value = toTrimmedString(options[key], undefined)
     if (!value) {
         throw new Error(
             `Scenario "${scenarioType}" requires ${optionLabel(
                 key
-            )} to be set; received ${formatValueForMessage(rawValue)}`
+            )} to be set; received ${formatValueForMessage(options[key])}`
         )
     }
     return value
 }
 
-function getOptionalStringOption(options, key) {
+function optionalString(options, key) {
     return toTrimmedString(options[key], undefined)
 }
 
-function assertMaxPool(scenarioType, preAllocatedVUs, maxVUs) {
+function ensurePoolBounds(scenarioType, preAllocatedVUs, maxVUs) {
     if (maxVUs < preAllocatedVUs) {
         throw new Error(
             `Scenario "${scenarioType}" requires ${optionLabel(
@@ -183,70 +184,57 @@ function assertMaxPool(scenarioType, preAllocatedVUs, maxVUs) {
     }
 }
 
-const defaultScenarioType = 'constant-arrival-rate'
+function buildIterationBasedScenario(executor, scenarioType, options) {
+    const config = {
+        executor,
+        vus: requirePositiveNumber(scenarioType, options, 'vus'),
+        iterations: requirePositiveNumber(scenarioType, options, 'iterations'),
+    }
+    const duration = optionalString(options, 'duration')
+    if (duration) {
+        config.maxDuration = duration
+    }
+    return config
+}
 
-const scenarioBuilders = {
-    'shared-iterations': (scenarioType, options) => {
-        const config = {
-            executor: 'shared-iterations',
-            vus: getRequiredPositiveNumberOption(scenarioType, options, 'vus'),
-            iterations: getRequiredPositiveNumberOption(scenarioType, options, 'iterations'),
-        }
-        const duration = getOptionalStringOption(options, 'duration')
-        if (duration) {
-            config.maxDuration = duration
-        }
-        return config
-    },
-    'per-vu-iterations': (scenarioType, options) => {
-        const config = {
-            executor: 'per-vu-iterations',
-            vus: getRequiredPositiveNumberOption(scenarioType, options, 'vus'),
-            iterations: getRequiredPositiveNumberOption(scenarioType, options, 'iterations'),
-        }
-        const duration = getOptionalStringOption(options, 'duration')
-        if (duration) {
-            config.maxDuration = duration
-        }
-        return config
-    },
+const SCENARIO_BUILDERS = {
+    'shared-iterations': (scenarioType, options) =>
+        buildIterationBasedScenario('shared-iterations', scenarioType, options),
+    'per-vu-iterations': (scenarioType, options) =>
+        buildIterationBasedScenario('per-vu-iterations', scenarioType, options),
     'constant-vus': (scenarioType, options) => ({
         executor: 'constant-vus',
-        vus: getRequiredPositiveNumberOption(scenarioType, options, 'vus'),
-        duration: getRequiredStringOption(scenarioType, options, 'duration'),
+        vus: requirePositiveNumber(scenarioType, options, 'vus'),
+        duration: requireString(scenarioType, options, 'duration'),
     }),
     'ramping-vus': (scenarioType, options) => ({
         executor: 'ramping-vus',
-        startVUs: getRequiredPositiveNumberOption(scenarioType, options, 'startVUs'),
+        startVUs: requirePositiveNumber(scenarioType, options, 'startVUs'),
         gracefulRampDown: '30s',
-        stages: parseStages(getRequiredStringOption(scenarioType, options, 'stagesRaw')),
+        stages: parseStages(requireString(scenarioType, options, 'stagesRaw')),
     }),
     'ramping-arrival-rate': (scenarioType, options) => {
-        const timeUnit = getRequiredStringOption(scenarioType, options, 'timeUnit')
-        const preAllocatedVUs = getRequiredPositiveNumberOption(scenarioType, options, 'preAllocatedVUs')
-        const maxVUs = getRequiredPositiveNumberOption(scenarioType, options, 'maxVUs')
-        assertMaxPool(scenarioType, preAllocatedVUs, maxVUs)
+        const timeUnit = requireString(scenarioType, options, 'timeUnit')
+        const preAllocatedVUs = requirePositiveNumber(scenarioType, options, 'preAllocatedVUs')
+        const maxVUs = requirePositiveNumber(scenarioType, options, 'maxVUs')
+        ensurePoolBounds(scenarioType, preAllocatedVUs, maxVUs)
         return {
             executor: 'ramping-arrival-rate',
             timeUnit,
             preAllocatedVUs,
             maxVUs,
-            stages: parseStages(getRequiredStringOption(scenarioType, options, 'stagesRaw')),
+            stages: parseStages(requireString(scenarioType, options, 'stagesRaw')),
         }
     },
     'constant-arrival-rate': (scenarioType, options) => {
-        const preAllocatedVUs = getRequiredPositiveNumberOption(
-            scenarioType,
-            options,
-            'preAllocatedVUs'
-        )
-        const maxVUs = getRequiredPositiveNumberOption(scenarioType, options, 'maxVUs')
-        assertMaxPool(scenarioType, preAllocatedVUs, maxVUs)
+        const preAllocatedVUs = requirePositiveNumber(scenarioType, options, 'preAllocatedVUs')
+        const maxVUs = requirePositiveNumber(scenarioType, options, 'maxVUs')
+        ensurePoolBounds(scenarioType, preAllocatedVUs, maxVUs)
         return {
             executor: 'constant-arrival-rate',
-            rate: getRequiredPositiveNumberOption(scenarioType, options, 'rate'),
-            timeUnit: getRequiredStringOption(scenarioType, options, 'timeUnit'),
-            duration: getRequiredStringOption(scenarioType, options, 'duration'),
+            rate: requirePositiveNumber(scenarioType, options, 'rate'),
+            timeUnit: requireString(scenarioType, options, 'timeUnit'),
+            duration: requireString(scenarioType, options, 'duration'),
             preAllocatedVUs,
             maxVUs,
         }
@@ -257,22 +245,27 @@ function resolveScenarioBuilder(scenarioType) {
     if (scenarioType === 'manual') {
         return { resolvedScenarioType: 'manual', builder: undefined }
     }
-    const builder = scenarioBuilders[scenarioType]
+
+    const builder = SCENARIO_BUILDERS[scenarioType]
     if (builder) {
         return { resolvedScenarioType: scenarioType, builder }
     }
+
     return {
-        resolvedScenarioType: defaultScenarioType,
-        builder: scenarioBuilders[defaultScenarioType],
+        resolvedScenarioType: DEFAULT_SCENARIO_TYPE,
+        builder: SCENARIO_BUILDERS[DEFAULT_SCENARIO_TYPE],
     }
 }
 
-export function computeScenarioDetails(scenarioType, options = {}) {
-    const { resolvedScenarioType, builder } = resolveScenarioBuilder(scenarioType)
+export function computeScenarioDetails(scenarioTypeInput, options = {}) {
+    const canonicalScenarioType = normalizeScenarioType(scenarioTypeInput)
+    const { resolvedScenarioType, builder } = resolveScenarioBuilder(canonicalScenarioType)
+
     if (!builder) {
         return { resolvedScenarioType, scenarioConfig: undefined }
     }
-    const scenarioConfig = builder(scenarioType, options)
+
+    const scenarioConfig = builder(resolvedScenarioType, options)
     return { resolvedScenarioType, scenarioConfig }
 }
 
@@ -282,7 +275,8 @@ function renderOptionValue(rawValue) {
 
 function buildScenarioLogLines(scenarioType, options, resolvedScenarioType, scenarioConfig) {
     const lines = [`🎯 Scenario: ${scenarioType} → ${resolvedScenarioType}`, '📥 Parametri:']
-    Object.entries(optionEnvNames).forEach(([key, envVarName]) => {
+
+    Object.entries(SCENARIO_OPTION_ENV_NAMES).forEach(([key, envVarName]) => {
         const rawValue = options[key]
         lines.push(`  • ${envVarName} = ${renderOptionValue(rawValue)}`)
     })
@@ -293,6 +287,7 @@ function buildScenarioLogLines(scenarioType, options, resolvedScenarioType, scen
     } else {
         lines.push('⚙️ Config risultante: manual scenario (no executor)')
     }
+
     return lines
 }
 

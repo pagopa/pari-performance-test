@@ -5,7 +5,12 @@ import {
     logScenarioDetails as logScenarioDetailsInternal,
 } from './scenarioSetupUtils.js'
 
-export { normalizeScenarioType, parseStages, logScenarioDetails } from './scenarioSetupUtils.js'
+export {
+    normalizeScenarioType,
+    parseStages,
+    logScenarioDetails,
+    SCENARIO_OPTION_ENV_NAMES,
+} from './scenarioSetupUtils.js'
 
 export function buildScenarioConfig(scenarioType, options) {
     const { scenarioConfig } = computeScenarioDetails(scenarioType, options)
@@ -18,7 +23,7 @@ export function getScenarioDebugSnapshot(scenarioType, options) {
 
 export function prepareScenario({ env, logger = console.log, logOnPrepare = false } = {}) {
     const effectiveEnv = env || (typeof __ENV !== 'undefined' ? __ENV : {})
-    const { scenarioType } = resolveScenarioType(effectiveEnv)
+    const scenarioType = resolveScenarioType(effectiveEnv.K6PERF_SCENARIO_TYPE)
     const scenarioOptions = readScenarioOptionsFromEnv(effectiveEnv)
     const details = computeScenarioDetails(scenarioType, scenarioOptions)
     const logScenario = () =>

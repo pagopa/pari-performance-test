@@ -11,7 +11,8 @@ import { loadEnvConfig } from '../../common/loadEnv.js'
 import { toTrimmedString } from '../../common/basicUtils.js'
 import { prepareScenario } from '../../common/scenarioSetup.js'
 
-const targetEnv = (__ENV.TARGET_ENV || 'dev').trim().toLowerCase()
+const targetEnv = toTrimmedString(__ENV.TARGET_ENV, 'dev').toLowerCase()
+const TOKEN_PII_ALPHABET = 'abcdefghijklmnopqrstuvwxyz01234567890'
 
 const envConfig = loadEnvConfig(targetEnv)
 const pdvUrl = toTrimmedString(__ENV.PDV_URL, envConfig.pdvUrl || '')
@@ -42,9 +43,7 @@ export function setup() {
 }
 
 export default function () {
-    const payload = {
-        pii: randomString(8, 'abcdefghijklmnopqrstuvwxyz01234567890'),
-    }
+    const payload = buildTokenPayload()
 
     const response = http.put(
         `${pdvUrl}/tokens`,
@@ -59,4 +58,10 @@ export default function () {
     check(response, {
         'status was 200': (r) => r.status === 200,
     })
+}
+
+function buildTokenPayload() {
+    return {
+        pii: randomString(8, TOKEN_PII_ALPHABET),
+    }
 }
