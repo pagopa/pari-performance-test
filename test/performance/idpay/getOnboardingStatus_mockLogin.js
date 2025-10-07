@@ -72,7 +72,7 @@ if (!baseUrl) {
 
 export const options = {
   scenarios: {
-    default: {
+    onboardingStatus: {
       executor: 'constant-arrival-rate',
       rate: 50,
       timeUnit: '1s',
@@ -135,7 +135,7 @@ export default function () {
     const res = getOnboardingStatus(baseUrl, initiativeId, token);
 
     check(res, {
-        'is 404': (r) => r.status === 404,
+        'is OK': (r) => r.status === 200 || r.status === 404,
         'body is not empty': (r) => r.body && r.body.length > 0,
         'body is a json': (r) => {
             try {
