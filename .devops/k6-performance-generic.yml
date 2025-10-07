@@ -414,6 +414,12 @@ jobs:
           path: '$(Build.SourcesDirectory)'
         displayName: Retrieve xk6 from Cache
 
+      - script: |
+          echo "✅ Verifying custom xk6 binary before running tests"
+          ls -lah $(Build.SourcesDirectory)/xk6
+          $(Build.SourcesDirectory)/xk6/xk6 version || echo "⚠️ xk6 binary not found"
+        displayName: Verify custom xk6 binary
+
       - ${{ each k6Script in split(variables.SCRIPTS_TO_EXECUTE, ',') }}:
           - script: |
               python3 .devops/scripts/run_k6.py --script "${{ k6Script }}"
