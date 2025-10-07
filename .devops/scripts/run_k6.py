@@ -336,7 +336,7 @@ def _build_command(script_path, k6_run_settings, stage_flags):
     cmd = ["./xk6", "run", str(script_path)]
 
     cmd.extend(["--tag", f"environment={k6_run_settings['target_env']}"] )
-    cmd.extend(["--http-debug", "failed"])
+    cmd.extend(["--http-debug=failed"])
 
     if k6_run_settings["vus"] > 0:
         cmd.extend(["--vus", str(k6_run_settings["vus"])])
