@@ -169,7 +169,7 @@ jobs:
           prefix_safe="$(sanitize "$prefix" "custom")"
 
           if [[ -n "$prefix" ]]; then
-            name="${prefix_safe} ${environment_safe}-${scenario_safe}-${base_safe}"
+            name="${prefix_safe}__${environment_safe}-${scenario_safe}-${base_safe}"
           else
             name="${environment_safe}-${scenario_safe}-${base_safe}"
           fi
