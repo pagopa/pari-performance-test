@@ -6,6 +6,7 @@ pool:
   vmImage: ubuntu-22.04
 
 parameters:
+
   - name: 'K6_SCRIPT_PATH'
     displayName: 'k6 script path to execute'
     type: string
@@ -36,7 +37,7 @@ parameters:
       - 'ramping-arrival-rate'
 
   - name: 'K6_STAGES'
-    displayName: 'Optional ramp stages (ENV: K6_STAGES). ℹ️ Only for ramping scenarios.'
+    displayName: 'Optional ramp stages (ENV: K6_STAGES). Only for ramping scenarios.'
     type: object
     default: []
 
@@ -51,7 +52,7 @@ parameters:
     default: 0
 
   - name: 'K6_MAX_VUS'
-    displayName: 'Maximum virtual users (ENV: K6_MAX_VUS)'
+    displayName: 'Maximum virtual users (ENV: K6_MAX_VUS, required for arrival scenarios)'
     type: number
     default: 0
 
@@ -85,34 +86,35 @@ parameters:
     type: number
     default: 0
 
-  # Optional placeholders for payment test
+  # Optional user-related params, only used for payment.js
   - name: 'CF'
-    displayName: 'User CF (required only for payment.js)'
+    displayName: 'User CF (only for payment test)'
     type: string
     default: ''
 
   - name: 'USER_EMAIL'
-    displayName: 'User email keycloak (required only for payment.js)'
+    displayName: 'User email keycloak (only for payment test)'
     type: string
     default: ''
 
   - name: 'USER_PASSWORD'
-    displayName: 'User password keycloak (required only for payment.js)'
+    displayName: 'User password keycloak (only for payment test)'
     type: string
     default: ''
 
   - name: 'USER_ID'
-    displayName: 'User ID (required only for payment.js)'
+    displayName: 'User ID (only for payment test)'
     type: string
     default: ''
 
   - name: 'INITIATIVE_ID'
-    displayName: 'Initiative ID (required only for payment.js)'
+    displayName: 'Initiative ID (only for payment test)'
     type: string
     default: ''
 
 
 variables:
+
   - name: working-dir
     value: '.'
 
@@ -137,13 +139,12 @@ variables:
 
 
 jobs:
-  # --- Build custom xk6 binary ---
-  - template: templates\xk6-build.yml
+  - template: templates/xk6-build.yml
     parameters:
       xk6CacheKey: '$(xk6CacheKey)'
       k6Version: v1.3.0
+      xk6Extensions: '--with=github.com/szkiba/xk6-dotenv@v0.2.0'
 
-  # --- Validate parameters globally ---
   - job: ValidateParameters
     displayName: '✅ Validating k6 configuration for ${{ parameters.TARGET_ENV }}'
     dependsOn: []
@@ -165,88 +166,4 @@ jobs:
               K6_TIME_UNIT: ${{ parameters.K6_TIME_UNIT }}
               K6_RPS: ${{ parameters.K6_RPS }}
               K6_START_VUS: ${{ parameters.K6_START_VUS }}
-              K6_PRE_ALLOCATED_VUS: ${{ parameters.K6_PRE_ALLOCATED_VUS }}
-              K6_MAX_VUS: ${{ parameters.K6_MAX_VUS }}
-              ${{ if gt(length(parameters.K6_STAGES), 0) }}:
-                K6_STAGES_PARAM: ${{ convertToJson(parameters.K6_STAGES) }}
-
-  # --- Validate payment-specific parameters (only if payment.js selected) ---
-  - job: ValidatePaymentParams
-    displayName: '🔍 Validating payment test parameters'
-    dependsOn: ValidateParameters
-    condition: eq(parameters.K6_SCRIPT_PATH, 'test/performance/payment/payment.js')
-    pool:
-      vmImage: ubuntu-22.04
-    steps:
-      - script: |
-          echo "Validating parameters for payment test..."
-          if [ -z "${{ parameters.CF }}" ]; then
-            echo "❌ Missing required parameter: CF"; exit 1; fi
-          if [ -z "${{ parameters.USER_EMAIL }}" ]; then
-            echo "❌ Missing required parameter: USER_EMAIL"; exit 1; fi
-          if [ -z "${{ parameters.USER_PASSWORD }}" ]; then
-            echo "❌ Missing required parameter: USER_PASSWORD"; exit 1; fi
-          if [ -z "${{ parameters.USER_ID }}" ]; then
-            echo "❌ Missing required parameter: USER_ID"; exit 1; fi
-          if [ -z "${{ parameters.INITIATIVE_ID }}" ]; then
-            echo "❌ Missing required parameter: INITIATIVE_ID"; exit 1; fi
-          echo "✅ All payment parameters are correctly set."
-        displayName: 'Check payment parameters'
-
-  # --- Execute test ---
-  - job: PerformanceTest
-    displayName: '✈️ Running k6 scripts on ${{ parameters.TARGET_ENV }}'
-    timeoutInMinutes: 0
-    continueOnError: true
-    dependsOn:
-      - xk6Build
-      - ValidateParameters
-      - ValidatePaymentParams
-    pool:
-      name: $(selfHostedAgentPool)
-    steps:
-      - script: |
-          docker info | grep -i mem
-        displayName: Display Docker Memory Info
-
-      - script: mkdir -p results
-        displayName: Create results folder
-
-      - task: Cache@2
-        inputs:
-          key: '$(xk6CacheKey)'
-          path: '$(Build.SourcesDirectory)'
-        displayName: Retrieve xk6 from Cache
-
-      - ${{ each k6Script in split(variables.SCRIPTS_TO_EXECUTE, ',') }}:
-          - script: |
-              python3 .devops/scripts/run_k6.py --script "${{ k6Script }}"
-            env:
-              TARGET_ENV: ${{ parameters.TARGET_ENV }}
-              K6_SCENARIO_TYPE: ${{ parameters.K6_SCENARIO_TYPE }}
-              K6_DURATION: ${{ parameters.K6_DURATION }}
-              K6_ITERATIONS: ${{ parameters.K6_ITERATIONS }}
-              K6_VUS: ${{ parameters.K6_VUS }}
-              K6_RATE: ${{ parameters.K6_RATE }}
-              K6_TIME_UNIT: ${{ parameters.K6_TIME_UNIT }}
-              K6_RPS: ${{ parameters.K6_RPS }}
-              K6_START_VUS: ${{ parameters.K6_START_VUS }}
-              K6_PRE_ALLOCATED_VUS: ${{ parameters.K6_PRE_ALLOCATED_VUS }}
-              K6_MAX_VUS: ${{ parameters.K6_MAX_VUS }}
-              CF: ${{ parameters.CF }}
-              USER_EMAIL: ${{ parameters.USER_EMAIL }}
-              USER_PASSWORD: ${{ parameters.USER_PASSWORD }}
-              USER_ID: ${{ parameters.USER_ID }}
-              INITIATIVE_ID: ${{ parameters.INITIATIVE_ID }}
-              ${{ if gt(length(parameters.K6_STAGES), 0) }}:
-                K6_STAGES_PARAM: ${{ convertToJson(parameters.K6_STAGES) }}
-            timeoutInMinutes: 0
-            displayName: '🚀 Run k6 script ${{ k6Script }}'
-
-      - task: PublishPipelineArtifact@1
-        displayName: 'Publishing results of k6 tests in folder: results'
-        condition: true
-        inputs:
-          artifact: 'results'
-          targetPath: 'results'
-          publishLocation: 'pipeline'
+              K6_PRE_ALLOCATED_VUS: ${{ parameters
