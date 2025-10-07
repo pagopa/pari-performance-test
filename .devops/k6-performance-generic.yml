@@ -102,27 +102,27 @@ parameters:
   - name: 'CF'
     displayName: 'User CF (only for payment test)'
     type: string
-    default: ''
+    default: 'CF'
 
   - name: 'USER_EMAIL'
     displayName: 'User email keycloak (only for payment test)'
     type: string
-    default: ''
+    default: 'USER_EMAIL'
 
   - name: 'USER_PASSWORD'
     displayName: 'User password keycloak (only for payment test)'
     type: string
-    default: ''
+    default: 'USER_PASSWORD'
 
   - name: 'USER_ID'
     displayName: 'User ID (only for payment test)'
     type: string
-    default: ''
+    default: 'USER_ID'
 
   - name: 'INITIATIVE_ID'
     displayName: 'Initiative ID (only for payment test)'
     type: string
-    default: ''
+    default: 'INITIATIVE_ID'
 
 variables:
 
@@ -150,7 +150,7 @@ variables:
         value: cstar-prod-perf-linux
 
   - name: xk6CacheKey
-    value: '"xk6" | "1.3.0" | dotenv'
+    value: '"xk6" | "0.50.0" | dotenv-v0.2.0'
 
 jobs:
   - template: templates\xk6-build.yml
