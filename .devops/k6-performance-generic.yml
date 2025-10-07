@@ -53,12 +53,12 @@ parameters:
     default: []
 
   - name: 'K6_DURATION'
-    displayName: 'k6 test duration (CLI: --duration, e.g. 30s, 1m, 10m)'
+    displayName: 'k6 test duration (ENV: K6_DURATION, CLI: --duration, e.g. 30s, 1m, 10m)'
     type: string
     default: '0s'  # disabled: the helper script requires a positive duration when needed
 
   - name: 'K6_VUS'
-    displayName: 'k6 virtual users (CLI: --vus)'
+    displayName: 'k6 virtual users (ENV: K6_VUS, CLI: --vus)'
     type: number
     default: 0  # disabled: must be overridden for VU-based scenarios
 
@@ -88,12 +88,12 @@ parameters:
     default: '0s'  # disabled placeholder interpreted as missing
 
   - name: 'K6_RPS'
-    displayName: 'Global requests-per-second cap (CLI: --rps, 0 unlimited)'
+    displayName: 'Global requests-per-second cap (ENV: K6_RPS,CLI: --rps, 0 unlimited)'
     type: number
     default: 0
 
   - name: 'K6_ITERATIONS'
-    displayName: 'Total iterations (CLI: --iterations, 0 disables)'
+    displayName: 'Total iterations (ENV: K6_ITERATIONS, CLI: --iterations, 0 disables)'
     type: number
     default: 0
 
