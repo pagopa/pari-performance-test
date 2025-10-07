@@ -1,4 +1,9 @@
-import { toNonNegativeNumber, toPositiveNumber, toTrimmedString } from './basicUtils.js'
+import {
+    toNonNegativeNumber,
+    toPositiveNumber,
+    toTrimmedString,
+    formatValueForMessage,
+} from './basicUtils.js'
 
 const scenarioAliases = {
     manual: 'manual',
@@ -27,37 +32,11 @@ export function normalizeScenarioType(value) {
     return scenarioAliases[canonical] || (canonical ? canonical : 'constant-arrival-rate')
 }
 
-function formatOptionValue(value) {
-    if (value === undefined) {
-        return 'undefined'
-    }
-    if (value === null) {
-        return 'null'
-    }
-    if (typeof value === 'string') {
-        return value.length === 0 ? '"" (empty string)' : `"${value}"`
-    }
-    if (typeof value === 'number' || typeof value === 'bigint') {
-        return String(value)
-    }
-    if (typeof value === 'boolean') {
-        return value ? 'true' : 'false'
-    }
-    if (typeof value === 'object') {
-        try {
-            return JSON.stringify(value)
-        } catch {
-            return '[object]'
-        }
-    }
-    return String(value)
-}
-
 export function parseStages(raw) {
     const value = toTrimmedString(raw, '')
     if (!value) {
         throw new Error(
-            `Missing required K6PERF_STAGES (or K6PERF_STAGES_JSON) definition for ramping scenarios; received ${formatOptionValue(
+            `Missing required K6PERF_STAGES (or K6PERF_STAGES_JSON) definition for ramping scenarios; received ${formatValueForMessage(
                 raw
             )}`
         )
@@ -74,7 +53,7 @@ export function parseStages(raw) {
 
     if (!Array.isArray(parsed)) {
         throw new Error(
-            `K6PERF_STAGES (or K6PERF_STAGES_JSON) must be a JSON array of { duration, target } objects; received ${formatOptionValue(
+            `K6PERF_STAGES (or K6PERF_STAGES_JSON) must be a JSON array of { duration, target } objects; received ${formatValueForMessage(
                 parsed
             )}`
         )
@@ -83,7 +62,7 @@ export function parseStages(raw) {
     const stages = parsed.map((stage, index) => {
         if (!stage || typeof stage !== 'object') {
             throw new Error(
-                `K6PERF_STAGES[${index}] must be an object with duration and target fields; received ${formatOptionValue(
+                `K6PERF_STAGES[${index}] must be an object with duration and target fields; received ${formatValueForMessage(
                     stage
                 )}`
             )
@@ -94,14 +73,14 @@ export function parseStages(raw) {
         const target = toNonNegativeNumber(targetRaw)
         if (!duration) {
             throw new Error(
-                `K6PERF_STAGES[${index}] is missing a valid duration; received ${formatOptionValue(
+                `K6PERF_STAGES[${index}] is missing a valid duration; received ${formatValueForMessage(
                     durationRaw
                 )}`
             )
         }
         if (target === undefined) {
             throw new Error(
-                `K6PERF_STAGES[${index}] is missing a numeric target >= 0; received ${formatOptionValue(
+                `K6PERF_STAGES[${index}] is missing a numeric target >= 0; received ${formatValueForMessage(
                     targetRaw
                 )}`
             )
@@ -127,7 +106,7 @@ const optionEnvNames = {
     preAllocatedVUs: 'K6PERF_PRE_ALLOCATED_VUS',
     maxVUs: 'K6PERF_MAX_VUS',
     startVUs: 'K6PERF_START_VUS',
-    stagesRaw: 'K6PERF_STAGES_JSON or K6PERF_STAGES',
+    stagesRaw: 'K6PERF_STAGES_JSON / K6PERF_STAGES',
 }
 
 function optionLabel(key) {
@@ -141,7 +120,7 @@ function getRequiredPositiveNumberOption(scenarioType, options, key) {
         throw new Error(
             `Scenario "${scenarioType}" requires ${optionLabel(
                 key
-            )} to be a positive number; received ${formatOptionValue(rawValue)}`
+            )} to be a positive number; received ${formatValueForMessage(rawValue)}`
         )
     }
     return parsed
@@ -154,7 +133,7 @@ function getRequiredStringOption(scenarioType, options, key) {
         throw new Error(
             `Scenario "${scenarioType}" requires ${optionLabel(
                 key
-            )} to be set; received ${formatOptionValue(rawValue)}`
+            )} to be set; received ${formatValueForMessage(rawValue)}`
         )
     }
     return value
@@ -250,11 +229,107 @@ const scenarioBuilders = {
     },
 }
 
-export function buildScenarioConfig(scenarioType, options) {
+function resolveScenarioBuilder(scenarioType) {
     if (scenarioType === 'manual') {
-        return undefined
+        return { resolvedScenarioType: 'manual', builder: undefined }
+    }
+    const builder = scenarioBuilders[scenarioType]
+    if (builder) {
+        return { resolvedScenarioType: scenarioType, builder }
+    }
+    return {
+        resolvedScenarioType: defaultScenarioType,
+        builder: scenarioBuilders[defaultScenarioType],
+    }
+}
+
+function computeScenarioConfig(scenarioType, options) {
+    const { resolvedScenarioType, builder } = resolveScenarioBuilder(scenarioType)
+    if (!builder) {
+        return { resolvedScenarioType, scenarioConfig: undefined }
+    }
+    const scenarioConfig = builder(scenarioType, options)
+    return { resolvedScenarioType, scenarioConfig }
+}
+
+export function buildScenarioConfig(scenarioType, options) {
+    const { scenarioConfig } = computeScenarioConfig(scenarioType, options)
+    return scenarioConfig
+}
+
+export function getScenarioDebugSnapshot(scenarioType, options) {
+    const { resolvedScenarioType, scenarioConfig } = computeScenarioConfig(
+        scenarioType,
+        options
+    )
+    const recognizedOptions = Object.entries(optionEnvNames).map(([key, envVarName]) => {
+        const rawValue = options[key]
+        const provided = rawValue !== undefined
+        return {
+            optionKey: key,
+            envVarName,
+            provided,
+            value: rawValue,
+        }
+    })
+    const knownKeys = new Set(Object.keys(optionEnvNames))
+    const unknownOptions = Object.keys(options || {}).filter((key) => !knownKeys.has(key))
+    return {
+        requestedScenarioType: scenarioType,
+        resolvedScenarioType,
+        recognizedOptions,
+        unknownOptions,
+        scenarioConfig,
+    }
+}
+
+export function logScenarioDetails(scenarioType, options, logger = console.log) {
+    const snapshot = getScenarioDebugSnapshot(scenarioType, options)
+    const {
+        requestedScenarioType,
+        resolvedScenarioType,
+        recognizedOptions,
+        unknownOptions,
+        scenarioConfig,
+    } = snapshot
+
+    const providedOptions = recognizedOptions.filter((opt) => opt.provided)
+    const missingOptions = recognizedOptions.filter((opt) => !opt.provided)
+
+    const lines = [
+        requestedScenarioType === resolvedScenarioType
+            ? `🎯 Scenario: ${resolvedScenarioType}`
+            : `🎯 Scenario: ${requestedScenarioType} ➜ ${resolvedScenarioType}`,
+    ]
+
+    lines.push('📥 Inputs:')
+
+    if (providedOptions.length === 0) {
+        lines.push('  • (nessuna variabile impostata)')
+    } else {
+        providedOptions.forEach(({ envVarName, value }) => {
+            lines.push(`  ✅ ${envVarName} = ${formatValueForMessage(value)}`)
+        })
     }
 
-    const builder = scenarioBuilders[scenarioType] || scenarioBuilders[defaultScenarioType]
-    return builder(scenarioType, options)
+    if (missingOptions.length > 0) {
+        const missingList = missingOptions.map((opt) => opt.envVarName).join(', ')
+        lines.push(`  ⚪️ Assenti (valori di default): ${missingList}`)
+    }
+
+    if (unknownOptions.length > 0) {
+        lines.push(`⚠️ Ignorate: ${unknownOptions.join(', ')}`)
+    }
+
+    if (scenarioConfig) {
+        lines.push('⚙️ Config risultante:')
+        lines.push(JSON.stringify(scenarioConfig, null, 2))
+    } else {
+        lines.push('⚙️ Config risultante: manual (nessun executor impostato)')
+    }
+
+    lines.push('──────────────')
+
+    logger(lines.join('\n'))
+    return snapshot
 }

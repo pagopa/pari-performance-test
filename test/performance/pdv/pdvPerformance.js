@@ -8,40 +8,12 @@ import http from 'k6/http'
 import { check } from 'k6'
 import { randomString } from 'https://jslib.k6.io/k6-utils/1.6.0/index.js'
 import { loadEnvConfig } from '../../common/loadEnv.js'
-import {
-    toPositiveNumber,
-    toTrimmedString,
-} from '../../common/basicUtils.js'
+import { toTrimmedString, formatValueForMessage } from '../../common/basicUtils.js'
 import {
     normalizeScenarioType,
     buildScenarioConfig,
+    logScenarioDetails,
 } from '../../common/scenarioSetup.js'
-
-function formatEnvValue(value) {
-    if (value === undefined) {
-        return 'undefined'
-    }
-    if (value === null) {
-        return 'null'
-    }
-    if (typeof value === 'string') {
-        return value.length === 0 ? '"" (empty string)' : `"${value}"`
-    }
-    if (typeof value === 'number' || typeof value === 'bigint') {
-        return String(value)
-    }
-    if (typeof value === 'boolean') {
-        return value ? 'true' : 'false'
-    }
-    if (typeof value === 'object') {
-        try {
-            return JSON.stringify(value)
-        } catch {
-            return '[object]'
-        }
-    }
-    return String(value)
-}
 
 const targetEnv = (__ENV.TARGET_ENV || 'dev').trim().toLowerCase()
 
@@ -56,24 +28,26 @@ const scenarioTypeRaw = __ENV.K6PERF_SCENARIO_TYPE
 const scenarioTypeValue = toTrimmedString(scenarioTypeRaw, undefined)
 if (!scenarioTypeValue) {
     throw new Error(
-        `Missing required environment variable: K6PERF_SCENARIO_TYPE (received ${formatEnvValue(
+        `Missing required environment variable: K6PERF_SCENARIO_TYPE (received ${formatValueForMessage(
             scenarioTypeRaw
         )})`
     )
 }
 const scenarioType = normalizeScenarioType(scenarioTypeValue)
 
-const scenario = buildScenarioConfig(scenarioType, {
-    duration: toTrimmedString(__ENV.K6PERF_DURATION, undefined),
-    iterations: toPositiveNumber(__ENV.K6PERF_ITERATIONS),
-    vus: toPositiveNumber(__ENV.K6PERF_VUS),
-    rate: toPositiveNumber(__ENV.K6PERF_RATE),
-    timeUnit: toTrimmedString(__ENV.K6PERF_TIME_UNIT, undefined),
-    preAllocatedVUs: toPositiveNumber(__ENV.K6PERF_PRE_ALLOCATED_VUS),
-    maxVUs: toPositiveNumber(__ENV.K6PERF_MAX_VUS),
-    startVUs: toPositiveNumber(__ENV.K6PERF_START_VUS),
+const scenarioOptions = {
+    duration: __ENV.K6PERF_DURATION,
+    iterations: __ENV.K6PERF_ITERATIONS,
+    vus: __ENV.K6PERF_VUS,
+    rate: __ENV.K6PERF_RATE,
+    timeUnit: __ENV.K6PERF_TIME_UNIT,
+    preAllocatedVUs: __ENV.K6PERF_PRE_ALLOCATED_VUS,
+    maxVUs: __ENV.K6PERF_MAX_VUS,
+    startVUs: __ENV.K6PERF_START_VUS,
     stagesRaw: __ENV.K6PERF_STAGES_JSON ?? __ENV.K6PERF_STAGES,
-})
+}
+
+const scenario = buildScenarioConfig(scenarioType, scenarioOptions)
 
 const testOptions = {
     discardResponseBodies: true,
@@ -91,6 +65,8 @@ if (scenario) {
 export const options = testOptions
 
 export default function () {
+    logScenarioDetails(scenarioType, scenarioOptions)
+
     const payload = {
         pii: randomString(8, 'abcdefghijklmnopqrstuvwxyz01234567890'),
     }
