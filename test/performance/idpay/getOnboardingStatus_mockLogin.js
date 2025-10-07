@@ -9,13 +9,18 @@ import { textSummary } from 'https://jslib.k6.io/k6-summary/0.0.2/index.js'
 import { htmlReport } from 'https://raw.githubusercontent.com/benc-uk/k6-reporter/main/dist/bundle.js'
 import { check } from 'k6'
 import { SharedArray } from 'k6/data'
+import { Counter } from 'k6/metrics'
 import { getMockLogin } from '../../common/api/mockIOLogin.js'
 import { getOnboardingStatus } from '../../common/api/onboardingStatus.js'
 import {
+    toPositiveNumber,
     toTrimmedString
 } from '../../common/basicUtils.js'
 import { loadEnvConfig } from '../../common/loadEnv.js'
-import { Counter } from 'k6/metrics';
+import {
+    buildScenarioConfig,
+    normalizeScenarioType,
+} from '../../common/scenarioSetup.js'
 
 const targetEnv = (__ENV.TARGET_ENV || 'dev').trim().toLowerCase()
 
