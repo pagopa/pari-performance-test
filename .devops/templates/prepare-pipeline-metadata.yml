@@ -29,9 +29,9 @@ jobs:
       - bash: |
           set -euo pipefail
 
-          prefix="${PIPELINE_NAME_PREFIX:-}"
-          if [[ "$prefix" == "-" ]]; then
-            prefix=""
+          prefix_name="${PIPELINE_NAME_PREFIX:-}"
+          if [[ "$prefix_name" == "-" ]]; then
+            prefix_name=""
           fi
           scenario="${K6_SCENARIO_TYPE:-}"
           environment="${TARGET_ENV:-}"
@@ -51,7 +51,7 @@ jobs:
             run_part="$(printf '%02d' "$run_candidate")"
           fi
           build_number_formatted="${date_part}.${run_part}"
-          auto_prefix_raw="#${build_number_formatted} •"
+          build_number_raw="#${build_number_formatted} •"
 
           base="${script_path##*/}"
           base="${base%.js}"
@@ -70,15 +70,15 @@ jobs:
           base_safe="$(sanitize "$base" "k6-script")"
           scenario_safe="$(sanitize "$scenario" "scenario")"
           environment_safe="$(sanitize "$environment" "env")"
-          prefix_safe="$(sanitize "$prefix" "custom")"
-          auto_prefix_safe="$(sanitize "$auto_prefix_raw" "run")"
+          prefix_name_safe="$(sanitize "$prefix_name" "custom")"
+          build_number_safe="$(sanitize "$build_number_raw" "run")"
 
-          if [[ -n "$prefix" ]]; then
-            core_segment="${prefix_safe}-${environment_safe}-${scenario_safe}-${base_safe}"
+          if [[ -n "$prefix_name" ]]; then
+            core_segment="${prefix_name_safe} • ${environment_safe}_${scenario_safe}_${base_safe}"
           else
-            core_segment="${environment_safe}-${scenario_safe}-${base_safe}"
+            core_segment="${environment_safe}_${scenario_safe}_${base_safe}"
           fi
-          name="${auto_prefix_safe}-${core_segment}"
+          name="${build_number_safe} • ${core_segment}"
 
           max_length=256
           if (( ${#name} > max_length )); then
@@ -94,15 +94,15 @@ jobs:
           fi
 
           emoji_segments=()
-          emoji_segments+=("🗓️ ${auto_prefix_raw}")
-          if [[ -n "$prefix" ]]; then
-            emoji_segments+=("🏷️ ${prefix_safe}")
+          emoji_segments+=("🗓️ ${build_number_raw}")
+          if [[ -n "$prefix_name" ]]; then
+            emoji_segments+=("🏷️ ${prefix_name_safe}")
           fi
           emoji_segments+=("🌍 ${environment_safe}")
           emoji_segments+=("🎯 ${scenario_safe}")
           emoji_segments+=("📜 ${base_safe}")
 
-          display_name="${auto_prefix_raw} ${core_segment}"
+          display_name="${build_number_raw} ${core_segment}"
 
           printf 'Segments -> %s\n' "$(IFS=' | '; echo "${emoji_segments[*]}")"
           echo "Display pipeline run name -> ${display_name}"
