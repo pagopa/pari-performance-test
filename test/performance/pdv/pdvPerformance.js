@@ -1,9 +1,9 @@
 // macOS usage examples (execute from the repository root)
-//   Default CLI-driven scenario
-//     TARGET_ENV=uat k6 run --vus 50 --duration 1m ./test/pdv/pdvPerformance.js
-//   Custom scenario via env
+//   Env-driven constant-arrival scenario
 //     TARGET_ENV=uat K6PERF_SCENARIO_TYPE=constant-arrival-rate K6PERF_RATE=300 K6PERF_TIME_UNIT=500ms \
-//     K6PERF_VUS=200 K6PERF_PRE_ALLOCATED_VUS=150 K6PERF_MAX_VUS=300 k6 run ./test/pdv/pdvPerformance.js
+//     K6PERF_DURATION=3m K6PERF_PRE_ALLOCATED_VUS=150 K6PERF_MAX_VUS=300 k6 run ./test/performance/pdv/pdvPerformance.js
+//   Manual fallback (CLI-driven)
+//     TARGET_ENV=uat K6PERF_SCENARIO_TYPE=manual k6 run --vus 50 --duration 1m ./test/performance/pdv/pdvPerformance.js
 import http from 'k6/http'
 import { check } from 'k6'
 import { randomString } from 'https://jslib.k6.io/k6-utils/1.6.0/index.js'
