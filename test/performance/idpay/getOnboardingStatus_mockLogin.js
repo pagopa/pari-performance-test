@@ -26,65 +26,66 @@ if (!baseUrl) {
     throw new Error(`Missing APIM_URL for environment: ${targetEnv}`)
 }
 
-// const scenarioType = normalizeScenarioType(__ENV.K6_SCENARIO_TYPE)
-// const k6Duration = toTrimmedString(__ENV.K6_DURATION, '1m')
-// const k6Iterations = toPositiveNumber(__ENV.K6_ITERATIONS) || 0
-// const k6Vus = toPositiveNumber(__ENV.K6_VUS) || 50
-// const k6Rate = toPositiveNumber(__ENV.K6_RATE) || 100
-// const k6TimeUnit = toTrimmedString(__ENV.K6_TIME_UNIT, '1s')
-// const k6MaxVus = toPositiveNumber(__ENV.K6_MAX_VUS) || k6Vus
-// const k6PreAllocatedVus =
-//     toPositiveNumber(__ENV.K6_PRE_ALLOCATED_VUS) || Math.min(k6Vus, k6MaxVus)
-// const k6StartVus = Math.max(
-//     1,
-//     Math.min(k6MaxVus, toPositiveNumber(__ENV.K6_START_VUS) || k6Vus)
-// )
-// const k6StagesRaw = __ENV.K6_STAGES_JSON ?? __ENV.K6_STAGES
+const scenarioType = normalizeScenarioType(__ENV.K6_SCENARIO_TYPE)
+const k6Duration = toTrimmedString(__ENV.K6_DURATION, '1m')
+const k6Iterations = toPositiveNumber(__ENV.K6_ITERATIONS) || 0
+const k6Vus = toPositiveNumber(__ENV.K6_VUS) || 50
+const k6Rate = toPositiveNumber(__ENV.K6_RATE) || 100
+const k6TimeUnit = toTrimmedString(__ENV.K6_TIME_UNIT, '1s')
+const k6MaxVus = toPositiveNumber(__ENV.K6_MAX_VUS) || k6Vus
+const k6PreAllocatedVus =
+    toPositiveNumber(__ENV.K6_PRE_ALLOCATED_VUS) || Math.min(k6Vus, k6MaxVus)
+const k6StartVus = Math.max(
+    1,
+    Math.min(k6MaxVus, toPositiveNumber(__ENV.K6_START_VUS) || k6Vus)
+)
+const k6StagesRaw = __ENV.K6_STAGES_JSON ?? __ENV.K6_STAGES
 
-// const scenario = buildScenarioConfig(scenarioType, {
-//     duration: k6Duration,
-//     iterations: k6Iterations,
-//     vus: k6Vus,
-//     rate: k6Rate,
-//     timeUnit: k6TimeUnit,
-//     preAllocatedVUs: k6PreAllocatedVus,
-//     maxVUs: k6MaxVus,
-//     startVUs: k6StartVus,
-//     stagesRaw: k6StagesRaw,
-// })
+const scenario = buildScenarioConfig(scenarioType, {
+    duration: k6Duration,
+    iterations: k6Iterations,
+    vus: k6Vus,
+    rate: k6Rate,
+    timeUnit: k6TimeUnit,
+    preAllocatedVUs: k6PreAllocatedVus,
+    maxVUs: k6MaxVus,
+    startVUs: k6StartVus,
+    stagesRaw: k6StagesRaw,
+})
 
-// const testOptions = {
-//     // thresholds: {
-//     //     checks: ['rate>0.99'],
-//     // },
-// }
-
-// if (scenario) {
-//     testOptions.scenarios = {
-//         default: scenario,
-//     }
-// }
-
-// export const options = testOptions
-
-export const options = {
-    scenarios: {
-        onboardingStatus: {
-            executor: 'constant-arrival-rate',
-            rate: 50,
-            timeUnit: '1s',
-            duration: '60s',
-            preAllocatedVUs: 10,
-            maxVUs: 30,
-        },
-    },
+const testOptions = {
     thresholds: {
-        // Esempio di soglia: meno dell'1% delle richieste deve fallire.
         http_req_failed: ['rate<0.01'],
-        // Esempio di soglia: il 95% delle richieste deve completarsi in meno di 500ms.
         http_req_duration: ['p(95)<500'],
     },
-};
+}
+
+if (scenario) {
+    testOptions.scenarios = {
+        default: scenario,
+    }
+}
+
+export const options = testOptions
+
+// export const options = {
+//     scenarios: {
+//         onboardingStatus: {
+//             executor: 'constant-arrival-rate',
+//             rate: 50,
+//             timeUnit: '1s',
+//             duration: '60s',
+//             preAllocatedVUs: 10,
+//             maxVUs: 30,
+//         },
+//     },
+//     thresholds: {
+//         // Esempio di soglia: meno dell'1% delle richieste deve fallire.
+//         http_req_failed: ['rate<0.01'],
+//         // Esempio di soglia: il 95% delle richieste deve completarsi in meno di 500ms.
+//         http_req_duration: ['p(95)<500'],
+//     },
+// };
 
 export function handleSummary(data) {
     return {
@@ -106,6 +107,7 @@ const fiscalCodes = new SharedArray('fiscalCodes', () => {
 
 const status200Counter = new Counter('status_200_onboarding_status');
 const status404Counter = new Counter('status_404_onboarding_status');
+const mockLoginCounter = new Counter('mock_login_succeded')
 
 const tokenCache = new Map();
 
@@ -127,6 +129,7 @@ export default function () {
             // Interrompi questa iterazione se non riusciamo a ottenere il token
             return;
         }
+        mockLoginCounter.add(1);
 
         token = res.body;
         // Salva il nuovo token nella cache per usi futuri
