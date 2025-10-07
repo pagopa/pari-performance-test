@@ -2,8 +2,8 @@
 //   Default CLI-driven scenario
 //     TARGET_ENV=uat k6 run --vus 50 --duration 1m ./test/pdv/pdvPerformance.js
 //   Custom scenario via env
-//     TARGET_ENV=uat K6_SCENARIO_TYPE=constant-arrival-rate K6_RATE=300 K6_TIME_UNIT=500ms \
-//     K6_VUS=200 K6_PRE_ALLOCATED_VUS=150 K6_MAX_VUS=300 k6 run ./test/pdv/pdvPerformance.js
+//     TARGET_ENV=uat TEST_TEST_TYPE=constant-arrival-rate TEST_RATE=300 TEST_TIME_UNIT=500ms \
+//     TEST_VUS=200 TEST_PRE_ALLOCATED_VUS=150 TEST_MAX_VUS=300 k6 run ./test/pdv/pdvPerformance.js
 
 import { textSummary } from 'https://jslib.k6.io/k6-summary/0.0.2/index.js'
 import { htmlReport } from 'https://raw.githubusercontent.com/benc-uk/k6-reporter/main/dist/bundle.js'
@@ -31,20 +31,20 @@ if (!baseUrl) {
     throw new Error(`Missing APIM_URL for environment: ${targetEnv}`)
 }
 
-const scenarioType = normalizeScenarioType(__ENV.K6_SCENARIO_TYPE)
-const k6Duration = toTrimmedString(__ENV.K6_DURATION, '1m')
-const k6Iterations = toPositiveNumber(__ENV.K6_ITERATIONS) || 0
-const k6Vus = toPositiveNumber(__ENV.K6_VUS) || 50
-const k6Rate = toPositiveNumber(__ENV.K6_RATE) || 100
-const k6TimeUnit = toTrimmedString(__ENV.K6_TIME_UNIT, '1s')
-const k6MaxVus = toPositiveNumber(__ENV.K6_MAX_VUS) || k6Vus
+const scenarioType = normalizeScenarioType(__ENV.TEST_SCENARIO_TYPE)
+const k6Duration = toTrimmedString(__ENV.TEST_DURATION, '1m')
+const k6Iterations = toPositiveNumber(__ENV.TEST_ITERATIONS) || 0
+const k6Vus = toPositiveNumber(__ENV.TEST_VUS) || 50
+const k6Rate = toPositiveNumber(__ENV.TEST_RATE) || 100
+const k6TimeUnit = toTrimmedString(__ENV.TEST_TIME_UNIT, '1s')
+const k6MaxVus = toPositiveNumber(__ENV.TEST_MAX_VUS) || k6Vus
 const k6PreAllocatedVus =
-    toPositiveNumber(__ENV.K6_PRE_ALLOCATED_VUS) || Math.min(k6Vus, k6MaxVus)
+    toPositiveNumber(__ENV.TEST_PRE_ALLOCATED_VUS) || Math.min(k6Vus, k6MaxVus)
 const k6StartVus = Math.max(
     1,
-    Math.min(k6MaxVus, toPositiveNumber(__ENV.K6_START_VUS) || k6Vus)
+    Math.min(k6MaxVus, toPositiveNumber(__ENV.TEST_START_VUS) || k6Vus)
 )
-const k6StagesRaw = __ENV.K6_STAGES_JSON ?? __ENV.K6_STAGES
+const k6StagesRaw = __ENV.TEST_STAGES_JSON ?? __ENV.TEST_STAGES
 
 const scenario = buildScenarioConfig(scenarioType, {
     duration: k6Duration,
@@ -56,46 +56,22 @@ const scenario = buildScenarioConfig(scenarioType, {
     maxVUs: k6MaxVus,
     startVUs: k6StartVus,
     stagesRaw: k6StagesRaw,
-})
+});
 
-const testOptions = {
+export const options = {
+    scenarios: {
+        onboardingStatus: scenario
+    },
     thresholds: {
         http_req_failed: ['rate<0.01'],
         http_req_duration: ['p(95)<500'],
     },
 }
 
-if (scenario) {
-    testOptions.scenarios = {
-        default: scenario,
-    }
-}
-
-export const options = testOptions
-
-// export const options = {
-//     scenarios: {
-//         onboardingStatus: {
-//             executor: 'constant-arrival-rate',
-//             rate: 50,
-//             timeUnit: '1s',
-//             duration: '60s',
-//             preAllocatedVUs: 10,
-//             maxVUs: 30,
-//         },
-//     },
-//     thresholds: {
-//         // Esempio di soglia: meno dell'1% delle richieste deve fallire.
-//         http_req_failed: ['rate<0.01'],
-//         // Esempio di soglia: il 95% delle richieste deve completarsi in meno di 500ms.
-//         http_req_duration: ['p(95)<500'],
-//     },
-// };
-
 export function handleSummary(data) {
     return {
         stdout: textSummary(data, { indent: ' ', enableColors: true }),
-        [`report-${new Date().toISOString().slice(0, 10)}.html`]: htmlReport(data),
+        [`report-${Date().now()}.html`]: htmlReport(data),
     }
 }
 
@@ -164,4 +140,4 @@ export default function () {
     })
 }
 
-// K6_SCENARIO_TYPE=constant-arrival-rate K6_TIME_UNIT=1s TARGET_ENV=uat K6_VUS=2 K6_DURATION=10s K6_RATE=10 K6_PRE_ALLOCATED_VUS=1 python3 .devops/scripts/run_k6.py --script  test/performance/idpay/getOnboardingStatus_mockLogin.js
+// TEST_SCENARIO_TYPE=constant-arrival-rate TEST_TIME_UNIT=1s TARGET_ENV=uat TEST_MAX_VUS=20 TEST_DURATION=10s TEST_RATE=50 TEST_PRE_ALLOCATED_VUS=5 ./xk6 run test/performance/idpay/getOnboardingStatus_mockLogin.js
