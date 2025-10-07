@@ -13,6 +13,7 @@ parameters:
     default: 'test/performance/pdv/pdvPerformance.js'
     values:
       - 'test/performance/pdv/pdvPerformance.js'
+      - 'test/performance/payment/payment.js'
 
   - name: 'TARGET_ENV'
     displayName: 'Target environment for configuration'
@@ -89,6 +90,30 @@ parameters:
     type: number
     default: 0
 
+  - name: 'CF'
+    displayName: 'User CF'
+    type: string
+    default: ''
+
+  - name: 'USER_EMAIL'
+    displayName: 'User email'
+    type: string
+    default: ''
+
+  - name: 'USER_PASSWORD'
+    displayName: 'User password'
+    type: string
+    default: ''
+
+  - name: 'USER_ID'
+    displayName: 'User ID'
+    type: string
+    default: ''
+
+  - name: 'INITIATIVE_ID'
+    displayName: 'Initiative ID'
+    type: string
+    default: ''
 
 variables:
 
@@ -190,6 +215,11 @@ jobs:
               K6_MAX_VUS: ${{ parameters.K6_MAX_VUS }}
               ${{ if gt(length(parameters.K6_STAGES), 0) }}:
                 K6_STAGES_PARAM: ${{ convertToJson(parameters.K6_STAGES) }}
+              CF: ${{ parameters.CF }}
+              USER_EMAIL: ${{ parameters.USER_EMAIL }}
+              USER_PASSWORD: ${{ parameters.USER_PASSWORD }}
+              USER_ID: ${{ parameters.USER_ID }}
+              INITIATIVE_ID: ${{ parameters.INITIATIVE_ID }}
             timeoutInMinutes: 0
             displayName: '🚀 Run k6 script ${{ k6Script }}'
 
