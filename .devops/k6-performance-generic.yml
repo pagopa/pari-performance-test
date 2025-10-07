@@ -8,7 +8,7 @@ pool:
 parameters:
 
   - name: 'PIPELINE_NAME_PREFIX'
-    displayName: 'Optional pipeline run name prefix'
+    displayName: '(Optional) pipeline run name prefix'
     type: string
     default: ''
 
@@ -156,9 +156,7 @@ jobs:
             local raw="$1"
             local fallback="$2"
             local cleaned
-            cleaned="$(printf '%s' "$raw" | sed -E 's/[^A-Za-z0-9._-]+/-/g')"
-            cleaned="${cleaned##[-]*}"
-            cleaned="${cleaned%%[-]*}"
+            cleaned="$(printf '%s' "$raw" | sed -E 's/[^A-Za-z0-9._-]+/-/g; s/^-+//; s/-+$//; s/-{2,}/-/g')"
             if [[ -z "$cleaned" ]]; then
               cleaned="$fallback"
             fi
@@ -179,7 +177,9 @@ jobs:
           max_length=256
           if (( ${#name} > max_length )); then
             truncated="${name:0:max_length}"
-            truncated="${truncated%%[-]*}"
+            while [[ "${truncated: -1}" == "-" ]]; do
+              truncated="${truncated::-1}"
+            done
             if [[ -z "$truncated" ]]; then
               truncated="${name:0:max_length}"
             fi
@@ -187,6 +187,15 @@ jobs:
             name="$truncated"
           fi
 
+          emoji_segments=()
+          if [[ -n "$prefix" ]]; then
+            emoji_segments+=("🏷️ ${prefix_safe}")
+          fi
+          emoji_segments+=("🌍 ${environment_safe}")
+          emoji_segments+=("🏷️ ${scenario_safe}")
+          emoji_segments+=("💣 ${base_safe}")
+
+          printf 'Segments -> %s\n' "$(IFS=' | '; echo "${emoji_segments[*]}")"
           echo "Pipeline run name -> $name"
           echo "##vso[task.setvariable variable=ComputedPipelineName]$name"
           echo "##vso[task.setvariable variable=ComputedPipelineName;isOutput=true]$name"
