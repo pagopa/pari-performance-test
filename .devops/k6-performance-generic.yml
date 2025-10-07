@@ -135,103 +135,12 @@ variables:
     value: '"xk6" | "1.3.0" | dotenv'
 
 jobs:
-  - job: PreparePipelineMetadata
-    displayName: '🧾 Prepare pipeline metadata'
-    dependsOn: []
-    pool:
-      vmImage: ubuntu-22.04
-    steps:
-      - bash: |
-          set -euo pipefail
-
-          prefix="${PIPELINE_NAME_PREFIX:-}"
-          if [[ "$prefix" == "-" ]]; then
-            prefix=""
-          fi
-          scenario="${K6_SCENARIO_TYPE:-}"
-          environment="${TARGET_ENV:-}"
-          script_path="${K6_SCRIPT_PATH:-}"
-
-          build_number_source="${BUILD_BUILDNUMBER:-}"
-          date_part=""
-          run_part=""
-          if [[ "$build_number_source" =~ ^([0-9]{8})\.([0-9]+) ]]; then
-            date_part="${BASH_REMATCH[1]}"
-            run_part="${BASH_REMATCH[2]}"
-          fi
-          if [[ -z "$date_part" || -z "$run_part" ]]; then
-            date_part="$(date -u +%Y%m%d)"
-            build_id="${BUILD_BUILDID:-0}"
-            run_candidate=$(( build_id % 100 ))
-            run_part="$(printf '%02d' "$run_candidate")"
-          fi
-          build_number_formatted="${date_part}.${run_part}"
-          auto_prefix_raw="#${build_number_formatted} •"
-
-          base="${script_path##*/}"
-          base="${base%.js}"
-
-          sanitize() {
-            local raw="$1"
-            local fallback="$2"
-            local cleaned
-            cleaned="$(printf '%s' "$raw" | sed -E 's/[^A-Za-z0-9._-]+/-/g; s/^-+//; s/-+$//; s/-{2,}/-/g')"
-            if [[ -z "$cleaned" ]]; then
-              cleaned="$fallback"
-            fi
-            printf '%s' "$cleaned"
-          }
-
-          base_safe="$(sanitize "$base" "k6-script")"
-          scenario_safe="$(sanitize "$scenario" "scenario")"
-          environment_safe="$(sanitize "$environment" "env")"
-          prefix_safe="$(sanitize "$prefix" "custom")"
-          auto_prefix_safe="$(sanitize "$auto_prefix_raw" "run")"
-
-          if [[ -n "$prefix" ]]; then
-            core_segment="${prefix_safe} • ${environment_safe}-${scenario_safe}-${base_safe}"
-          else
-            core_segment="${environment_safe}-${scenario_safe}-${base_safe}"
-          fi
-          name="${auto_prefix_safe} • ${core_segment}"
-
-          max_length=256
-          if (( ${#name} > max_length )); then
-            truncated="${name:0:max_length}"
-            while [[ "${truncated: -1}" == "-" ]]; do
-              truncated="${truncated::-1}"
-            done
-            if [[ -z "$truncated" ]]; then
-              truncated="${name:0:max_length}"
-            fi
-            echo "WARNING: Computed pipeline name exceeds ${max_length} characters. Truncating to '${truncated}'."
-            name="$truncated"
-          fi
-
-          emoji_segments=()
-          emoji_segments+=("🗓️ ${auto_prefix_raw}")
-          if [[ -n "$prefix" ]]; then
-            emoji_segments+=("🏷️ ${prefix_safe}")
-          fi
-          emoji_segments+=("🌍 ${environment_safe}")
-          emoji_segments+=("🎯 ${scenario_safe}")
-          emoji_segments+=("📜 ${base_safe}")
-
-          display_name="${auto_prefix_raw} ${core_segment}"
-
-          printf 'Segments -> %s\n' "$(IFS=' | '; echo "${emoji_segments[*]}")"
-          echo "Display pipeline run name -> ${display_name}"
-          echo "Sanitized pipeline run name -> $name"
-          echo "##vso[task.setvariable variable=ComputedPipelineName]$name"
-          echo "##vso[task.setvariable variable=ComputedPipelineName;isOutput=true]$name"
-          echo "##vso[build.updatebuildnumber]$name"
-        name: ComposePipelineVar
-        displayName: '🧾 Compose pipeline run name'
-        env:
-          PIPELINE_NAME_PREFIX: ${{ parameters.PIPELINE_NAME_PREFIX }}
-          K6_SCRIPT_PATH: ${{ parameters.K6_SCRIPT_PATH }}
-          K6_SCENARIO_TYPE: ${{ parameters.K6_SCENARIO_TYPE }}
-          TARGET_ENV: ${{ parameters.TARGET_ENV }}
+  - template: templates/prepare-pipeline-metadata.yml
+    parameters:
+      pipelineNamePrefix: ${{ parameters.PIPELINE_NAME_PREFIX }}
+      k6ScriptPath: ${{ parameters.K6_SCRIPT_PATH }}
+      k6ScenarioType: ${{ parameters.K6_SCENARIO_TYPE }}
+      targetEnv: ${{ parameters.TARGET_ENV }}
 
   - template: templates\xk6-build.yml
     parameters:
