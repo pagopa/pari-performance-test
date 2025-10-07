@@ -150,7 +150,7 @@ variables:
         value: cstar-prod-perf-linux
 
   - name: xk6CacheKey
-    value: xk6-v1.3.0-dotenv-v0.2.0
+    value: '"xk6" | "1.3.0" | dotenv'
 
 jobs:
   - template: templates\xk6-build.yml
@@ -189,11 +189,6 @@ jobs:
           printf '%-24s | %s\n' 'K6_RPS' "${K6_RPS}"
           printf '%-24s | %s\n' 'K6_ITERATIONS' "${K6_ITERATIONS}"
           printf '%-24s | %s\n' 'K6_STAGES' "${K6_STAGES_JSON}"
-          printf '%-24s | %s\n' 'K6_STAGES' "${CF}"
-          printf '%-24s | %s\n' 'K6_STAGES' "${USER_EMAIL}"
-          printf '%-24s | %s\n' 'K6_STAGES' "${USER_PASSWORD}"
-          printf '%-24s | %s\n' 'K6_STAGES' "${USER_ID}"
-          printf '%-24s | %s\n' 'K6_STAGES' "${INITIATIVE_ID}"
         displayName: '🔍 Pipeline parameters snapshot'
         env:
           K6_RUNNING_MODE: ${{ parameters.k6_running_mode }}
@@ -210,11 +205,6 @@ jobs:
           K6_RPS: ${{ parameters.K6_RPS }}
           K6_ITERATIONS: ${{ parameters.K6_ITERATIONS }}
           K6_STAGES_JSON: ${{ convertToJson(parameters.K6_STAGES) }}
-          CF: ${{ parameters.CF }}
-          USER_EMAIL: ${{ parameters.USER_EMAIL }}
-          USER_PASSWORD: ${{ parameters.USER_PASSWORD }}
-          USER_ID: ${{ parameters.USER_ID }}
-          INITIATIVE_ID: ${{ parameters.INITIATIVE_ID }}
 
       - ${{ each k6Script in split(variables.SCRIPTS_TO_EXECUTE, ',') }}:
           - script: |
@@ -255,11 +245,6 @@ jobs:
           key: '$(xk6CacheKey)'
           path: '$(Build.SourcesDirectory)'
         displayName: Retrieve xk6 from Cache
-
-      - script: |
-          echo "🔎 Checking k6 version..."
-          ./xk6/xk6 version || echo "⚠️ xk6 binary not found"
-        displayName: "Show k6 version"
 
       - ${{ each k6Script in split(variables.SCRIPTS_TO_EXECUTE, ',') }}:
           - script: |
@@ -418,12 +403,6 @@ jobs:
           key: '$(xk6CacheKey)'
           path: '$(Build.SourcesDirectory)'
         displayName: Retrieve xk6 from Cache
-
-      - script: |
-          echo "✅ Verifying custom xk6 binary before running tests"
-          ls -lah $(Build.SourcesDirectory)/xk6
-          $(Build.SourcesDirectory)/xk6/xk6 version || echo "⚠️ xk6 binary not found"
-        displayName: Verify custom xk6 binary
 
       - ${{ each k6Script in split(variables.SCRIPTS_TO_EXECUTE, ',') }}:
           - script: |
