@@ -110,9 +110,9 @@ const fiscalCodes = new SharedArray('fiscalCodes', () => {
         .filter(line => line && line !== 'CF');
 });
 
-const status200Counter = new Counter('status_200_onboarding_status');
-const status404Counter = new Counter('status_404_onboarding_status');
-const mockLoginCounter = new Counter('mock_login_succeded')
+const status200Counter = new Counter('user_onboarded');
+const status404Counter = new Counter('user_not_onboarded');
+const mockLoginCounter = new Counter('mock_login_succeeded');
 
 const tokenCache = new Map();
 
