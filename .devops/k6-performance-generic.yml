@@ -90,31 +90,30 @@ parameters:
     type: number
     default: 0
 
-  - ${{ if eq(parameters.K6_SCRIPT_PATH, 'test/performance/payment/payment.js') }}:
-      - name: 'CF'
-        displayName: 'User CF'
-        type: string
-        default: ''
+  - name: 'CF'
+    displayName: '(optional) User CF — required only for payment test'
+    type: string
+    default: ''
 
-      - name: 'USER_EMAIL'
-        displayName: 'User email keycloak'
-        type: string
-        default: ''
+  - name: 'USER_EMAIL'
+    displayName: '(optional) User email keycloak — required only for payment test'
+    type: string
+    default: ''
 
-      - name: 'USER_PASSWORD'
-        displayName: 'User password keycloak'
-        type: string
-        default: ''
+  - name: 'USER_PASSWORD'
+    displayName: '(optional) User password keycloak — required only for payment test'
+    type: string
+    default: ''
 
-      - name: 'USER_ID'
-        displayName: 'User ID'
-        type: string
-        default: ''
+  - name: 'USER_ID'
+    displayName: '(optional) User ID — required only for payment test'
+    type: string
+    default: ''
 
-      - name: 'INITIATIVE_ID'
-        displayName: 'Initiative ID'
-        type: string
-        default: ''
+  - name: 'INITIATIVE_ID'
+    displayName: '(optional) Initiative ID — required only for payment test'
+    type: string
+    default: ''
 
 
 variables:
@@ -217,11 +216,12 @@ jobs:
               K6_MAX_VUS: ${{ parameters.K6_MAX_VUS }}
               ${{ if gt(length(parameters.K6_STAGES), 0) }}:
                 K6_STAGES_PARAM: ${{ convertToJson(parameters.K6_STAGES) }}
-              CF: ${{ parameters.CF }}
-              USER_EMAIL: ${{ parameters.USER_EMAIL }}
-              USER_PASSWORD: ${{ parameters.USER_PASSWORD }}
-              USER_ID: ${{ parameters.USER_ID }}
-              INITIATIVE_ID: ${{ parameters.INITIATIVE_ID }}
+              ${{ if eq(k6Script, 'test/performance/payment/payment.js') }}:
+                CF: ${{ parameters.CF }}
+                USER_EMAIL: ${{ parameters.USER_EMAIL }}
+                USER_PASSWORD: ${{ parameters.USER_PASSWORD }}
+                USER_ID: ${{ parameters.USER_ID }}
+                INITIATIVE_ID: ${{ parameters.INITIATIVE_ID }}
             timeoutInMinutes: 0
             displayName: '🚀 Run k6 script ${{ k6Script }}'
 
