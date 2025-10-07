@@ -189,11 +189,11 @@ jobs:
           auto_prefix_safe="$(sanitize "$auto_prefix_raw" "run")"
 
           if [[ -n "$prefix" ]]; then
-            core_segment="${prefix_safe}-${environment_safe}-${scenario_safe}-${base_safe}"
+            core_segment="${prefix_safe} • ${environment_safe}-${scenario_safe}-${base_safe}"
           else
             core_segment="${environment_safe}-${scenario_safe}-${base_safe}"
           fi
-          name="${auto_prefix_safe}-${core_segment}"
+          name="${auto_prefix_safe} • ${core_segment}"
 
           max_length=256
           if (( ${#name} > max_length )); then
