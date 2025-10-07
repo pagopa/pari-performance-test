@@ -93,7 +93,7 @@ export const options = {
 export function handleSummary(data) {
     return {
         stdout: textSummary(data, { indent: ' ', enableColors: true }),
-        [outputHtmlSummaryFile]: htmlReport(data),
+        [`report-${new Date().toISOString().slice(0, 10)}.html`]: htmlReport(data),
     }
 }
 
