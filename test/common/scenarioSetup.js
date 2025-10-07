@@ -258,78 +258,31 @@ export function buildScenarioConfig(scenarioType, options) {
 }
 
 export function getScenarioDebugSnapshot(scenarioType, options) {
+    return computeScenarioConfig(scenarioType, options)
+}
+
+export function logScenarioDetails(scenarioType, options, logger = console.log) {
     const { resolvedScenarioType, scenarioConfig } = computeScenarioConfig(
         scenarioType,
         options
     )
-    const recognizedOptions = Object.entries(optionEnvNames).map(([key, envVarName]) => {
+    const lines = [`🎯 Scenario: ${scenarioType} → ${resolvedScenarioType}`]
+
+    lines.push('📥 Parametri:')
+    Object.entries(optionEnvNames).forEach(([key, envVarName]) => {
         const rawValue = options[key]
-        const provided = rawValue !== undefined
-        return {
-            optionKey: key,
-            envVarName,
-            provided,
-            value: rawValue,
-        }
+        const rendered =
+            rawValue === undefined ? '<assente>' : formatValueForMessage(rawValue)
+        lines.push(`  • ${envVarName} = ${rendered}`)
     })
-    const knownKeys = new Set(Object.keys(optionEnvNames))
-    const unknownOptions = Object.keys(options || {}).filter((key) => !knownKeys.has(key))
-    return {
-        requestedScenarioType: scenarioType,
-        resolvedScenarioType,
-        recognizedOptions,
-        unknownOptions,
-        scenarioConfig,
-    }
-}
-
-export function logScenarioDetails(scenarioType, options, logger = console.log) {
-    const snapshot = getScenarioDebugSnapshot(scenarioType, options)
-    const {
-        requestedScenarioType,
-        resolvedScenarioType,
-        recognizedOptions,
-        unknownOptions,
-        scenarioConfig,
-    } = snapshot
-
-    const providedOptions = recognizedOptions.filter((opt) => opt.provided)
-    const missingOptions = recognizedOptions.filter((opt) => !opt.provided)
-
-    const lines = [
-        requestedScenarioType === resolvedScenarioType
-            ? `🎯 Scenario: ${resolvedScenarioType}`
-            : `🎯 Scenario: ${requestedScenarioType} ➜ ${resolvedScenarioType}`,
-    ]
-
-    lines.push('📥 Inputs:')
-
-    if (providedOptions.length === 0) {
-        lines.push('  • (nessuna variabile impostata)')
-    } else {
-        providedOptions.forEach(({ envVarName, value }) => {
-            lines.push(`  ✅ ${envVarName} = ${formatValueForMessage(value)}`)
-        })
-    }
-
-    if (missingOptions.length > 0) {
-        const missingList = missingOptions.map((opt) => opt.envVarName).join(', ')
-        lines.push(`  ⚪️ Assenti (valori di default): ${missingList}`)
-    }
-
-    if (unknownOptions.length > 0) {
-        lines.push(`⚠️ Ignorate: ${unknownOptions.join(', ')}`)
-    }
 
     if (scenarioConfig) {
         lines.push('⚙️ Config risultante:')
         lines.push(JSON.stringify(scenarioConfig, null, 2))
     } else {
-        lines.push('⚙️ Config risultante: manual (nessun executor impostato)')
+        lines.push('⚙️ Config risultante: manual scenario (no executor)')
     }
 
-    lines.push('──────────────')
-
     logger(lines.join('\n'))
-    return snapshot
+    return { resolvedScenarioType, scenarioConfig }
 }
