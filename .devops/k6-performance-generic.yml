@@ -7,13 +7,10 @@ pool:
 
 parameters:
 
-  - name: 'k6_running_mode'
-    displayName: 'k6 execution mode'
+  - name: 'PIPELINE_NAME_PREFIX'
+    displayName: '(Optional) pipeline run name prefix'
     type: string
-    default: 'simple'
-    values:
-      - 'simple'
-      - 'managed'
+    default: '-'
 
   - name: 'K6_SCRIPT_PATH'
     displayName: 'k6 script path to execute'
@@ -22,7 +19,6 @@ parameters:
     values:
       - 'test/performance/pdv/pdvPerformance.js'
       - 'test/performance/idpay/getOnboardingStatus_mockLogin.js'
-      - 'test/performance/payment/payment.js'
 
   - name: 'TARGET_ENV'
     displayName: 'Target environment for configuration'
@@ -33,8 +29,8 @@ parameters:
       - 'uat'
       - 'prod'
 
-  - name: 'K6_SCENARIO_TYPE'
-    displayName: 'k6 scenario executor (ENV: K6_SCENARIO_TYPE)'
+  - name: 'K6PERF_SCENARIO_TYPE'
+    displayName: 'k6 scenario executor (ENV: K6PERF_SCENARIO_TYPE)'
     type: string
     values:
       - 'manual'
@@ -48,82 +44,57 @@ parameters:
   # Applies only to staged executors: `ramping-vus` and `ramping-arrival-rate`.
   # Ignored by `manual`, `shared-iterations`, `per-vu-iterations`,
   # `constant-vus`, and `constant-arrival-rate`, which depend on other knobs
-  # such as K6_DURATION, K6_VUS, and K6_RATE.
-  - name: 'K6_STAGES'
-    displayName: 'Optional ramp stages (ENV: K6_STAGES). ℹ️ Only for ramping-vus and ramping-arrival-rate scenarios.'
+  # such as K6PERF_DURATION, K6PERF_VUS, and K6PERF_RATE.
+  - name: 'K6PERF_STAGES'
+    displayName: 'Optional ramp stages (ENV: K6PERF_STAGES). ℹ️ Only for ramping-vus and ramping-arrival-rate scenarios.'
     type: object
     default: []
 
-  - name: 'K6_DURATION'
-    displayName: 'k6 test duration (CLI: --duration, e.g. 30s, 1m, 10m)'
+  - name: 'K6PERF_DURATION'
+    displayName: 'k6 test duration (ENV: K6PERF_DURATION, e.g. 30s, 1m, 10m)'
     type: string
     default: '0s'  # disabled: the helper script requires a positive duration when needed
 
-  - name: 'K6_VUS'
-    displayName: 'k6 virtual users (CLI: --vus)'
+  - name: 'K6PERF_VUS'
+    displayName: 'k6 virtual users (ENV: K6PERF_VUS)'
     type: number
     default: 0  # disabled: must be overridden for VU-based scenarios
 
-  - name: 'K6_MAX_VUS'
-    displayName: 'Maximum virtual users (ENV: K6_MAX_VUS, required for arrival scenarios)'
+  - name: 'K6PERF_MAX_VUS'
+    displayName: 'Maximum virtual users (ENV: K6PERF_MAX_VUS, required for arrival scenarios)'
     type: number
     default: 0
 
-  - name: 'K6_PRE_ALLOCATED_VUS'
-    displayName: 'Pre-allocated virtual users (ENV: K6_PRE_ALLOCATED_VUS)'
+  - name: 'K6PERF_PRE_ALLOCATED_VUS'
+    displayName: 'Pre-allocated virtual users (ENV: K6PERF_PRE_ALLOCATED_VUS)'
     type: number
     default: 0  # disabled: arrival-rate scenarios must size the pool explicitly
 
-  - name: 'K6_START_VUS'
-    displayName: 'Starting virtual users for ramping scenarios (ENV: K6_START_VUS)'
+  - name: 'K6PERF_START_VUS'
+    displayName: 'Starting virtual users for ramping scenarios (ENV: K6PERF_START_VUS)'
     type: number
     default: 0  # disabled: ramping scenarios must define start VUs
 
-  - name: 'K6_RATE'
-    displayName: 'Arrival rate per time unit (ENV: K6_RATE, req/s)'
+  - name: 'K6PERF_RATE'
+    displayName: 'Arrival rate per time unit (ENV: K6PERF_RATE, req/s)'
     type: number
     default: 0  # disabled: arrival-rate scenarios must define an explicit rate
 
-  - name: 'K6_TIME_UNIT'
-    displayName: 'Time unit for arrival rate (ENV: K6_TIME_UNIT, e.g. 1s, 500ms)'
+  - name: 'K6PERF_TIME_UNIT'
+    displayName: 'Time unit for arrival rate (ENV: K6PERF_TIME_UNIT, e.g. 1s, 500ms)'
     type: string
     default: '0s'  # disabled placeholder interpreted as missing
 
-  - name: 'K6_RPS'
-    displayName: 'Global requests-per-second cap (CLI: --rps, 0 unlimited)'
+  - name: 'K6PERF_RPS'
+    displayName: 'Global requests-per-second cap (ENV: K6PERF_RPS, 0 unlimited)'
     type: number
     default: 0
 
-  - name: 'K6_ITERATIONS'
-    displayName: 'Total iterations (CLI: --iterations, 0 disables)'
+  - name: 'K6PERF_ITERATIONS'
+    displayName: 'Total iterations (ENV: K6PERF_ITERATIONS, 0 disables)'
     type: number
     default: 0
 
-  # Optional user-related params, only used for payment.js
-  - name: 'CF'
-    displayName: 'User CF (only for payment test)'
-    type: string
-    default: 'CF'
-
-  - name: 'USER_EMAIL'
-    displayName: 'User email keycloak (only for payment test)'
-    type: string
-    default: 'USER_EMAIL'
-
-  - name: 'USER_PASSWORD'
-    displayName: 'User password keycloak (only for payment test)'
-    type: string
-    default: 'USER_PASSWORD'
-
-  - name: 'USER_ID'
-    displayName: 'User ID (only for payment test)'
-    type: string
-    default: 'USER_ID'
-
-  - name: 'INITIATIVE_ID'
-    displayName: 'Initiative ID (only for payment test)'
-    type: string
-    default: 'INITIATIVE_ID'
 
 variables:
 
@@ -133,8 +104,8 @@ variables:
   - name: projectRoot
     value: $(System.DefaultWorkingDirectory)/$(working-dir)
 
-  - name: k6_running_mode
-    value: ${{ parameters.k6_running_mode }}
+  - name: ComputedPipelineName
+    value: ''
 
   # comma separated list of k6 scripts to execute
   - name: SCRIPTS_TO_EXECUTE
@@ -154,14 +125,17 @@ variables:
     value: '"xk6" | "1.3.0" | dotenv'
 
 jobs:
-  - template: templates\xk6-build.yml
+  - template: templates/prepare-pipeline-metadata.yml
     parameters:
-      xk6CacheKey: '$(xk6CacheKey)'
-      k6Version: v1.3.0
+      pipelineNamePrefix: ${{ parameters.PIPELINE_NAME_PREFIX }}
+      k6ScriptPath: ${{ parameters.K6_SCRIPT_PATH }}
+      k6ScenarioType: ${{ parameters.K6PERF_SCENARIO_TYPE }}
+      targetEnv: ${{ parameters.TARGET_ENV }}
 
   - job: ValidateParameters
     displayName: '✅ Validating k6 configuration for ${{ parameters.TARGET_ENV }}'
-    dependsOn: []
+    dependsOn:
+      - PreparePipelineMetadata
     pool:
       vmImage: ubuntu-22.04
     steps:
@@ -176,222 +150,71 @@ jobs:
           printf '%-24s | %s\n' 'PARAMETER' 'VALUE'
           printf '%s-+-%s\n' "$header_divider" "$value_divider"
 
-          printf '%-24s | %s\n' 'k6_running_mode' "${K6_RUNNING_MODE}"
           printf '%-24s | %s\n' 'K6_SCRIPT_PATH' "${K6_SCRIPT_PATH}"
           printf '%-24s | %s\n' 'TARGET_ENV' "${TARGET_ENV}"
-          printf '%-24s | %s\n' 'K6_SCENARIO_TYPE' "${K6_SCENARIO_TYPE}"
-          printf '%-24s | %s\n' 'K6_DURATION' "${K6_DURATION}"
-          printf '%-24s | %s\n' 'K6_VUS' "${K6_VUS}"
-          printf '%-24s | %s\n' 'K6_MAX_VUS' "${K6_MAX_VUS}"
-          printf '%-24s | %s\n' 'K6_PRE_ALLOCATED_VUS' "${K6_PRE_ALLOCATED_VUS}"
-          printf '%-24s | %s\n' 'K6_START_VUS' "${K6_START_VUS}"
-          printf '%-24s | %s\n' 'K6_RATE' "${K6_RATE}"
-          printf '%-24s | %s\n' 'K6_TIME_UNIT' "${K6_TIME_UNIT}"
-          printf '%-24s | %s\n' 'K6_RPS' "${K6_RPS}"
-          printf '%-24s | %s\n' 'K6_ITERATIONS' "${K6_ITERATIONS}"
-          printf '%-24s | %s\n' 'K6_STAGES' "${K6_STAGES_JSON}"
+          printf '%-24s | %s\n' 'PIPELINE_NAME_PREFIX' "${PIPELINE_NAME_PREFIX}"
+          printf '%-24s | %s\n' 'K6PERF_SCENARIO_TYPE' "${K6PERF_SCENARIO_TYPE}"
+          printf '%-24s | %s\n' 'K6PERF_DURATION' "${K6PERF_DURATION}"
+          printf '%-24s | %s\n' 'K6PERF_VUS' "${K6PERF_VUS}"
+          printf '%-24s | %s\n' 'K6PERF_MAX_VUS' "${K6PERF_MAX_VUS}"
+          printf '%-24s | %s\n' 'K6PERF_PRE_ALLOCATED_VUS' "${K6PERF_PRE_ALLOCATED_VUS}"
+          printf '%-24s | %s\n' 'K6PERF_START_VUS' "${K6PERF_START_VUS}"
+          printf '%-24s | %s\n' 'K6PERF_RATE' "${K6PERF_RATE}"
+          printf '%-24s | %s\n' 'K6PERF_TIME_UNIT' "${K6PERF_TIME_UNIT}"
+          printf '%-24s | %s\n' 'K6PERF_RPS' "${K6PERF_RPS}"
+          printf '%-24s | %s\n' 'K6PERF_ITERATIONS' "${K6PERF_ITERATIONS}"
+          printf '%-24s | %s\n' 'K6PERF_STAGES' "${K6PERF_STAGES_JSON}"
+          printf '%-24s | %s\n' 'COMPUTED_RUN_NAME' "${COMPUTED_PIPELINE_NAME}"
         displayName: '🔍 Pipeline parameters snapshot'
         env:
-          K6_RUNNING_MODE: ${{ parameters.k6_running_mode }}
           K6_SCRIPT_PATH: ${{ parameters.K6_SCRIPT_PATH }}
           TARGET_ENV: ${{ parameters.TARGET_ENV }}
-          K6_SCENARIO_TYPE: ${{ parameters.K6_SCENARIO_TYPE }}
-          K6_DURATION: ${{ parameters.K6_DURATION }}
-          K6_VUS: ${{ parameters.K6_VUS }}
-          K6_MAX_VUS: ${{ parameters.K6_MAX_VUS }}
-          K6_PRE_ALLOCATED_VUS: ${{ parameters.K6_PRE_ALLOCATED_VUS }}
-          K6_START_VUS: ${{ parameters.K6_START_VUS }}
-          K6_RATE: ${{ parameters.K6_RATE }}
-          K6_TIME_UNIT: ${{ parameters.K6_TIME_UNIT }}
-          K6_RPS: ${{ parameters.K6_RPS }}
-          K6_ITERATIONS: ${{ parameters.K6_ITERATIONS }}
-          K6_STAGES_JSON: ${{ convertToJson(parameters.K6_STAGES) }}
+          PIPELINE_NAME_PREFIX: ${{ parameters.PIPELINE_NAME_PREFIX }}
+          K6PERF_SCENARIO_TYPE: ${{ parameters.K6PERF_SCENARIO_TYPE }}
+          K6PERF_DURATION: ${{ parameters.K6PERF_DURATION }}
+          K6PERF_VUS: ${{ parameters.K6PERF_VUS }}
+          K6PERF_MAX_VUS: ${{ parameters.K6PERF_MAX_VUS }}
+          K6PERF_PRE_ALLOCATED_VUS: ${{ parameters.K6PERF_PRE_ALLOCATED_VUS }}
+          K6PERF_START_VUS: ${{ parameters.K6PERF_START_VUS }}
+          K6PERF_RATE: ${{ parameters.K6PERF_RATE }}
+          K6PERF_TIME_UNIT: ${{ parameters.K6PERF_TIME_UNIT }}
+          K6PERF_RPS: ${{ parameters.K6PERF_RPS }}
+          K6PERF_ITERATIONS: ${{ parameters.K6PERF_ITERATIONS }}
+          K6PERF_STAGES_JSON: ${{ convertToJson(parameters.K6PERF_STAGES) }}
+          COMPUTED_PIPELINE_NAME: $(ComputedPipelineName)
 
       - ${{ each k6Script in split(variables.SCRIPTS_TO_EXECUTE, ',') }}:
           - script: |
-              python3 .devops/scripts/run_k6.py --script "${{ k6Script }}" --dry-run
-            displayName: 📌 Validate parameters for ${{ k6Script }}
-            condition: ne(variables.k6_running_mode, 'simple')
+              node .devops/scripts/validate_scenario.mjs
+            displayName: '✅ Validate scenario via scenarioSetup.js'
             env:
               TARGET_ENV: ${{ parameters.TARGET_ENV }}
-              K6_SCENARIO_TYPE: ${{ parameters.K6_SCENARIO_TYPE }}
-              K6_DURATION: ${{ parameters.K6_DURATION }}
-              K6_ITERATIONS: ${{ parameters.K6_ITERATIONS }}
-              K6_VUS: ${{ parameters.K6_VUS }}
-              K6_RATE: ${{ parameters.K6_RATE }}
-              K6_TIME_UNIT: ${{ parameters.K6_TIME_UNIT }}
-              K6_RPS: ${{ parameters.K6_RPS }}
-              K6_START_VUS: ${{ parameters.K6_START_VUS }}
-              K6_PRE_ALLOCATED_VUS: ${{ parameters.K6_PRE_ALLOCATED_VUS }}
-              K6_MAX_VUS: ${{ parameters.K6_MAX_VUS }}
-              ${{ if gt(length(parameters.K6_STAGES), 0) }}:
-                K6_STAGES_PARAM: ${{ convertToJson(parameters.K6_STAGES) }}
+              K6PERF_SCENARIO_TYPE: ${{ parameters.K6PERF_SCENARIO_TYPE }}
+              K6PERF_DURATION: ${{ parameters.K6PERF_DURATION }}
+              K6PERF_ITERATIONS: ${{ parameters.K6PERF_ITERATIONS }}
+              K6PERF_VUS: ${{ parameters.K6PERF_VUS }}
+              K6PERF_RATE: ${{ parameters.K6PERF_RATE }}
+              K6PERF_TIME_UNIT: ${{ parameters.K6PERF_TIME_UNIT }}
+              K6PERF_RPS: ${{ parameters.K6PERF_RPS }}
+              K6PERF_START_VUS: ${{ parameters.K6PERF_START_VUS }}
+              K6PERF_PRE_ALLOCATED_VUS: ${{ parameters.K6PERF_PRE_ALLOCATED_VUS }}
+              K6PERF_MAX_VUS: ${{ parameters.K6PERF_MAX_VUS }}
+              ${{ if gt(length(parameters.K6PERF_STAGES), 0) }}:
+                K6PERF_STAGES_JSON: ${{ convertToJson(parameters.K6PERF_STAGES) }}
 
-  - job: simplePerformanceRun
-    displayName: '⚡ Simple k6 run on ${{ parameters.TARGET_ENV }}'
+  - template: templates\xk6-build.yml
+    parameters:
+      xk6CacheKey: '$(xk6CacheKey)'
+      k6Version: v1.3.0
+      dependsOn: 'PreparePipelineMetadata'
+
+  - job: runK6
+    displayName: '✈️ run_k6.py execution on ${{ parameters.TARGET_ENV }}'
     timeoutInMinutes: 0
     continueOnError: true
     dependsOn:
       - xk6Build
       - ValidateParameters
-    condition: eq(variables.k6_running_mode, 'simple')
-    pool:
-      name: $(selfHostedAgentPool)
-    steps:
-
-      - checkout: self
-
-      - task: Cache@2
-        inputs:
-          key: '$(xk6CacheKey)'
-          path: '$(Build.SourcesDirectory)'
-        displayName: Retrieve xk6 from Cache
-
-      - ${{ each k6Script in split(variables.SCRIPTS_TO_EXECUTE, ',') }}:
-          - script: |
-              set -euo pipefail
-
-              script_path="${{ k6Script }}"
-              if [[ -z "$script_path" ]]; then
-                  echo "❌ k6Script value is empty" >&2
-                  exit 1
-              fi
-
-              if [[ ! -f "$script_path" ]]; then
-                  echo "❌ Script '$script_path' not found" >&2
-                  exit 1
-              fi
-
-              if [[ ! -x ./xk6 ]]; then
-                  echo "❌ ./xk6 binary not found. Ensure the xk6 build stage completed successfully." >&2
-                  exit 1
-              fi
-
-              target_env="${TARGET_ENV:-}"
-              scenario_type="${K6_SCENARIO_TYPE:-}"
-
-              if [[ -z "$target_env" ]]; then
-                  echo "❌ TARGET_ENV must be provided" >&2
-                  exit 1
-              fi
-
-              if [[ -z "$scenario_type" ]]; then
-                  echo "❌ K6_SCENARIO_TYPE must be provided" >&2
-                  exit 1
-              fi
-
-              cli_cmd=("./xk6" "run" "$script_path" "--tag" "environment=${target_env}")
-              env_vars=("TARGET_ENV=${target_env}" "K6_SCENARIO_TYPE=${scenario_type}")
-
-              add_cli() {
-                  local flag="$1"
-                  local env_key="$2"
-                  shift 2
-                  local value="${!env_key-}"
-                  if [[ -z "${value-}" ]]; then
-                      unset "$env_key"
-                      return
-                  fi
-                  for default in "$@"; do
-                      if [[ "$value" == "$default" ]]; then
-                          unset "$env_key"
-                          return
-                      fi
-                  done
-                  cli_cmd+=("$flag" "$value")
-              }
-
-              add_env() {
-                  local env_key="$1"
-                  shift
-                  local value="${!env_key-}"
-                  if [[ -z "${value-}" ]]; then
-                      unset "$env_key"
-                      return
-                  fi
-                  for default in "$@"; do
-                      if [[ "$value" == "$default" ]]; then
-                          unset "$env_key"
-                          return
-                      fi
-                  done
-                  env_vars+=("${env_key}=${value}")
-              }
-
-              add_cli "--duration" "K6_DURATION" "0" "0s"
-              add_cli "--vus" "K6_VUS" "0"
-              add_cli "--iterations" "K6_ITERATIONS" "0"
-              add_cli "--rps" "K6_RPS" "0"
-
-              add_env "K6_MAX_VUS" "0"
-              add_env "K6_PRE_ALLOCATED_VUS" "0"
-              add_env "K6_START_VUS" "0"
-              add_env "K6_RATE" "0"
-              add_env "K6_TIME_UNIT" "0" "0s"
-
-              stages_json="${K6_STAGES_JSON:-}"
-              if [[ -n "$stages_json" && "$stages_json" != '[]' && "$stages_json" != 'null' ]]; then
-                  echo "ℹ️ K6_STAGES is ignored in simple mode"
-              fi
-              unset K6_STAGES_JSON
-
-              echo "▶️ Simple mode for script: $script_path"
-
-              printf 'CLI command:\n'
-              printf '  '
-              printf '%q ' "${cli_cmd[@]}"
-              printf '\n'
-
-              printf 'Environment overrides:\n'
-              if ((${#env_vars[@]} > 0)); then
-                  for entry in "${env_vars[@]}"; do
-                      printf '  %s\n' "$entry"
-                  done
-              else
-                  printf '  (none)\n'
-              fi
-
-
-              if ((${#env_vars[@]} > 0)); then
-                  printf '🚀 Executing with env: '
-                  printf '%q ' "${env_vars[@]}" "${cli_cmd[@]}"
-                  printf '\n'
-                  # env xyz.. permette di eseguire il comando con le variabili d'ambiente specificate caricandole prima
-                  env "${env_vars[@]}" "${cli_cmd[@]}"
-              else
-                  printf '▶️ Executing: '
-                  printf '%q ' "${cli_cmd[@]}"
-                  printf '\n'
-                  "${cli_cmd[@]}"
-              fi
-            displayName: '▶️ Run ${{ k6Script }} (simple mode)'
-            env:
-              TARGET_ENV: ${{ parameters.TARGET_ENV }}
-              K6_SCENARIO_TYPE: ${{ parameters.K6_SCENARIO_TYPE }}
-              K6_DURATION: ${{ parameters.K6_DURATION }}
-              K6_ITERATIONS: ${{ parameters.K6_ITERATIONS }}
-              K6_VUS: ${{ parameters.K6_VUS }}
-              K6_RATE: ${{ parameters.K6_RATE }}
-              K6_TIME_UNIT: ${{ parameters.K6_TIME_UNIT }}
-              K6_RPS: ${{ parameters.K6_RPS }}
-              K6_START_VUS: ${{ parameters.K6_START_VUS }}
-              K6_PRE_ALLOCATED_VUS: ${{ parameters.K6_PRE_ALLOCATED_VUS }}
-              K6_MAX_VUS: ${{ parameters.K6_MAX_VUS }}
-              K6_STAGES_JSON: ${{ convertToJson(parameters.K6_STAGES) }}
-              CF: ${{ parameters.CF }}
-              USER_EMAIL: ${{ parameters.USER_EMAIL }}
-              USER_PASSWORD: ${{ parameters.USER_PASSWORD }}
-              USER_ID: ${{ parameters.USER_ID }}
-              INITIATIVE_ID: ${{ parameters.INITIATIVE_ID }}
-
-  - job: managedPerformanceTests
-    displayName: '✈️ Managed k6 scripts on ${{ parameters.TARGET_ENV }}'
-    timeoutInMinutes: 0
-    continueOnError: true
-    dependsOn:
-      - xk6Build
-      - ValidateParameters
-    condition: eq(variables.k6_running_mode, 'managed')
     pool:
       name: $(selfHostedAgentPool)
     steps:
@@ -415,18 +238,19 @@ jobs:
               python3 .devops/scripts/run_k6.py --script "${{ k6Script }}"
             env:
               TARGET_ENV: ${{ parameters.TARGET_ENV }}
-              K6_SCENARIO_TYPE: ${{ parameters.K6_SCENARIO_TYPE }}
-              K6_DURATION: ${{ parameters.K6_DURATION }}
-              K6_ITERATIONS: ${{ parameters.K6_ITERATIONS }}
-              K6_VUS: ${{ parameters.K6_VUS }}
-              K6_RATE: ${{ parameters.K6_RATE }}
-              K6_TIME_UNIT: ${{ parameters.K6_TIME_UNIT }}
-              K6_RPS: ${{ parameters.K6_RPS }}
-              K6_START_VUS: ${{ parameters.K6_START_VUS }}
-              K6_PRE_ALLOCATED_VUS: ${{ parameters.K6_PRE_ALLOCATED_VUS }}
-              K6_MAX_VUS: ${{ parameters.K6_MAX_VUS }}
-              ${{ if gt(length(parameters.K6_STAGES), 0) }}:
-                K6_STAGES_PARAM: ${{ convertToJson(parameters.K6_STAGES) }}
+              K6PERF_SCENARIO_TYPE: ${{ parameters.K6PERF_SCENARIO_TYPE }}
+              K6PERF_DURATION: ${{ parameters.K6PERF_DURATION }}
+              K6PERF_ITERATIONS: ${{ parameters.K6PERF_ITERATIONS }}
+              K6PERF_VUS: ${{ parameters.K6PERF_VUS }}
+              K6PERF_RATE: ${{ parameters.K6PERF_RATE }}
+              K6PERF_TIME_UNIT: ${{ parameters.K6PERF_TIME_UNIT }}
+              K6PERF_RPS: ${{ parameters.K6PERF_RPS }}
+              K6PERF_START_VUS: ${{ parameters.K6PERF_START_VUS }}
+              K6PERF_PRE_ALLOCATED_VUS: ${{ parameters.K6PERF_PRE_ALLOCATED_VUS }}
+              K6PERF_MAX_VUS: ${{ parameters.K6PERF_MAX_VUS }}
+              K6_LOG_FORMAT: raw
+              ${{ if gt(length(parameters.K6PERF_STAGES), 0) }}:
+                K6PERF_STAGES_JSON: ${{ convertToJson(parameters.K6PERF_STAGES) }}
             timeoutInMinutes: 0
             displayName: '🚀 Run k6 script ${{ k6Script }}'
 

@@ -4,9 +4,9 @@ from datetime import date
 import codicefiscale
 
 # --- Configuration ---
-NUM_CODES = 10000000
+NUM_CODES = 10000
 OUTPUT_FOLDER = 'assets'
-OUTPUT_FILE = 'fc_list_10M.csv'
+OUTPUT_FILE = 'fc_list_10k.csv'
 OUTPUT_PATH = os.path.join(OUTPUT_FOLDER, OUTPUT_FILE)
 START_YEAR = 2200
 END_YEAR = 2299  # 100 years window
