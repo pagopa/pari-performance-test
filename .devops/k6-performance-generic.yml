@@ -365,6 +365,7 @@ jobs:
               K6PERF_START_VUS: ${{ parameters.K6PERF_START_VUS }}
               K6PERF_PRE_ALLOCATED_VUS: ${{ parameters.K6PERF_PRE_ALLOCATED_VUS }}
               K6PERF_MAX_VUS: ${{ parameters.K6PERF_MAX_VUS }}
+              K6_LOG_FORMAT: raw
               ${{ if gt(length(parameters.K6PERF_STAGES), 0) }}:
                 K6PERF_STAGES_JSON: ${{ convertToJson(parameters.K6PERF_STAGES) }}
             timeoutInMinutes: 0
