@@ -19,7 +19,8 @@ parameters:
     values:
       - 'test/performance/pdv/pdvPerformance.js'
       - 'test/performance/idpay/getOnboardingStatus_mockLogin.js'
-
+      - 'test/performance/payment/payment.js'
+      -
   - name: 'TARGET_ENV'
     displayName: 'Target environment for configuration'
     type: string
@@ -182,6 +183,8 @@ jobs:
           K6PERF_ITERATIONS: ${{ parameters.K6PERF_ITERATIONS }}
           K6PERF_STAGES_JSON: ${{ convertToJson(parameters.K6PERF_STAGES) }}
           COMPUTED_PIPELINE_NAME: $(ComputedPipelineName)
+          USER_EMAIL: $(parameters.USER_EMAIL)
+          PASSWORD_EMAIL: $(parameters.PASSWORD_EMAIL)
 
       - ${{ each k6Script in split(variables.SCRIPTS_TO_EXECUTE, ',') }}:
           - script: |
