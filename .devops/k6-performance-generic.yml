@@ -20,7 +20,7 @@ parameters:
       - 'test/performance/pdv/pdvPerformance.js'
       - 'test/performance/idpay/getOnboardingStatus_mockLogin.js'
       - 'test/performance/payment/payment.js'
-      -
+
   - name: 'TARGET_ENV'
     displayName: 'Target environment for configuration'
     type: string
