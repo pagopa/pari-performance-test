@@ -205,7 +205,7 @@ jobs:
     parameters:
       xk6CacheKey: '$(xk6CacheKey)'
       k6Version: v1.3.0
-      dependsOn: 'ValidateParameters'
+      dependsOn: 'PreparePipelineMetadata'
 
   - job: runK6
     displayName: '✈️ run_k6.py execution on ${{ parameters.TARGET_ENV }}'
