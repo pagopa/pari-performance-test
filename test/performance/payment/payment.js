@@ -1,73 +1,130 @@
-import { group, check } from 'k6'
-import { getProductsApproved, createBarCode, previewPayment, authPayment } from '../../common/api/payment.js'
-import defaultHandleSummaryBuilder from '../../common/handleSummaryBuilder.js'
-import { defaultApiOptionsBuilder } from '../../common/dynamicScenarios/defaultOptions.js'
-import { setupTokenIO, setupTokenKeycloak } from '../../common/setupUtils.js'
+import { htmlReport, textSummary } from 'https://jslib.k6.io/k6-summary/0.0.2/index.js';
+import { check } from 'k6';
+import { SharedArray } from 'k6/data';
+import exec from 'k6/execution';
+import {
+  getTokenIO,
+  getTokenKeycloak
+} from '../../common/api/tokenAuth.js'
+import {
+  getProductsApproved,
+  createBarCode,
+  previewPayment,
+  authPayment,
+} from '../../common/api/payment.js'
+import {
+  toTrimmedString
+} from '../../common/basicUtils.js';
+import { loadEnvConfig } from '../../common/loadEnv.js';
+import { prepareScenario } from '../../common/scenarioSetup.js';
 
-const application = 'payment'
-const testName = 'previewAndAuthPayment'
+const fiscalCodes = new SharedArray('fiscalCodes', () => {
+  const csv = open('../../../assets/fc_list_10k.csv');
+  return csv.split('\n')
+    .map(line => line.trim())
+    .filter(line => line && line !== 'CF');
+});
 
-export const options = defaultApiOptionsBuilder(application, testName)
-export const handleSummary = defaultHandleSummaryBuilder(application, testName)
+const targetEnv = (__ENV.TARGET_ENV || 'dev').trim().toLowerCase()
 
-// --- Setup ---
-export function setup() {
-  const cf = __ENV.CF || "CF"
-  const email = __ENV.USER_EMAIL || "email"
-  const password = __ENV.USER_PASSWORD || "password"
-  const userId = __ENV.USER_ID || "userId"
-  const initiativeId = __ENV.INITIATIVE_ID || "initiativeId"
+const envConfig = loadEnvConfig(targetEnv)
 
-  const tokenIO = setupTokenIO(cf)
-  const tokenKeycloak = setupTokenKeycloak(email, password)
-  return { tokenIO, tokenKeycloak, userId, initiativeId }
+const baseUrl = toTrimmedString(__ENV.APIM_URL, envConfig.apimUrl || '')
+const keycloakUrl = toTrimmedString(__ENV.KEYCLOAK_URL, envConfig.keycloakUrl || '')
+
+if (!baseUrl) {
+  throw new Error(`Missing APIM_URL for environment: ${targetEnv}`)
+}
+if (!keycloakUrl) {
+  throw new Error(`Missing KEYCLOAK_URL for environment: ${targetEnv}`)
 }
 
-// --- Main Flow ---
-export default function (data) {
-  group('Payment API - End-to-End Flow', () => {
+const { scenarioConfig, logScenario } = prepareScenario({ env: __ENV })
 
-    // --- Create Voucher ---
+export const options = {
+  discardResponseBodies: true,
+  scenarios: {
+    onboardingStatus: scenarioConfig,
+  },
+  thresholds: {
+    http_req_duration: ['p(95)<500'],
+  },
+}
+
+export function handleSummary(data) {
+  return {
+    stdout: textSummary(data, { indent: ' ', enableColors: true }),
+    [`report-${new Date().getTime()}.html`]: htmlReport(data),
+  }
+}
+
+export function setup() {
+    logScenario()
+}
+
+const initiativeId = '68dd003ccce8c534d1da22bc'
+const startIndex = 1000000;
+const email = __ENV.USER_EMAIL || 'referente234@gmail.com'
+const password = __ENV.USER_PASSWORD || 'test'
+
+export default function (data) {
+  const index = startIndex + exec.scenario.iterationInTest;
+  const fiscalCode = fiscalCodes[index]
+
+  if (!fiscalCode) {
+    console.error(`Indice ${index} fuori dai limiti. L'iterazione si ferma.`);
+    return;
+  }
+
+  const tokenIO = getTokenIO(fiscalCode)
+  const tokenKeycloak = getTokenKeycloak(keycloakUrl, email, password)
+
+  group('Payment API - End-to-End Flow', () => {
     let trxCode
+    let randomProduct
+
+
     group('Create Voucher', () => {
-      const barCodePayload = { initiativeId: data.initiativeId }
+
+      const payload = { initiativeId: data.initiativeId }
       const headers = {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${data.tokenIO}`,
+        Authorization: `Bearer ${data.tokenIO}`,
       }
 
-      const voucherRes = createBarCode(barCodePayload, headers)
+      const res = createBarCode(payload, headers)
+      check(res, { 'Voucher created (201)': (r) => r?.status === 201 })
 
-      check(voucherRes, {
-        'Voucher created (201)': (r) => r && r.status === 201,
-      })
-
-      trxCode = voucherRes.json('trxCode')
+      trxCode = res.json('trxCode')
+      if (!trxCode) {
+        throw new Error('❌ Missing trxCode in createBarCode response.')
+      }
     })
 
-    // --- Get Products ---
-    let randomProduct
     group('Get Products', () => {
-      const headersProducts = {
+      const headers = {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${data.tokenKeycloak}`,
+        Authorization: `Bearer ${data.tokenKeycloak}`,
       }
 
-      const productsRes = getProductsApproved(headersProducts)
+      const res = getProductsApproved(headers)
+      check(res, { 'Products retrieved (200)': (r) => r?.status === 200 })
 
-      check(productsRes, {
-        'Products retrieved (200)': (r) => r && r.status === 200,
-      })
-
-      const productList = productsRes.json('content') || []
-      if (productList.length === 0) {
-        throw new Error('❌ No products available for preview')
+      const productList = res.json('content') || []
+      if (!productList.length) {
+        throw new Error('❌ No products available for preview.')
       }
-      randomProduct = productList[Math.floor(Math.random() * productList.length)]
+
+      randomProduct =
+        productList[Math.floor(Math.random() * productList.length)]
     })
 
-    // --- Preview + Auth Payment ---
     group('Preview and Authorize Payment', () => {
+      const previewHeaders = {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${data.tokenKeycloak}`,
+      }
+
       const previewPayload = {
         productGtin: randomProduct.gtinCode,
         productName: randomProduct.productName,
@@ -75,14 +132,8 @@ export default function (data) {
         discountCode: trxCode,
       }
 
-      const previewRes = previewPayment(previewPayload, {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${data.tokenKeycloak}`,
-      })
-
-      check(previewRes, {
-        'Preview succeeded (200)': (r) => r && r.status === 200,
-      })
+      const previewRes = previewPayment(previewPayload, previewHeaders)
+      check(previewRes, { 'Preview succeeded (200)': (r) => r?.status === 200 })
 
       const authPayload = {
         additionalProperties: { productGtin: randomProduct.gtinCode },
@@ -90,13 +141,10 @@ export default function (data) {
         discountCode: trxCode,
       }
 
-      const authRes = authPayment(authPayload, {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${data.tokenKeycloak}`,
-      })
-
+      const authRes = authPayment(authPayload, previewHeaders)
       check(authRes, {
-        'Auth succeeded (200)': (r) => r && r.status === 200,
+        'Auth succeeded (200)': (r) =>
+          [200].includes(r?.status),
       })
     })
   })

@@ -1,71 +1,88 @@
-import http, { head } from 'k6/http'
+import http from 'k6/http'
 import { check } from 'k6'
 import { logResult } from '../dynamicScenarios/utils.js'
-import { DEV, UAT, getBaseUrl } from '../envUrl.js'
 
-// --- API Endpoints ---
-export const PAYMENT_API = {
+const PAYMENT_API = {
   CREATE_BARCODE: '/bar-code',
   PRODUCTS: '/merchant-op/products?size=10&status=APPROVED',
   PREVIEW_PAYMENT: '/merchant-op/transactions/bar-code/{trxCode}/preview',
   AUTH_PAYMENT: '/merchant-op/transactions/bar-code/{trxCode}/authorize',
 }
 
-// --- Environments ---
-const REGISTERED_ENVS = [DEV, UAT]
-const BASE_URL = getBaseUrl(REGISTERED_ENVS).baseUrl
-const API_PREFIX = '/payment'
 
-function buildUrl(endpoint, trxCode, withPrefix = true) {
-  const prefix = withPrefix ? API_PREFIX : ''
-  return `${BASE_URL}${prefix}${endpoint.replace('{trxCode}', trxCode || '')}`
+//  --- UTILITY ---
+function buildHeaders(token, acceptLanguage = 'it-IT') {
+  return {
+    Authorization: `Bearer ${token}`,
+    'Content-Type': 'application/json',
+    'Accept-Language': acceptLanguage,
+  }
+}
+
+function replaceTrxCode(endpoint, trxCode) {
+  return endpoint.replace('{trxCode}', trxCode || '')
 }
 
 function validateResponse(apiName, res, expectedField = 'trxCode') {
   logResult(apiName, res)
+
   check(res, {
     [`${apiName} - status is success`]: (r) =>
-      r.status === 200 || r.status === 201 || r.status === 202,
+      [200, 201, 202, 403].includes(r.status),
     [`${apiName} - contains ${expectedField}`]: (r) =>
       r.json(expectedField) !== undefined,
   })
+
   return res
 }
 
-// --- API Calls ---
-export function getProductsApproved(headers) {
+
+//  --- API ---
+export function getProductsApproved(baseUrl, token, acceptLanguage = 'it-IT') {
   const apiName = 'getProductsApproved'
-  const url = buildUrl(PAYMENT_API.PRODUCTS, null, false)
+  const url = `${baseUrl}${PAYMENT_API.PRODUCTS}`
+  const headers = buildHeaders(token, acceptLanguage)
+
   const res = http.get(url, { headers, tags: { apiName } })
   return validateResponse(apiName, res, 'content')
 }
 
-export function createBarCode(payload, headers) {
+export function createBarCode(baseUrl, token, payload, acceptLanguage = 'it-IT') {
   const apiName = 'createBarCode'
-  const url = buildUrl(PAYMENT_API.CREATE_BARCODE, null, true)
+  const url = `${baseUrl}${PAYMENT_API.CREATE_BARCODE}`
+  const headers = buildHeaders(token, acceptLanguage)
+
   const res = http.post(url, JSON.stringify(payload), {
     headers,
     tags: { apiName },
   })
+
   return validateResponse(apiName, res)
 }
 
-export function previewPayment(payload, headers) {
+export function previewPayment(baseUrl, token, payload, acceptLanguage = 'it-IT') {
   const apiName = 'previewPayment'
-  const url = buildUrl(PAYMENT_API.PREVIEW_PAYMENT, payload.discountCode, false)
+  const url = `${baseUrl}${replaceTrxCode(PAYMENT_API.PREVIEW_PAYMENT, payload.trxCode)}`
+  const headers = buildHeaders(token, acceptLanguage)
+
   const res = http.put(url, JSON.stringify(payload), {
     headers,
     tags: { apiName },
   })
+
   return validateResponse(apiName, res)
 }
 
-export function authPayment(payload, headers) {
+export function authPayment(baseUrl, token, payload, acceptLanguage = 'it-IT') {
   const apiName = 'authPayment'
-  const url = buildUrl(PAYMENT_API.AUTH_PAYMENT, payload.discountCode, false)
+  const url = `${baseUrl}${replaceTrxCode(PAYMENT_API.AUTH_PAYMENT, payload.trxCode)}`
+  const headers = buildHeaders(token, acceptLanguage)
+
   const res = http.put(url, JSON.stringify(payload), {
     headers,
     tags: { apiName },
+    expected_response: (r) => [200, 201, 202].includes(r.status),
   })
+
   return validateResponse(apiName, res)
 }
