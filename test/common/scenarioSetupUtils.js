@@ -144,10 +144,17 @@ function optionLabel(key) {
     return SCENARIO_OPTION_ENV_NAMES[key] || key
 }
 
-function requirePositiveNumber(scenarioType, options, key) {
+function recordError(errors, message) {
+    if (message) {
+        errors.push(message)
+    }
+}
+
+function requirePositiveNumber(scenarioType, options, key, errors) {
     const parsed = toPositiveNumber(options[key])
     if (parsed === undefined) {
-        throw new Error(
+        recordError(
+            errors,
             `Scenario "${scenarioType}" requires ${optionLabel(
                 key
             )} to be a positive number; received ${formatValueForMessage(options[key])}`
@@ -156,10 +163,11 @@ function requirePositiveNumber(scenarioType, options, key) {
     return parsed
 }
 
-function requireString(scenarioType, options, key) {
+function requireString(scenarioType, options, key, errors) {
     const value = toTrimmedString(options[key], undefined)
     if (!value) {
-        throw new Error(
+        recordError(
+            errors,
             `Scenario "${scenarioType}" requires ${optionLabel(
                 key
             )} to be set; received ${formatValueForMessage(options[key])}`
@@ -172,9 +180,13 @@ function optionalString(options, key) {
     return toTrimmedString(options[key], undefined)
 }
 
-function ensurePoolBounds(scenarioType, preAllocatedVUs, maxVUs) {
+function ensurePoolBounds(scenarioType, preAllocatedVUs, maxVUs, errors) {
+    if (preAllocatedVUs === undefined || maxVUs === undefined) {
+        return
+    }
     if (maxVUs < preAllocatedVUs) {
-        throw new Error(
+        recordError(
+            errors,
             `Scenario "${scenarioType}" requires ${optionLabel(
                 'maxVUs'
             )} (${maxVUs}) to be greater than or equal to ${optionLabel(
@@ -184,57 +196,106 @@ function ensurePoolBounds(scenarioType, preAllocatedVUs, maxVUs) {
     }
 }
 
-function buildIterationBasedScenario(executor, scenarioType, options) {
-    const config = {
-        executor,
-        vus: requirePositiveNumber(scenarioType, options, 'vus'),
-        iterations: requirePositiveNumber(scenarioType, options, 'iterations'),
-    }
+function buildIterationBasedScenario(executor, scenarioType, options, errors) {
+    const vus = requirePositiveNumber(scenarioType, options, 'vus', errors)
+    const iterations = requirePositiveNumber(scenarioType, options, 'iterations', errors)
     const duration = optionalString(options, 'duration')
-    if (duration) {
-        config.maxDuration = duration
+    if (errors.length > 0) {
+        return undefined
     }
+    const config = { executor, vus, iterations }
+    if (duration) config.maxDuration = duration
     return config
 }
 
 const SCENARIO_BUILDERS = {
-    'shared-iterations': (scenarioType, options) =>
-        buildIterationBasedScenario('shared-iterations', scenarioType, options),
-    'per-vu-iterations': (scenarioType, options) =>
-        buildIterationBasedScenario('per-vu-iterations', scenarioType, options),
-    'constant-vus': (scenarioType, options) => ({
-        executor: 'constant-vus',
-        vus: requirePositiveNumber(scenarioType, options, 'vus'),
-        duration: requireString(scenarioType, options, 'duration'),
-    }),
-    'ramping-vus': (scenarioType, options) => ({
-        executor: 'ramping-vus',
-        startVUs: requirePositiveNumber(scenarioType, options, 'startVUs'),
-        gracefulRampDown: '30s',
-        stages: parseStages(requireString(scenarioType, options, 'stagesRaw')),
-    }),
-    'ramping-arrival-rate': (scenarioType, options) => {
-        const timeUnit = requireString(scenarioType, options, 'timeUnit')
-        const preAllocatedVUs = requirePositiveNumber(scenarioType, options, 'preAllocatedVUs')
-        const maxVUs = requirePositiveNumber(scenarioType, options, 'maxVUs')
-        ensurePoolBounds(scenarioType, preAllocatedVUs, maxVUs)
+    'shared-iterations': (scenarioType, options, errors) =>
+        buildIterationBasedScenario('shared-iterations', scenarioType, options, errors),
+    'per-vu-iterations': (scenarioType, options, errors) =>
+        buildIterationBasedScenario('per-vu-iterations', scenarioType, options, errors),
+    'constant-vus': (scenarioType, options, errors) => {
+        const vus = requirePositiveNumber(scenarioType, options, 'vus', errors)
+        const duration = requireString(scenarioType, options, 'duration', errors)
+        if (errors.length > 0) {
+            return undefined
+        }
+        return {
+            executor: 'constant-vus',
+            vus,
+            duration,
+        }
+    },
+    'ramping-vus': (scenarioType, options, errors) => {
+        const startVUs = requirePositiveNumber(scenarioType, options, 'startVUs', errors)
+        const stagesRaw = requireString(scenarioType, options, 'stagesRaw', errors)
+        let stages
+        if (stagesRaw !== undefined) {
+            try {
+                stages = parseStages(stagesRaw)
+            } catch (err) {
+                recordError(errors, err?.message || String(err))
+            }
+        }
+        if (errors.length > 0) {
+            return undefined
+        }
+        return {
+            executor: 'ramping-vus',
+            startVUs,
+            gracefulRampDown: '30s',
+            stages,
+        }
+    },
+    'ramping-arrival-rate': (scenarioType, options, errors) => {
+        const timeUnit = requireString(scenarioType, options, 'timeUnit', errors)
+        const preAllocatedVUs = requirePositiveNumber(
+            scenarioType,
+            options,
+            'preAllocatedVUs',
+            errors
+        )
+        const maxVUs = requirePositiveNumber(scenarioType, options, 'maxVUs', errors)
+        const stagesRaw = requireString(scenarioType, options, 'stagesRaw', errors)
+        let stages
+        if (stagesRaw !== undefined) {
+            try {
+                stages = parseStages(stagesRaw)
+            } catch (err) {
+                recordError(errors, err?.message || String(err))
+            }
+        }
+        ensurePoolBounds(scenarioType, preAllocatedVUs, maxVUs, errors)
+        if (errors.length > 0) {
+            return undefined
+        }
         return {
             executor: 'ramping-arrival-rate',
             timeUnit,
             preAllocatedVUs,
             maxVUs,
-            stages: parseStages(requireString(scenarioType, options, 'stagesRaw')),
+            stages,
         }
     },
-    'constant-arrival-rate': (scenarioType, options) => {
-        const preAllocatedVUs = requirePositiveNumber(scenarioType, options, 'preAllocatedVUs')
-        const maxVUs = requirePositiveNumber(scenarioType, options, 'maxVUs')
-        ensurePoolBounds(scenarioType, preAllocatedVUs, maxVUs)
+    'constant-arrival-rate': (scenarioType, options, errors) => {
+        const preAllocatedVUs = requirePositiveNumber(
+            scenarioType,
+            options,
+            'preAllocatedVUs',
+            errors
+        )
+        const maxVUs = requirePositiveNumber(scenarioType, options, 'maxVUs', errors)
+        const rate = requirePositiveNumber(scenarioType, options, 'rate', errors)
+        const timeUnit = requireString(scenarioType, options, 'timeUnit', errors)
+        const duration = requireString(scenarioType, options, 'duration', errors)
+        ensurePoolBounds(scenarioType, preAllocatedVUs, maxVUs, errors)
+        if (errors.length > 0) {
+            return undefined
+        }
         return {
             executor: 'constant-arrival-rate',
-            rate: requirePositiveNumber(scenarioType, options, 'rate'),
-            timeUnit: requireString(scenarioType, options, 'timeUnit'),
-            duration: requireString(scenarioType, options, 'duration'),
+            rate,
+            timeUnit,
+            duration,
             preAllocatedVUs,
             maxVUs,
         }
@@ -265,7 +326,20 @@ export function computeScenarioDetails(scenarioTypeInput, options = {}) {
         return { resolvedScenarioType, scenarioConfig: undefined }
     }
 
-    const scenarioConfig = builder(resolvedScenarioType, options)
+    const errors = []
+    const scenarioConfig = builder(resolvedScenarioType, options, errors)
+
+    if (errors.length > 0) {
+        const messageLines = [
+            `Encountered ${errors.length} validation error(s) for scenario "${resolvedScenarioType}":`,
+            ...errors.map((error, index) => `  ${index + 1}. ${error}`),
+        ]
+        const aggregatedError = new Error(messageLines.join('\n'))
+        aggregatedError.name = 'ScenarioValidationError'
+        aggregatedError.errors = errors
+        throw aggregatedError
+    }
+
     return { resolvedScenarioType, scenarioConfig }
 }
 
