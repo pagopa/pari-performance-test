@@ -219,6 +219,7 @@ jobs:
     parameters:
       xk6CacheKey: '$(xk6CacheKey)'
       k6Version: v1.3.0
+      dependsOn: 'ValidateParameters'
 
   - job: simplePerformanceRun
     displayName: '⚡ Simple k6 run on ${{ parameters.TARGET_ENV }}'
