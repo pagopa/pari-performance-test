@@ -228,7 +228,7 @@ jobs:
     dependsOn:
       - xk6Build
       - ValidateParameters
-    condition: eq(variables.k6_running_mode, 'simple')
+    condition: and(succeeded(), eq(variables.k6_running_mode, 'simple'))
     pool:
       name: $(selfHostedAgentPool)
     steps:
@@ -331,7 +331,7 @@ jobs:
     dependsOn:
       - xk6Build
       - ValidateParameters
-    condition: eq(variables.k6_running_mode, 'managed')
+    condition: and(succeeded(), eq(variables.k6_running_mode, 'managed'))
     pool:
       name: $(selfHostedAgentPool)
     steps:
