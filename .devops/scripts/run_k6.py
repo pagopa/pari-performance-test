@@ -18,17 +18,17 @@ def _collect_interesting_env(env):
 
 
 def _print_run_summary(script_path, cmd, env):
-    print(f"🚀 Running ./xk6 run {script_path}")
-    print("ℹ️ Environment variables forwarded to k6:")
+    print(f"🚀 Running ./xk6 run {script_path}", flush=True)
+    print("ℹ️ Environment variables forwarded to k6:", flush=True)
 
     interesting_env = _collect_interesting_env(env)
     if not interesting_env:
-        print("  <none found>")
+        print("  <none found>", flush=True)
     else:
         for key, value in interesting_env.items():
-            print(f"  {key}: {value}")
+            print(f"  {key}: {value}", flush=True)
 
-    print(f"🛠️ Command: {' '.join(cmd)}")
+    print(f"🛠️ Command: {' '.join(cmd)}", flush=True)
 
 
 def _build_command(script_path):
