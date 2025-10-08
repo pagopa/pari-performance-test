@@ -12,14 +12,6 @@ parameters:
     type: string
     default: '-'
 
-  - name: 'k6_running_mode'
-    displayName: 'k6 execution mode'
-    type: string
-    default: 'simple'
-    values:
-      - 'simple'
-      - 'managed'
-
   - name: 'K6_SCRIPT_PATH'
     displayName: 'k6 script path to execute'
     type: string
@@ -111,9 +103,6 @@ variables:
   - name: projectRoot
     value: $(System.DefaultWorkingDirectory)/$(working-dir)
 
-  - name: k6_running_mode
-    value: ${{ parameters.k6_running_mode }}
-
   - name: ComputedPipelineName
     value: ''
 
@@ -160,7 +149,6 @@ jobs:
           printf '%-24s | %s\n' 'PARAMETER' 'VALUE'
           printf '%s-+-%s\n' "$header_divider" "$value_divider"
 
-          printf '%-24s | %s\n' 'k6_running_mode' "${K6_RUNNING_MODE}"
           printf '%-24s | %s\n' 'K6_SCRIPT_PATH' "${K6_SCRIPT_PATH}"
           printf '%-24s | %s\n' 'TARGET_ENV' "${TARGET_ENV}"
           printf '%-24s | %s\n' 'PIPELINE_NAME_PREFIX' "${PIPELINE_NAME_PREFIX}"
@@ -178,7 +166,6 @@ jobs:
           printf '%-24s | %s\n' 'COMPUTED_RUN_NAME' "${COMPUTED_PIPELINE_NAME}"
         displayName: '🔍 Pipeline parameters snapshot'
         env:
-          K6_RUNNING_MODE: ${{ parameters.k6_running_mode }}
           K6_SCRIPT_PATH: ${{ parameters.K6_SCRIPT_PATH }}
           TARGET_ENV: ${{ parameters.TARGET_ENV }}
           PIPELINE_NAME_PREFIX: ${{ parameters.PIPELINE_NAME_PREFIX }}
@@ -199,7 +186,6 @@ jobs:
           - script: |
               node .devops/scripts/validate_scenario.mjs
             displayName: '✅ Validate scenario via scenarioSetup.js'
-            condition: ne(variables.k6_running_mode, 'simple')
             env:
               TARGET_ENV: ${{ parameters.TARGET_ENV }}
               K6PERF_SCENARIO_TYPE: ${{ parameters.K6PERF_SCENARIO_TYPE }}
@@ -221,117 +207,13 @@ jobs:
       k6Version: v1.3.0
       dependsOn: 'ValidateParameters'
 
-  - job: simplePerformanceRun
-    displayName: '⚡ Simple k6 run on ${{ parameters.TARGET_ENV }}'
+  - job: runK6
+    displayName: '✈️ run_k6.py execution on ${{ parameters.TARGET_ENV }}'
     timeoutInMinutes: 0
     continueOnError: true
     dependsOn:
       - xk6Build
       - ValidateParameters
-    condition: and(succeeded(), eq(variables.k6_running_mode, 'simple'))
-    pool:
-      name: $(selfHostedAgentPool)
-    steps:
-
-      - checkout: self
-
-      - task: Cache@2
-        inputs:
-          key: '$(xk6CacheKey)'
-          path: '$(Build.SourcesDirectory)'
-        displayName: Retrieve xk6 from Cache
-
-      - ${{ each k6Script in split(variables.SCRIPTS_TO_EXECUTE, ',') }}:
-          - script: |
-              set -euo pipefail
-
-              script_path="${{ k6Script }}"
-              if [[ -z "$script_path" ]]; then
-                  echo "❌ k6Script value is empty" >&2
-                  exit 1
-              fi
-
-              if [[ ! -f "$script_path" ]]; then
-                  echo "❌ Script '$script_path' not found" >&2
-                  exit 1
-              fi
-
-              if [[ ! -x ./xk6 ]]; then
-                  echo "❌ ./xk6 binary not found. Ensure the xk6 build stage completed successfully." >&2
-                  exit 1
-              fi
-
-              target_env="${TARGET_ENV:-}"
-              scenario_type="${K6PERF_SCENARIO_TYPE:-}"
-
-              if [[ -z "$target_env" ]]; then
-                  echo "❌ TARGET_ENV must be provided" >&2
-                  exit 1
-              fi
-
-              if [[ -z "$scenario_type" ]]; then
-                  echo "❌ K6PERF_SCENARIO_TYPE must be provided" >&2
-                  exit 1
-              fi
-
-              echo "▶️ Simple mode for script: $script_path"
-
-              printf 'Environment variables:\n'
-              keys=(
-                  TARGET_ENV
-                  K6PERF_SCENARIO_TYPE
-                  K6PERF_DURATION
-                  K6PERF_ITERATIONS
-                  K6PERF_VUS
-                  K6PERF_RPS
-                  K6PERF_RATE
-                  K6PERF_TIME_UNIT
-                  K6PERF_START_VUS
-                  K6PERF_PRE_ALLOCATED_VUS
-                  K6PERF_MAX_VUS
-                  K6PERF_STAGES_JSON
-              )
-              for key in "${keys[@]}"; do
-                  value="${!key-}"
-                  if [[ -n "$value" ]]; then
-                      printf '  %s=%s\n' "$key" "$value"
-                  else
-                      printf '  %s=<unset>\n' "$key"
-                  fi
-              done
-
-              if [[ -n "${K6PERF_STAGES_JSON:-}" && "${K6PERF_STAGES_JSON}" != '[]' && "${K6PERF_STAGES_JSON}" != 'null' ]]; then
-                  echo "ℹ️ K6PERF_STAGES will be consumed by the script under test."
-              fi
-
-              cmd=(./xk6 run "$script_path")
-              printf '▶️ Executing: '
-              printf '%q ' "${cmd[@]}"
-              printf '\n'
-              "${cmd[@]}"
-            displayName: '▶️ Run ${{ k6Script }} (simple mode)'
-            env:
-              TARGET_ENV: ${{ parameters.TARGET_ENV }}
-              K6PERF_SCENARIO_TYPE: ${{ parameters.K6PERF_SCENARIO_TYPE }}
-              K6PERF_DURATION: ${{ parameters.K6PERF_DURATION }}
-              K6PERF_ITERATIONS: ${{ parameters.K6PERF_ITERATIONS }}
-              K6PERF_VUS: ${{ parameters.K6PERF_VUS }}
-              K6PERF_RATE: ${{ parameters.K6PERF_RATE }}
-              K6PERF_TIME_UNIT: ${{ parameters.K6PERF_TIME_UNIT }}
-              K6PERF_RPS: ${{ parameters.K6PERF_RPS }}
-              K6PERF_START_VUS: ${{ parameters.K6PERF_START_VUS }}
-              K6PERF_PRE_ALLOCATED_VUS: ${{ parameters.K6PERF_PRE_ALLOCATED_VUS }}
-              K6PERF_MAX_VUS: ${{ parameters.K6PERF_MAX_VUS }}
-              K6PERF_STAGES_JSON: ${{ convertToJson(parameters.K6PERF_STAGES) }}
-
-  - job: managedPerformanceTests
-    displayName: '✈️ Managed k6 scripts on ${{ parameters.TARGET_ENV }}'
-    timeoutInMinutes: 0
-    continueOnError: true
-    dependsOn:
-      - xk6Build
-      - ValidateParameters
-    condition: and(succeeded(), eq(variables.k6_running_mode, 'managed'))
     pool:
       name: $(selfHostedAgentPool)
     steps:
