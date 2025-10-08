@@ -6,14 +6,10 @@ import { getMockLogin } from '../../common/api/mockIOLogin.js';
 import { saveOnboarding } from '../../common/api/onboardingClient.js';
 import { getOnboardingStatus } from '../../common/api/onboardingStatus.js';
 import {
-  toPositiveNumber,
-  toTrimmedString,
+  toTrimmedString
 } from '../../common/basicUtils.js';
 import { loadEnvConfig } from '../../common/loadEnv.js';
-import {
-  buildScenarioConfig,
-  normalizeScenarioType,
-} from '../../common/scenarioSetup.js';
+import { prepareScenario } from '../../common/scenarioSetup.js';
 
 // Load the list of 10M CFs from a CSV file
 const fiscalCodes = new SharedArray('fiscalCodes', () => {
@@ -23,48 +19,8 @@ const fiscalCodes = new SharedArray('fiscalCodes', () => {
     .filter(line => line && line !== 'CF');
 });
 
-const scenarioType = normalizeScenarioType(__ENV.K6_SCENARIO_TYPE)
-const k6Duration = toTrimmedString(__ENV.K6_DURATION, '1m')
-const k6Iterations = toPositiveNumber(__ENV.K6_ITERATIONS) || 0
-const k6Vus = toPositiveNumber(__ENV.K6_VUS) || 50
-const k6Rate = toPositiveNumber(__ENV.K6_RATE) || 100
-const k6TimeUnit = toTrimmedString(__ENV.K6_TIME_UNIT, '1s')
-const k6MaxVus = toPositiveNumber(__ENV.K6_MAX_VUS) || k6Vus
-const k6PreAllocatedVus =
-  toPositiveNumber(__ENV.K6_PRE_ALLOCATED_VUS) || Math.min(k6Vus, k6MaxVus)
-const k6StartVus = Math.max(
-  1,
-  Math.min(k6MaxVus, toPositiveNumber(__ENV.K6_START_VUS) || k6Vus)
-)
-const k6StagesRaw = __ENV.K6_STAGES_JSON ?? __ENV.K6_STAGES
-
-const scenario = buildScenarioConfig(scenarioType, {
-  duration: k6Duration,
-  iterations: k6Iterations,
-  vus: k6Vus,
-  rate: k6Rate,
-  timeUnit: k6TimeUnit,
-  preAllocatedVUs: k6PreAllocatedVus,
-  maxVUs: k6MaxVus,
-  startVUs: k6StartVus,
-  stagesRaw: k6StagesRaw,
-})
-
-const testOptions = {
-  thresholds: {
-    checks: ['rate>0.99'],
-  },
-}
-
-if (scenario) {
-  testOptions.scenarios = {
-    pdv: scenario,
-  }
-}
-
-export const options = testOptions
-
 const targetEnv = (__ENV.TARGET_ENV || 'dev').trim().toLowerCase()
+
 const envConfig = loadEnvConfig(targetEnv)
 
 const baseUrl = toTrimmedString(__ENV.APIM_URL, envConfig.apimUrl || '')
@@ -72,10 +28,27 @@ if (!baseUrl) {
   throw new Error(`Missing APIM_URL for environment: ${targetEnv}`)
 }
 
+const { scenarioConfig, logScenario } = prepareScenario({ env: __ENV })
+
+export const options = {
+  discardResponseBodies: true,
+  scenarios: {
+    onboardingStatus: scenarioConfig,
+  },
+  thresholds: {
+    http_req_duration: ['p(95)<500'],
+  },
+}
+
 export function handleSummary(data) {
   return {
-    stdout: textSummary(data, { indent: ' ', enableColors: true })
-  };
+    stdout: textSummary(data, { indent: ' ', enableColors: true }),
+    [`report-${new Date().getTime()}.html`]: htmlReport(data),
+  }
+}
+
+export function setup() {
+    logScenario()
 }
 
 const initiativeId = '68de7fc681ce9e35a476e985'
@@ -85,14 +58,13 @@ export default function () {
 
   // Get a unique fiscal code for this iteration
   // const index = startIndex + __ITER;
-  // Aggiungiamo l'indice usato alla nostra metrica custom
-  // Questo è un modo a prova di race condition per vedere cosa è successo
+  // da rivedere
   const index = startIndex + exec.scenario.iterationInTest;
   // let index = Math.trunc((startIndex / __VU) + __ITER)
   const fiscalCode = fiscalCodes[index]
   // console.log(`VU: ${__VU}, ITER: ${__ITER}, Fiscal Code: ${fiscalCode}`)
 
-    if (!fiscalCode) {
+  if (!fiscalCode) {
     console.error(`Indice ${index} fuori dai limiti. L'iterazione si ferma.`);
     return;
   }

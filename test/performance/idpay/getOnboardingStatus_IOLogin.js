@@ -46,6 +46,8 @@ export function handleSummary(data) {
 }
 
 export function setup() {
+    logScenario()
+
     const tokenList = []
     const fcList = getFCList()
     for (const fc of fcList) {
