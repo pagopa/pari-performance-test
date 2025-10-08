@@ -96,6 +96,17 @@ parameters:
     type: number
     default: 0
 
+  - ${{ if eq(parameters.TARGET_ENV, 'dev') }}:
+      - name: 'USER_EMAIL'
+        value: $(DEV_USER_EMAIL)
+      - name: 'PASSWORD_EMAIL'
+        value: $(DEV_PASSWORD_EMAIL)
+
+  - ${{ if eq(parameters.TARGET_ENV, 'uat') }}:
+      - name: 'USER_EMAIL'
+        value: $(UAT_USER_EMAIL)
+      - name: 'PASSWORD_EMAIL'
+        value: $(UAT_PASSWORD_EMAIL)
 
 variables:
 
@@ -254,6 +265,8 @@ jobs:
               K6_LOG_FORMAT: raw
               ${{ if gt(length(parameters.K6PERF_STAGES), 0) }}:
                 K6PERF_STAGES_JSON: ${{ convertToJson(parameters.K6PERF_STAGES) }}
+              USER_EMAIL: $(parameters.USER_EMAIL)
+              PASSWORD_EMAIL: $(parameters.PASSWORD_EMAIL)
             timeoutInMinutes: 0
             displayName: '🚀 Run k6 script ${{ k6Script }}'
 
