@@ -11,7 +11,7 @@ import { check } from 'k6'
 import { SharedArray } from 'k6/data'
 import { Counter } from 'k6/metrics'
 import { getMockLogin } from '../../common/api/mockIOLogin.js'
-import { getOnboardingStatus } from '../../common/api/onboardingStatus.js'
+import { getOnboardingStatus } from '../../common/api/onboardingClient.js'
 import {
     toTrimmedString
 } from '../../common/basicUtils.js'
