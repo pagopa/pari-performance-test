@@ -1,25 +1,35 @@
 import { toTrimmedString } from './basicUtils.js'
 
-export function loadEnvConfig(env) {
-    const normalizedEnv = toTrimmedString(env, 'dev').toLowerCase()
-    const resolvedPath = import.meta.resolve(`../../config/${normalizedEnv}.json`)
-    const filePath = resolvedPath.startsWith('file://')
-        ? normalizeFileUrl(resolvedPath)
-        : resolvedPath
+const CONFIG_ROOT = '../../config'
+
+export function loadEnvConfig(environmentId) {
+    const normalizedEnv = toTrimmedString(environmentId, 'dev').toLowerCase()
+    const filePath = resolveConfigFilePath(normalizedEnv)
 
     try {
-        const raw = open(filePath)
-        const parsed = JSON.parse(raw)
-        if (!parsed || typeof parsed.pdvUrl !== 'string') {
-            throw new Error(
-                `config file ${filePath} missing pdvUrl property`
-            )
-        }
-        return parsed
+        const config = parseConfigFile(filePath)
+        assertValidConfig(config, filePath)
+        return config
     } catch (err) {
         throw new Error(
             `Unable to load config for TARGET_ENV=${normalizedEnv}: ${err.message}`
         )
+    }
+}
+
+function resolveConfigFilePath(normalizedEnv) {
+    const resolvedPath = import.meta.resolve(`${CONFIG_ROOT}/${normalizedEnv}.json`)
+    return resolvedPath.startsWith('file://') ? normalizeFileUrl(resolvedPath) : resolvedPath
+}
+
+function parseConfigFile(filePath) {
+    const rawContents = open(filePath)
+    return JSON.parse(rawContents)
+}
+
+function assertValidConfig(config, filePath) {
+    if (!config || typeof config.pdvUrl !== 'string') {
+        throw new Error(`config file ${filePath} missing pdvUrl property`)
     }
 }
 

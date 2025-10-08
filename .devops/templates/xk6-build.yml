@@ -7,11 +7,16 @@ parameters:
     - name: 'xk6Extensions'
       type: string
       default: '--with github.com/szkiba/xk6-dotenv@v0.2.0'
+    - name: 'dependsOn'
+      type: string
+      default: ''
 
 jobs:
     - job: xk6Build
       displayName: 📦 Building xk6
       timeoutInMinutes: 0
+      ${{ if ne(parameters.dependsOn, '') }}:
+        dependsOn: ${{ parameters.dependsOn }}
       steps:
           - task: Cache@2
             inputs:
