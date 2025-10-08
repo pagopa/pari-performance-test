@@ -38,7 +38,6 @@ def _build_command(script_path):
 def main() -> int:
     parser = argparse.ArgumentParser(description="Run a k6 script with pipeline configuration")
     parser.add_argument("--script", required=True, help="Path to the k6 script to execute")
-    parser.add_argument("--dry-run", action="store_true", help="Skip executing xk6")
     args = parser.parse_args()
 
     script_path = pathlib.Path(args.script.strip())
@@ -50,10 +49,6 @@ def main() -> int:
     cmd = _build_command(script_path)
 
     _print_run_summary(script_path, cmd, env)
-
-    if args.dry_run:
-        print("✅ Dry run successful; skipping xk6 execution.")
-        return 0
 
     completed = subprocess.run(cmd, env=env)
     return completed.returncode
