@@ -16,6 +16,7 @@ import {
 import { loadEnvConfig } from '../../common/loadEnv.js'
 import { prepareScenario } from '../../common/scenarioSetup.js'
 import { abort, getFCList } from '../../common/utils.js'
+import { getTestLogin } from '../../common/api/ioTestLogin.js'
 
 const targetEnv = (__ENV.TARGET_ENV || 'dev').trim().toLowerCase()
 
