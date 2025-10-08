@@ -2,8 +2,8 @@
 //   Default CLI-driven scenario
 //     TARGET_ENV=uat k6 run --vus 50 --duration 1m ./test/pdv/pdvPerformance.js
 //   Custom scenario via env
-//     TARGET_ENV=uat TEST_TEST_TYPE=constant-arrival-rate TEST_RATE=300 TEST_TIME_UNIT=500ms \
-//     TEST_VUS=200 TEST_PRE_ALLOCATED_VUS=150 TEST_MAX_VUS=300 k6 run ./test/pdv/pdvPerformance.js
+//     TARGET_ENV=uat K6PERF_K6PERF_TYPE=constant-arrival-rate K6PERF_RATE=300 K6PERF_TIME_UNIT=500ms \
+//     K6PERF_VUS=200 K6PERF_PRE_ALLOCATED_VUS=150 K6PERF_MAX_VUS=300 k6 run ./test/pdv/pdvPerformance.js
 
 import { textSummary } from 'https://jslib.k6.io/k6-summary/0.0.2/index.js'
 import { htmlReport } from 'https://raw.githubusercontent.com/benc-uk/k6-reporter/main/dist/bundle.js'
@@ -13,14 +13,10 @@ import { Counter } from 'k6/metrics'
 import { getMockLogin } from '../../common/api/mockIOLogin.js'
 import { getOnboardingStatus } from '../../common/api/onboardingStatus.js'
 import {
-    toPositiveNumber,
     toTrimmedString
 } from '../../common/basicUtils.js'
 import { loadEnvConfig } from '../../common/loadEnv.js'
-import {
-    buildScenarioConfig,
-    normalizeScenarioType,
-} from '../../common/scenarioSetup.js'
+import { prepareScenario } from '../../common/scenarioSetup.js'
 
 const targetEnv = (__ENV.TARGET_ENV || 'dev').trim().toLowerCase()
 
@@ -31,36 +27,12 @@ if (!baseUrl) {
     throw new Error(`Missing APIM_URL for environment: ${targetEnv}`)
 }
 
-const scenarioType = normalizeScenarioType(__ENV.TEST_SCENARIO_TYPE)
-const k6Duration = toTrimmedString(__ENV.TEST_DURATION, '1m')
-const k6Iterations = toPositiveNumber(__ENV.TEST_ITERATIONS) || 0
-const k6Vus = toPositiveNumber(__ENV.TEST_VUS) || 50
-const k6Rate = toPositiveNumber(__ENV.TEST_RATE) || 100
-const k6TimeUnit = toTrimmedString(__ENV.TEST_TIME_UNIT, '1s')
-const k6MaxVus = toPositiveNumber(__ENV.TEST_MAX_VUS) || k6Vus
-const k6PreAllocatedVus =
-    toPositiveNumber(__ENV.TEST_PRE_ALLOCATED_VUS) || Math.min(k6Vus, k6MaxVus)
-const k6StartVus = Math.max(
-    1,
-    Math.min(k6MaxVus, toPositiveNumber(__ENV.TEST_START_VUS) || k6Vus)
-)
-const k6StagesRaw = __ENV.TEST_STAGES_JSON ?? __ENV.TEST_STAGES
-
-const scenario = buildScenarioConfig(scenarioType, {
-    duration: k6Duration,
-    iterations: k6Iterations,
-    vus: k6Vus,
-    rate: k6Rate,
-    timeUnit: k6TimeUnit,
-    preAllocatedVUs: k6PreAllocatedVus,
-    maxVUs: k6MaxVus,
-    startVUs: k6StartVus,
-    stagesRaw: k6StagesRaw,
-});
+const { scenarioConfig, logScenario } = prepareScenario({ env: __ENV })
 
 export const options = {
+    discardResponseBodies: true,
     scenarios: {
-        onboardingStatus: scenario
+        onboardingStatus: scenarioConfig,
     },
     thresholds: {
         http_req_duration: ['p(95)<500'],
@@ -90,6 +62,10 @@ const status404Counter = new Counter('user_not_onboarded');
 const mockLoginCounter = new Counter('mock_login_succeeded');
 
 const tokenCache = new Map();
+
+export function setup() {
+    logScenario()
+}
 
 export default function () {
     const fc = fiscalCodes[Math.floor(Math.random() * fiscalCodes.length)];
@@ -139,4 +115,4 @@ export default function () {
     })
 }
 
-// TEST_SCENARIO_TYPE=constant-arrival-rate TEST_TIME_UNIT=1s TARGET_ENV=uat TEST_MAX_VUS=20 TEST_DURATION=10s TEST_RATE=50 TEST_PRE_ALLOCATED_VUS=5 ./xk6 run test/performance/idpay/getOnboardingStatus_mockLogin.js
+// K6PERF_SCENARIO_TYPE=constant-arrival-rate K6PERF_TIME_UNIT=1s TARGET_ENV=uat K6PERF_MAX_VUS=20 K6PERF_DURATION=10s K6PERF_RATE=50 K6PERF_PRE_ALLOCATED_VUS=5 ./xk6 run test/performance/idpay/getOnboardingStatus_mockLogin.js
