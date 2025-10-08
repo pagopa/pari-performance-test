@@ -33,7 +33,7 @@ jobs:
           if [[ "$prefix_name" == "-" ]]; then
             prefix_name=""
           fi
-          scenario="${K6_SCENARIO_TYPE:-}"
+          scenario="${K6PERF_SCENARIO_TYPE:-}"
           environment="${TARGET_ENV:-}"
           script_path="${K6_SCRIPT_PATH:-}"
 
@@ -115,5 +115,5 @@ jobs:
         env:
           PIPELINE_NAME_PREFIX: ${{ parameters.pipelineNamePrefix }}
           K6_SCRIPT_PATH: ${{ parameters.k6ScriptPath }}
-          K6_SCENARIO_TYPE: ${{ parameters.k6ScenarioType }}
+          K6PERF_SCENARIO_TYPE: ${{ parameters.k6ScenarioType }}
           TARGET_ENV: ${{ parameters.targetEnv }}

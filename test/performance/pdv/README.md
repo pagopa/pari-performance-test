@@ -15,18 +15,16 @@ random payload to measure throughput and behaviour under stress.
 
 - `TARGET_ENV`: selects the `config/<env>.json` file used to resolve `pdvUrl`.
 - `PDV_URL`: optional override for the URL loaded from the config file.
-- `K6_SCENARIO_TYPE`: chooses the executor (`manual`, `shared-iterations`,
+- `K6PERF_SCENARIO_TYPE`: chooses the executor (`manual`, `shared-iterations`,
   `per-vu-iterations`, `constant-vus`, `ramping-vus`, `constant-arrival-rate`,
   `ramping-arrival-rate`).
-- `K6_VUS`, `K6_DURATION`, `K6_ITERATIONS`, `K6_RPS`: drive the CLI flags
-  `--vus`, `--duration`, `--iterations`, `--rps`.
-- `K6_RATE`, `K6_TIME_UNIT`: parameters for arrival-based executors
+- `K6PERF_VUS`, `K6PERF_DURATION`, `K6PERF_ITERATIONS`, `K6PERF_RPS`: governano gli scenari VU/iterazioni e vengono letti direttamente dallo script k6.
+- `K6PERF_RATE`, `K6PERF_TIME_UNIT`: parameters for arrival-based executors
   (`rate`, `timeUnit`).
-- `K6_PRE_ALLOCATED_VUS`, `K6_MAX_VUS`, `K6_START_VUS`: tune VU allocation for
+- `K6PERF_PRE_ALLOCATED_VUS`, `K6PERF_MAX_VUS`, `K6PERF_START_VUS`: tune VU allocation for
   ramping and arrival-rate scenarios.
-- `K6_STAGES`: stage definition for ramping executors (JSON array, for example
-  `[{"duration":"30s","target":100}]`). When omitted, a single stage is
-  generated using `K6_DURATION` and `K6_VUS`/`K6_RATE`.
+- `K6PERF_STAGES`: stage definition for ramping executors (JSON array, for example
+  `[{"duration":"30s","target":100}]`). When omitted, ramping-arrival-rate scenarios require explicit values; altri executor ignorano la variabile.
 
 ## How it works
 
@@ -35,8 +33,7 @@ random payload to measure throughput and behaviour under stress.
 3. Execute the script with `k6 run` or trigger the pipeline.
 
 The script resolves `pdvUrl`, builds the requested scenario, and executes it. When
-`K6_SCENARIO_TYPE=manual`, the script does not define scenarios and leaves control
-with the CLI flags.
+`K6PERF_SCENARIO_TYPE=manual`, the script does not define scenarios; configure k6 via CLI flags or rely on the built-in defaults.
 
 ## Usage examples
 
@@ -44,7 +41,7 @@ with the CLI flags.
 
 ```bash
 TARGET_ENV=uat \
-K6_SCENARIO_TYPE=manual \
+K6PERF_SCENARIO_TYPE=manual \
 k6 run --vus 5 --duration 30s test/pdv/pdvPerformance.js
 ```
 
@@ -54,9 +51,13 @@ Uses only CLI flags for VUs and duration; the script does not inject a scenario.
 
 ```bash
 TARGET_ENV=uat \
-K6_SCENARIO_TYPE=constant-arrival-rate \
-K6_VUS=50 K6_RATE=150 K6_TIME_UNIT=1s \
-k6 run --vus 50 --duration 2m test/pdv/pdvPerformance.js
+K6PERF_SCENARIO_TYPE=constant-arrival-rate \
+K6PERF_RATE=150 \
+K6PERF_TIME_UNIT=1s \
+K6PERF_DURATION=2m \
+K6PERF_PRE_ALLOCATED_VUS=80 \
+K6PERF_MAX_VUS=160 \
+k6 run test/pdv/pdvPerformance.js
 ```
 
 Creates a constant arrival rate of 150 iterations per second with automatic VU
@@ -66,10 +67,10 @@ allocation.
 
 ```bash
 TARGET_ENV=uat \
-K6_SCENARIO_TYPE=ramping-vus \
-K6_VUS=200 K6_START_VUS=20 K6_MAX_VUS=250 \
-K6_STAGES='[{"duration":"1m","target":100},{"duration":"2m","target":200},{"duration":"1m","target":50}]' \
-k6 run --vus 20 --duration 5m test/pdv/pdvPerformance.js
+K6PERF_SCENARIO_TYPE=ramping-vus \
+K6PERF_START_VUS=20 \
+K6PERF_STAGES='[{"duration":"1m","target":100},{"duration":"2m","target":200},{"duration":"1m","target":50}]' \
+k6 run test/pdv/pdvPerformance.js
 ```
 
 Gradually increases the active VUs following the provided stage configuration.
@@ -78,21 +79,20 @@ Gradually increases the active VUs following the provided stage configuration.
 
 ```bash
 TARGET_ENV=uat \
-K6_SCENARIO_TYPE=ramping-arrival-rate \
-K6_RATE=200 K6_TIME_UNIT=1s \
-K6_PRE_ALLOCATED_VUS=150 K6_MAX_VUS=300 \
-k6 run --vus 150 --duration 3m test/pdv/pdvPerformance.js
+K6PERF_SCENARIO_TYPE=ramping-arrival-rate \
+K6PERF_RATE=200 K6PERF_TIME_UNIT=1s \
+K6PERF_PRE_ALLOCATED_VUS=150 \
+K6PERF_MAX_VUS=300 \
+K6PERF_STAGES='[{"duration":"1m","target":100},{"duration":"1m","target":200},{"duration":"1m","target":300}]' \
+k6 run test/pdv/pdvPerformance.js
 ```
 
-Because `K6_STAGES` is not defined, the script creates a single stage using the
-CLI duration (`--duration`) and `K6_RATE` as the target.
+Stages definiscono il numero di iterazioni target per ciascun intervallo; l'helper traduce il JSON in configurazione k6 senza usare flag CLI.
 
 ## Azure DevOps pipeline
 
 The `.devops/performance_generic.yaml` pipeline exposes matching parameters
-(`K6_*`) and forwards them as CLI flags and environment variables. Choose the
-scenario, adjust VUs/duration, and the pipeline will execute the aligned
-configuration.
+(`K6PERF_*`) e li esporta come variabili d'ambiente; gli script k6 applicano la configurazione senza flag CLI aggiuntivi.
 
 ## Output and thresholds
 
@@ -104,7 +104,7 @@ enforces `checks > 0.99`. When run in the pipeline, artifacts are published to t
 
 - **`Missing PDV_URL`**: make sure `config/<env>.json` contains a valid `pdvUrl`,
   or export `PDV_URL` manually.
-- **`K6_STAGES` parsing error**: provide a JSON array with `duration` and
+- **`K6PERF_STAGES` parsing error**: provide a JSON array with `duration` and
   `target`. Double-check quoting/escaping in your shell.
-- **Insufficient throughput**: bump `K6_VUS`/`K6_RATE` and confirm the target
+- **Insufficient throughput**: bump `K6PERF_VUS`/`K6PERF_RATE` and confirm the target
   environment can sustain the increased load.
