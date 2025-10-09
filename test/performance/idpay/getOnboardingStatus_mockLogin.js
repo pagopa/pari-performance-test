@@ -79,6 +79,11 @@ export default function () {
         // Se non è in cache, genera un nuovo token
         const res = getMockLogin(fc);
 
+        check(res, {
+            'mock login status 200': (r) => r.status === 200,
+            'mock login body is not empty': (r) => r.body && r.body.length > 0
+        });
+
         // Controlla se la generazione del token ha avuto successo
         if (res.status !== 200 || !res.body) {
             console.error(`Failed to get token for fiscal code ${fc}. Status: ${res.status}`);
