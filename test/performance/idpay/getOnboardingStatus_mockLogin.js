@@ -86,7 +86,6 @@ export default function () {
 
         // Controlla se la generazione del token ha avuto successo
         if (res.status !== 200 || !res.body) {
-            console.error(`Failed to get token for fiscal code ${fc}. Status: ${res.status}`);
             // Interrompi questa iterazione se non riusciamo a ottenere il token
             return;
         }
