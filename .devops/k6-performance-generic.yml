@@ -97,16 +97,16 @@ parameters:
     default: 0
 
   - ${{ if eq(parameters.TARGET_ENV, 'dev') }}:
-      - name: 'USER_EMAIL'
-        value: $(DEV_USER_EMAIL)
-      - name: 'PASSWORD_EMAIL'
-        value: $(DEV_PASSWORD_EMAIL)
+      - name: 'KEYCLOAK_USERNAME'
+        value: $(DEV_KEYCLOAK_USERNAME)
+      - name: 'KEYCLOAK_PASSWORD'
+        value: $(DEV_KEYCLOAK_PASSWORD)
 
   - ${{ if eq(parameters.TARGET_ENV, 'uat') }}:
-      - name: 'USER_EMAIL'
-        value: $(UAT_USER_EMAIL)
-      - name: 'PASSWORD_EMAIL'
-        value: $(UAT_PASSWORD_EMAIL)
+      - name: 'KEYCLOAK_USERNAME'
+        value: $(UAT_KEYCLOAK_USERNAME)
+      - name: 'KEYCLOAK_PASSWORD'
+        value: $(UAT_KEYCLOAK_PASSWORD)
 
 variables:
 
@@ -194,8 +194,8 @@ jobs:
           K6PERF_ITERATIONS: ${{ parameters.K6PERF_ITERATIONS }}
           K6PERF_STAGES_JSON: ${{ convertToJson(parameters.K6PERF_STAGES) }}
           COMPUTED_PIPELINE_NAME: $(ComputedPipelineName)
-          USER_EMAIL: $(parameters.USER_EMAIL)
-          PASSWORD_EMAIL: $(parameters.PASSWORD_EMAIL)
+          KEYCLOAK_USERNAME: $(parameters.KEYCLOAK_USERNAME)
+          KEYCLOAK_PASSWORD: $(parameters.KEYCLOAK_PASSWORD)
 
       - ${{ each k6Script in split(variables.SCRIPTS_TO_EXECUTE, ',') }}:
           - script: |
@@ -265,8 +265,8 @@ jobs:
               K6_LOG_FORMAT: raw
               ${{ if gt(length(parameters.K6PERF_STAGES), 0) }}:
                 K6PERF_STAGES_JSON: ${{ convertToJson(parameters.K6PERF_STAGES) }}
-              USER_EMAIL: $(parameters.USER_EMAIL)
-              PASSWORD_EMAIL: $(parameters.PASSWORD_EMAIL)
+              KEYCLOAK_USERNAME: $(parameters.KEYCLOAK_USERNAME)
+              KEYCLOAK_PASSWORD: $(parameters.KEYCLOAK_PASSWORD)
             timeoutInMinutes: 0
             displayName: '🚀 Run k6 script ${{ k6Script }}'
 

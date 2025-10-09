@@ -65,8 +65,8 @@ export function setup() {
 /** Test data */
 const initiativeId = '68dd003ccce8c534d1da22bc';
 const startIndex = 0;
-const email = __ENV.USER_EMAIL;
-const password = __ENV.USER_PASSWORD;
+const email = __ENV.KEYCLOAK_USERNAME;
+const password = __ENV.KEYCLOAK_PASSWORD;
 
 /**
  * Default test function: End-to-End Payment Flow
