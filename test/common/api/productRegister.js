@@ -7,7 +7,7 @@ export const PRODUCT_API_NAMES = {
 }
 
 const REGISTERED_ENVS = [DEV, UAT]
-const innerBaseUrl = `${getBaseUrl(REGISTERED_ENVS, 'eie')}`
+const innerBaseUrl =  getBaseUrl(REGISTERED_ENVS).baseUrl
 const API_PREFIX = '/register'
 
 export function getProducts(params, accessToken) {
