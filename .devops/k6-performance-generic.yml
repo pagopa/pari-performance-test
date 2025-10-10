@@ -96,18 +96,6 @@ parameters:
     type: number
     default: 0
 
-  - ${{ if eq(parameters.TARGET_ENV, 'dev') }}:
-      - name: 'KEYCLOAK_USERNAME'
-        value: $(DEV_KEYCLOAK_USERNAME)
-      - name: 'KEYCLOAK_PASSWORD'
-        value: $(DEV_KEYCLOAK_PASSWORD)
-
-  - ${{ if eq(parameters.TARGET_ENV, 'uat') }}:
-      - name: 'KEYCLOAK_USERNAME'
-        value: $(UAT_KEYCLOAK_USERNAME)
-      - name: 'KEYCLOAK_PASSWORD'
-        value: $(UAT_KEYCLOAK_PASSWORD)
-
 variables:
 
   - name: working-dir
@@ -132,6 +120,18 @@ variables:
   - ${{ else }}:
       - name: selfHostedAgentPool
         value: cstar-prod-perf-linux
+
+  - ${{ if eq(parameters.TARGET_ENV, 'dev') }}:
+      - name: KEYCLOAK_USERNAME
+        value: $(DEV_KEYCLOAK_USERNAME)
+      - name: KEYCLOAK_PASSWORD
+        value: $(DEV_KEYCLOAK_PASSWORD)
+
+  - ${{ elseif eq(parameters.TARGET_ENV, 'uat') }}:
+      - name: KEYCLOAK_USERNAME
+        value: $(UAT_KEYCLOAK_USERNAME)
+      - name: KEYCLOAK_PASSWORD
+        value: $(UAT_KEYCLOAK_PASSWORD)
 
   - name: xk6CacheKey
     value: '"xk6" | "1.3.0" | dotenv'
@@ -194,8 +194,8 @@ jobs:
           K6PERF_ITERATIONS: ${{ parameters.K6PERF_ITERATIONS }}
           K6PERF_STAGES_JSON: ${{ convertToJson(parameters.K6PERF_STAGES) }}
           COMPUTED_PIPELINE_NAME: $(ComputedPipelineName)
-          KEYCLOAK_USERNAME: $(parameters.KEYCLOAK_USERNAME)
-          KEYCLOAK_PASSWORD: $(parameters.KEYCLOAK_PASSWORD)
+          KEYCLOAK_USERNAME: $(KEYCLOAK_USERNAME)
+          KEYCLOAK_PASSWORD: $(KEYCLOAK_PASSWORD)
 
       - ${{ each k6Script in split(variables.SCRIPTS_TO_EXECUTE, ',') }}:
           - script: |
@@ -265,8 +265,8 @@ jobs:
               K6_LOG_FORMAT: raw
               ${{ if gt(length(parameters.K6PERF_STAGES), 0) }}:
                 K6PERF_STAGES_JSON: ${{ convertToJson(parameters.K6PERF_STAGES) }}
-              KEYCLOAK_USERNAME: $(parameters.KEYCLOAK_USERNAME)
-              KEYCLOAK_PASSWORD: $(parameters.KEYCLOAK_PASSWORD)
+              KEYCLOAK_USERNAME: $(KEYCLOAK_USERNAME)
+              KEYCLOAK_PASSWORD: $(KEYCLOAK_PASSWORD)
             timeoutInMinutes: 0
             displayName: '🚀 Run k6 script ${{ k6Script }}'
 
