@@ -113,12 +113,20 @@ export function statIsDirectory(statResult) {
     return false
 }
 
-export function ensureReportsDirExists(path, logger) {
+function isMissingPathError(error) {
+    if (!error) {
+        return false
+    }
+
+    const message = String(error).toLowerCase()
+    return message.includes('not found') || message.includes('no such file')
+}
+
+export function ensureReportsDirExists(path) {
     if (!path) {
         return false
     }
 
-    const logFn = typeof logger === 'function' ? logger : console.log
     const statFn = typeof fs.stat === 'function' ? fs.stat : undefined
 
     if (statFn) {
@@ -127,29 +135,14 @@ export function ensureReportsDirExists(path, logger) {
             if (statIsDirectory(stats)) {
                 return true
             }
-        } catch (_) {
-            // Directory missing, attempt creation
+            return false
+        } catch (error) {
+            if (isMissingPathError(error)) {
+                return false
+            }
+            return undefined
         }
     }
 
-    const mkdirFn = typeof fs.mkdir === 'function' ? fs.mkdir : undefined
-
-    if (!mkdirFn) {
-        logFn(
-            `⚠️ Impossibile creare la cartella reports (${path}): funzione mkdir non disponibile`
-        )
-        return false
-    }
-
-    try {
-        mkdirFn(path, { recursive: true })
-        logFn(`📁 Creata cartella report: ${path}`)
-        return true
-    } catch (error) {
-        const errorMessage = error ? String(error) : 'errore sconosciuto'
-        logFn(
-            `⚠️ Impossibile creare la cartella "${path}": ${errorMessage}`
-        )
-        return false
-    }
+    return undefined
 }
