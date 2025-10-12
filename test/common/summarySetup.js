@@ -112,8 +112,10 @@ function createSummaryHandler({ context }) {
             `• 🗂️ Report path: ${context.outputDir}`,
         ]
 
+        logger('')
         logger('📊 Performance Snapshot')
         lines.forEach((line) => logger(line))
+        logger('')
 
         const timestamp = formatTimestamp(new Date())
         const basePath = `${context.outputDir}/${context.application}_${context.testName}-${timestamp}`
@@ -134,7 +136,7 @@ function createSummaryHandler({ context }) {
     }
 }
 
-// Raccoglie valida input e fornisce handleSummary/logSummary pronti all'uso da parte dei test.
+// Raccoglie valida input e fornisce un handleSummary pronto all'uso da parte dei test.
 // Pensato per essere importato dagli script k6 mantenendo minima configurazione esplicita.
 export function setupHandlerSummary({
     application,
@@ -146,11 +148,6 @@ export function setupHandlerSummary({
         testName,
         reportsDir,
     })
-    const logSummary = () =>
-        console.log(
-            `📝 Summary setup ready → application=${context.application}, test=${context.testName}, folder=${context.outputDir}`
-        )
-
     const handleSummary = createSummaryHandler({
         context,
     })
@@ -160,6 +157,5 @@ export function setupHandlerSummary({
         testName: context.testName,
         outputDir: context.outputDir,
         handleSummary,
-        logSummary,
     }
 }
