@@ -1,10 +1,14 @@
 import * as fs from 'k6/experimental/fs'
 import { toTrimmedString } from './basicUtils.js'
 
+// Rimuove l'eventuale slash finale per evitare duplicazioni nei percorsi.
+// Restituisce subito il valore originale quando è falsy così i call-site restano semplici.
 export function trimTrailingSlash(value) {
     return value ? value.replace(/\/$/, '') : value
 }
 
+// Converte il percorso in formato POSIX eliminando slash e backslash duplicati.
+// Serve a mantenere coerenti i confronti di path indipendentemente dal sistema operativo.
 export function normalizeAbsolutePath(value) {
     if (!value) {
         return ''
@@ -18,6 +22,8 @@ export function normalizeAbsolutePath(value) {
     return normalized
 }
 
+// Identifica se un path è già assoluto gestendo sia Unix che Windows.
+// Riduce branching a valle quando dobbiamo decidere se concatenare la base directory.
 export function isAbsolutePath(value) {
     if (!value) {
         return false
@@ -26,6 +32,8 @@ export function isAbsolutePath(value) {
     return value.startsWith('/') || /^[A-Za-z]:[\\/]/.test(value)
 }
 
+// Unisce due segmenti di path eliminando slash superflui alle estremità.
+// Garantisce che il risultato abbia un solo separatore tra base e segmento.
 export function joinPaths(base, segment) {
     const left = base ? base.replace(/[\\/]+$/, '') : ''
     const right = segment ? segment.replace(/^[\\/]+/, '') : ''

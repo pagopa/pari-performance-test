@@ -19,8 +19,8 @@ const testName = 'pdvPerformance'
 
 const envConfig = loadEnvConfig(targetEnv)
 const pdvUrl = toTrimmedString(__ENV.PDV_URL, envConfig.pdvUrl || '')
-// Prepara logging finale e reportistica per il test corrente condividendo la stessa cartella output.
-// Restituisce handleSummary/logSummary che k6 userà al termine della run per generare i file.
+// Prepara reportistica finale per il test corrente condividendo la stessa cartella output.
+// Restituisce handleSummary che k6 userà al termine della run per generare i file.
 const summarySetup = setupHandlerSummary({
     application,
     testName,
@@ -50,7 +50,6 @@ export const options = testOptions
 
 export function setup() {
     logScenario()
-    summarySetup.logSummary()
 }
 
 export const handleSummary = summarySetup.handleSummary
