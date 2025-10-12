@@ -10,7 +10,7 @@ import { randomString } from 'https://jslib.k6.io/k6-utils/1.6.0/index.js'
 import { loadEnvConfig } from '../../common/loadEnv.js'
 import { toTrimmedString } from '../../common/basicUtils.js'
 import { prepareScenario } from '../../common/scenarioSetup.js'
-import { prepareSummary } from '../../common/summarySetup.js'
+import { setupHandlerSummary } from '../../common/summarySetup.js'
 
 const targetEnv = toTrimmedString(__ENV.TARGET_ENV, 'dev').toLowerCase()
 const TOKEN_PII_ALPHABET = 'abcdefghijklmnopqrstuvwxyz01234567890'
@@ -19,7 +19,7 @@ const testName = 'pdvPerformance'
 
 const envConfig = loadEnvConfig(targetEnv)
 const pdvUrl = toTrimmedString(__ENV.PDV_URL, envConfig.pdvUrl || '')
-const summarySetup = prepareSummary({
+const summarySetup = setupHandlerSummary({
     application,
     testName,
     reportsDir: 'reports',

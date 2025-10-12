@@ -14,11 +14,7 @@ import {
 import { ensureReportsDirExists, resolveReportsDirectory } from './directoryUtils.js'
 import { CONFIG } from './dynamicScenarios/envVars.js'
 
-function createSummaryLogger(logger) {
-    return typeof logger === 'function' ? logger : console.log
-}
-
-function validateSummaryConfig({ application, testName, reportsDir, env, config }) {
+function validateSummaryConfig({ application, testName, reportsDir }) {
     const resolvedApplication = toTrimmedString(application)
     const resolvedTestName = toTrimmedString(testName)
 
@@ -30,17 +26,15 @@ function validateSummaryConfig({ application, testName, reportsDir, env, config 
         throw new Error('Missing summary test name')
     }
 
-    const outputDir = resolveReportsDirectory({
-        providedDir: reportsDir,
-        env,
-    })
+    const env = typeof __ENV !== 'undefined' ? __ENV : undefined
+    const outputDir = resolveReportsDirectory({ providedDir: reportsDir, env })
 
     if (env) {
         env.RESULTS_DIR = outputDir
     }
 
-    if (config && config.SUMMARY) {
-        config.SUMMARY.RESULTS_DIR = outputDir
+    if (CONFIG && CONFIG.SUMMARY) {
+        CONFIG.SUMMARY.RESULTS_DIR = outputDir
     }
 
     return {
@@ -50,8 +44,10 @@ function validateSummaryConfig({ application, testName, reportsDir, env, config 
     }
 }
 
-function setupSummaryHandler({ context, logger, config }) {
+function createSummaryHandler({ context }) {
     return (data) => {
+        const logger = console.log
+
         if (!data?.metrics) {
             logger('⚠️ Nessun dato di summary disponibile, nessun report generato.')
             return {
@@ -74,11 +70,11 @@ function setupSummaryHandler({ context, logger, config }) {
         const vus = metrics.vus?.values || {}
 
         const scenarioTypes = (() => {
-            if (!config?.SCENARIOS?.TYPES) {
+            if (!CONFIG?.SCENARIOS?.TYPES) {
                 return 'n/a'
             }
             const types = []
-                .concat(config.SCENARIOS.TYPES)
+                .concat(CONFIG.SCENARIOS.TYPES)
                 .filter(Boolean)
             return types.length > 0 ? types.join(', ') : 'n/a'
         })()
@@ -96,7 +92,7 @@ function setupSummaryHandler({ context, logger, config }) {
 
         const lines = [
             `• 🆔 Test: ${context.application} / ${context.testName}`,
-            `• 🌍 Target env: ${config?.TARGET_ENV || 'n/a'}`,
+            `• 🌍 Target env: ${CONFIG?.TARGET_ENV || 'n/a'}`,
             `• 🎯 Scenario: ${scenarioTypes}`,
             `• ⏱️ Durata test: ${formatMs(data.state?.testRunDurationMs)}`,
             `• 📦 Richieste: ${formatCount(totalRequests)} totali (${formatCount(
@@ -134,38 +130,23 @@ function setupSummaryHandler({ context, logger, config }) {
     }
 }
 
-export function prepareSummary({
+export function setupHandlerSummary({
     application,
     testName,
     reportsDir,
-    logger = console.log,
-    logOnPrepare = false,
 } = {}) {
-    const env = typeof __ENV !== 'undefined' ? __ENV : undefined
-    const config = CONFIG
     const context = validateSummaryConfig({
         application,
         testName,
         reportsDir,
-        env,
-        config,
     })
-    const summaryLogger = createSummaryLogger(logger)
-
-    const logSummary = () => {
-        summaryLogger(
+    const logSummary = () =>
+        console.log(
             `📝 Summary setup ready → application=${context.application}, test=${context.testName}, folder=${context.outputDir}`
         )
-    }
 
-    if (logOnPrepare) {
-        logSummary()
-    }
-
-    const handleSummary = setupSummaryHandler({
+    const handleSummary = createSummaryHandler({
         context,
-        logger: summaryLogger,
-        config,
     })
 
     return {
