@@ -10,14 +10,20 @@ import { randomString } from 'https://jslib.k6.io/k6-utils/1.6.0/index.js'
 import { loadEnvConfig } from '../../common/loadEnv.js'
 import { toTrimmedString } from '../../common/basicUtils.js'
 import { prepareScenario } from '../../common/scenarioSetup.js'
-import { textSummary } from 'https://jslib.k6.io/k6-summary/0.0.3/index.js'
-import { htmlReport } from 'https://raw.githubusercontent.com/benc-uk/k6-reporter/main/dist/bundle.js'
+import { prepareSummary } from '../../common/summarySetup.js'
 
 const targetEnv = toTrimmedString(__ENV.TARGET_ENV, 'dev').toLowerCase()
 const TOKEN_PII_ALPHABET = 'abcdefghijklmnopqrstuvwxyz01234567890'
+const application = 'pdv'
+const testName = 'pdvPerformance'
 
 const envConfig = loadEnvConfig(targetEnv)
 const pdvUrl = toTrimmedString(__ENV.PDV_URL, envConfig.pdvUrl || '')
+const summarySetup = prepareSummary({
+    application,
+    testName,
+    reportsDir: 'reports',
+})
 
 if (!pdvUrl) {
     throw new Error(`Missing PDV_URL for environment: ${targetEnv}`)
@@ -42,65 +48,10 @@ export const options = testOptions
 
 export function setup() {
     logScenario()
+    summarySetup.logSummary()
 }
 
-export function handleSummary(data) {
-    if (!data || !data.metrics) {
-        return {
-            stdout: 'No summary data generated.\n',
-        }
-    }
-
-    const timestamp = Date.now()
-    const summaryOptions = {
-        indent: ' ',
-        enableColors: true,
-        summaryTimeUnit: 'ms',
-        summaryTrendStats: ['avg', 'min', 'max', 'p(90)', 'p(95)', 'p(99)'],
-    }
-
-    const httpReqDurationValues =
-        data.metrics.http_req_duration &&
-        data.metrics.http_req_duration.values
-            ? data.metrics.http_req_duration.values
-            : {}
-    const checkValues =
-        data.metrics.checks && data.metrics.checks.values
-            ? data.metrics.checks.values
-            : {}
-
-    const httpReqAvg =
-        httpReqDurationValues.avg !== undefined
-            ? `${httpReqDurationValues.avg} ms`
-            : 'n/a'
-    const httpReqP95 =
-        httpReqDurationValues['p(95)'] !== undefined
-            ? `${httpReqDurationValues['p(95)']} ms`
-            : 'n/a'
-    const httpReqP99 =
-        httpReqDurationValues['p(99)'] !== undefined
-            ? `${httpReqDurationValues['p(99)']} ms`
-            : 'n/a'
-    const checksPassed =
-        checkValues.passes !== undefined ? checkValues.passes : 'n/a'
-    const checksFailed =
-        checkValues.fails !== undefined ? checkValues.fails : 'n/a'
-
-    const quickStats = [
-        `http_req_duration avg: ${httpReqAvg}`,
-        `http_req_duration p(95): ${httpReqP95}`,
-        `http_req_duration p(99): ${httpReqP99}`,
-        `checks passed: ${checksPassed}`,
-        `checks failed: ${checksFailed}`,
-    ].join('\n')
-
-    return {
-        stdout: textSummary(data, summaryOptions),
-        [`report-${timestamp}.html`]: htmlReport(data),
-        [`summary-${timestamp}.json`]: JSON.stringify(data, null, 2),
-        [`metrics-${timestamp}.txt`]: `${quickStats}\n`,
-    }
-}
+export const handleSummary = summarySetup.handleSummary
 
 export default function () {
     const payload = buildTokenPayload()
