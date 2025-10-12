@@ -14,6 +14,8 @@ import {
 import { ensureReportsDirExists, resolveReportsDirectory } from './directoryUtils.js'
 import { CONFIG } from './dynamicScenarios/envVars.js'
 
+// Normalizza i parametri di ingresso per il summary handler e valida nomi obbligatori.
+// Aggiorna __ENV e CONFIG con la cartella di output risolta, così report e strumenti restano allineati.
 function validateSummaryConfig({ application, testName, reportsDir }) {
     const resolvedApplication = toTrimmedString(application)
     const resolvedTestName = toTrimmedString(testName)
@@ -44,6 +46,8 @@ function validateSummaryConfig({ application, testName, reportsDir }) {
     }
 }
 
+// Costruisce la closure che k6 invoca alla fine dell'esecuzione per produrre i report.
+// Incapsula log, controllo della cartella report e serializzazione dei formati di output.
 function createSummaryHandler({ context }) {
     return (data) => {
         const logger = console.log
@@ -130,6 +134,8 @@ function createSummaryHandler({ context }) {
     }
 }
 
+// Raccoglie valida input e fornisce handleSummary/logSummary pronti all'uso da parte dei test.
+// Pensato per essere importato dagli script k6 mantenendo minima configurazione esplicita.
 export function setupHandlerSummary({
     application,
     testName,

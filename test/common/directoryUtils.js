@@ -41,6 +41,8 @@ export function joinPaths(base, segment) {
     return `${left}/${right}`
 }
 
+// Risolve il percorso finale usato per i report combinando input esplicito e variabili d'ambiente.
+// Normalizza gli slash e cade su "reports" locale se non trova indicazioni coerenti.
 export function resolveReportsDirectory({ providedDir, env } = {}) {
     const baseWorkspace = trimTrailingSlash(
         toTrimmedString(env?.K6_WORKDIR, env?.PWD || '')
@@ -84,6 +86,8 @@ export function resolveReportsDirectory({ providedDir, env } = {}) {
     return 'reports'
 }
 
+// Interpreta il risultato di stat() verificando i vari formati che indicano "directory".
+// Supporta signature differenti così il codice resta portabile tra runtime e piattaforme.
 export function statIsDirectory(statResult) {
     if (!statResult) {
         return false
@@ -113,6 +117,8 @@ export function statIsDirectory(statResult) {
     return false
 }
 
+// Identifica errori legati a path inesistente per distinguere tra mancanza reale e altri problemi.
+// Restituisce false per eccezioni generiche lasciando al chiamante la scelta su come gestirle.
 function isMissingPathError(error) {
     if (!error) {
         return false
@@ -122,6 +128,8 @@ function isMissingPathError(error) {
     return message.includes('not found') || message.includes('no such file')
 }
 
+// Verifica se la cartella report è presente usando k6/experimental/fs; non tenta la creazione.
+// Restituisce true/false quando riesce a determinare lo stato, oppure undefined se il check fallisce.
 export function ensureReportsDirExists(path) {
     if (!path) {
         return false
