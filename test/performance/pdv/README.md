@@ -1,6 +1,6 @@
 # PDV Performance Script
 
-The script (`test/pdv/pdvPerformance.js`) runs a load test against the PDV `/tokens`
+The script (`pdvPerformance.js`) runs a load test against the PDV `/tokens`
 endpoint using [k6](https://k6.io/). Each iteration performs a `PUT` request with a
 random payload to measure throughput and behaviour under stress.
 
@@ -42,7 +42,7 @@ The script resolves `pdvUrl`, builds the requested scenario, and executes it. Wh
 ```bash
 TARGET_ENV=uat \
 K6PERF_SCENARIO_TYPE=manual \
-k6 run --vus 5 --duration 30s test/pdv/pdvPerformance.js
+k6 run --vus 5 --duration 30s pdvPerformance.js
 ```
 
 Uses only CLI flags for VUs and duration; the script does not inject a scenario.
@@ -57,7 +57,7 @@ K6PERF_TIME_UNIT=1s \
 K6PERF_DURATION=2m \
 K6PERF_PRE_ALLOCATED_VUS=80 \
 K6PERF_MAX_VUS=160 \
-k6 run test/pdv/pdvPerformance.js
+k6 run pdvPerformance.js
 ```
 
 Creates a constant arrival rate of 150 iterations per second with automatic VU
@@ -70,7 +70,7 @@ TARGET_ENV=uat \
 K6PERF_SCENARIO_TYPE=ramping-vus \
 K6PERF_START_VUS=20 \
 K6PERF_STAGES='[{"duration":"1m","target":100},{"duration":"2m","target":200},{"duration":"1m","target":50}]' \
-k6 run test/pdv/pdvPerformance.js
+k6 run pdvPerformance.js
 ```
 
 Gradually increases the active VUs following the provided stage configuration.
@@ -84,7 +84,7 @@ K6PERF_RATE=200 K6PERF_TIME_UNIT=1s \
 K6PERF_PRE_ALLOCATED_VUS=150 \
 K6PERF_MAX_VUS=300 \
 K6PERF_STAGES='[{"duration":"1m","target":100},{"duration":"1m","target":200},{"duration":"1m","target":300}]' \
-k6 run test/pdv/pdvPerformance.js
+k6 run pdvPerformance.js
 ```
 
 Stages definiscono il numero di iterazioni target per ciascun intervallo; l'helper traduce il JSON in configurazione k6 senza usare flag CLI.

@@ -49,37 +49,37 @@ Questa guida descrive come utilizzare la pipeline Azure DevOps definita in `.dev
 - **manual**
   - **Obiettivo**: eseguire rapidamente uno script senza affidarsi a un executor k6 predefinito, utile per debug locale o verifiche preliminari.
   - **Parametri minimi**: `K6PERF_SCENARIO_TYPE=manual`, `K6PERF_VUS>0`, più `K6PERF_DURATION` o `K6PERF_ITERATIONS`.
-  - **Esempio**: `TARGET_ENV=uat K6PERF_SCENARIO_TYPE=manual K6PERF_VUS=50 K6PERF_DURATION=2m python3 .devops/scripts/run_k6.py --script test/performance/pdv/pdvPerformance.js`.
+  - **Esempio**: `TARGET_ENV=uat K6PERF_SCENARIO_TYPE=manual K6PERF_VUS=50 K6PERF_DURATION=2m python3 .devops/scripts/run_k6.py --script pdvPerformance.js`.
 
 - **shared-iterations**
   - **Obiettivo**: misurare quanto rapidamente un gruppo di VU completa un numero fisso di transazioni, evidenziando regressioni di throughput o latenza.
   - **Parametri minimi**: `K6PERF_SCENARIO_TYPE=shared-iterations`, `K6PERF_ITERATIONS>0`, `K6PERF_VUS>0`; `K6PERF_DURATION` rimane un limite di sicurezza.
-  - **Esempio**: `TARGET_ENV=uat K6PERF_SCENARIO_TYPE=shared-iterations K6PERF_ITERATIONS=20000 K6PERF_VUS=100 K6PERF_DURATION=10m python3 .devops/scripts/run_k6.py --script test/performance/pdv/pdvPerformance.js`.
+  - **Esempio**: `TARGET_ENV=uat K6PERF_SCENARIO_TYPE=shared-iterations K6PERF_ITERATIONS=20000 K6PERF_VUS=100 K6PERF_DURATION=10m python3 .devops/scripts/run_k6.py --script pdvPerformance.js`.
 
 - **per-vu-iterations**
   - **Obiettivo**: assicurare che ogni VU ripeta lo stesso volume di iterazioni, facendo emergere problemi che compaiono dopo il warm-up o con cache per-utente.
   - **Parametri minimi**: `K6PERF_SCENARIO_TYPE=per-vu-iterations`, `K6PERF_ITERATIONS>0`, `K6PERF_VUS>0`, `K6PERF_DURATION` come guard rail.
-  - **Esempio**: `TARGET_ENV=uat K6PERF_SCENARIO_TYPE=per-vu-iterations K6PERF_ITERATIONS=10000 K6PERF_VUS=100 K6PERF_DURATION=10m python3 .devops/scripts/run_k6.py --script test/performance/pdv/pdvPerformance.js`.
+  - **Esempio**: `TARGET_ENV=uat K6PERF_SCENARIO_TYPE=per-vu-iterations K6PERF_ITERATIONS=10000 K6PERF_VUS=100 K6PERF_DURATION=10m python3 .devops/scripts/run_k6.py --script pdvPerformance.js`.
 
 - **constant-vus**
   - **Obiettivo**: mantenere costante la concorrenza per osservare lo steady state dell'applicazione o eseguire soak test brevi.
   - **Parametri minimi**: `K6PERF_SCENARIO_TYPE=constant-vus`, `K6PERF_VUS>0`, `K6PERF_DURATION`; `K6PERF_RPS` opzionale come limite superiore.
-  - **Esempio**: `TARGET_ENV=uat K6PERF_SCENARIO_TYPE=constant-vus K6PERF_VUS=1000 K6PERF_DURATION=10m K6PERF_RPS=5000 python3 .devops/scripts/run_k6.py --script test/performance/pdv/pdvPerformance.js`.
+  - **Esempio**: `TARGET_ENV=uat K6PERF_SCENARIO_TYPE=constant-vus K6PERF_VUS=1000 K6PERF_DURATION=10m K6PERF_RPS=5000 python3 .devops/scripts/run_k6.py --script pdvPerformance.js`.
 
 - **ramping-vus**
   - **Obiettivo**: modellare una crescita o una riduzione controllata del numero di VU attivi.
   - **Parametri minimi**: `K6PERF_SCENARIO_TYPE=ramping-vus`, `K6PERF_START_VUS>0`, `K6PERF_STAGES` con coppie `duration`/`target`; `K6PERF_DURATION` facoltativo.
-  - **Esempio**: `TARGET_ENV=uat K6PERF_SCENARIO_TYPE=ramping-vus K6PERF_START_VUS=100 K6PERF_STAGES='[{"duration":"3m","target":100},{"duration":"4m","target":1000},{"duration":"3m","target":0}]' python3 .devops/scripts/run_k6.py --script test/performance/pdv/pdvPerformance.js`.
+  - **Esempio**: `TARGET_ENV=uat K6PERF_SCENARIO_TYPE=ramping-vus K6PERF_START_VUS=100 K6PERF_STAGES='[{"duration":"3m","target":100},{"duration":"4m","target":1000},{"duration":"3m","target":0}]' python3 .devops/scripts/run_k6.py --script pdvPerformance.js`.
 
 - **constant-arrival-rate**
   - **Obiettivo**: mantenere costante il numero di iterazioni per unità di tempo, indipendentemente dal tempo che ogni VU impiega a completarle.
   - **Parametri minimi**: `K6PERF_SCENARIO_TYPE=constant-arrival-rate`, `K6PERF_RATE>0`, `K6PERF_TIME_UNIT`, `K6PERF_PRE_ALLOCATED_VUS>0`, `K6PERF_MAX_VUS>=K6PERF_PRE_ALLOCATED_VUS`, `K6PERF_DURATION`.
-  - **Esempio**: `TARGET_ENV=uat K6PERF_SCENARIO_TYPE=constant-arrival-rate K6PERF_RATE=400 K6PERF_TIME_UNIT=1s K6PERF_PRE_ALLOCATED_VUS=100 K6PERF_MAX_VUS=1000 K6PERF_DURATION=10m python3 .devops/scripts/run_k6.py --script test/performance/pdv/pdvPerformance.js`.
+  - **Esempio**: `TARGET_ENV=uat K6PERF_SCENARIO_TYPE=constant-arrival-rate K6PERF_RATE=400 K6PERF_TIME_UNIT=1s K6PERF_PRE_ALLOCATED_VUS=100 K6PERF_MAX_VUS=1000 K6PERF_DURATION=10m python3 .devops/scripts/run_k6.py --script pdvPerformance.js`.
 
 - **ramping-arrival-rate**
   - **Obiettivo**: variare il tasso di arrivo per simulare lanci progressivi o picchi improvvisi, consentendo a k6 di espandere il pool.
   - **Parametri minimi**: `K6PERF_SCENARIO_TYPE=ramping-arrival-rate`, `K6PERF_STAGES` con target di arrivo, `K6PERF_TIME_UNIT`, `K6PERF_PRE_ALLOCATED_VUS>0`, `K6PERF_MAX_VUS>0`.
-  - **Esempio**: `TARGET_ENV=uat K6PERF_SCENARIO_TYPE=ramping-arrival-rate K6PERF_STAGES='[{"duration":"2m","target":100},{"duration":"5m","target":1000},{"duration":"3m","target":1000}]' K6PERF_TIME_UNIT=1s K6PERF_PRE_ALLOCATED_VUS=100 K6PERF_MAX_VUS=1000 python3 .devops/scripts/run_k6.py --script test/performance/pdv/pdvPerformance.js`.
+  - **Esempio**: `TARGET_ENV=uat K6PERF_SCENARIO_TYPE=ramping-arrival-rate K6PERF_STAGES='[{"duration":"2m","target":100},{"duration":"5m","target":1000},{"duration":"3m","target":1000}]' K6PERF_TIME_UNIT=1s K6PERF_PRE_ALLOCATED_VUS=100 K6PERF_MAX_VUS=1000 python3 .devops/scripts/run_k6.py --script pdvPerformance.js`.
 
 ## Playbook di configurazione della pipeline
 
