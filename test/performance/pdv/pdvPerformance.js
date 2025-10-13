@@ -74,6 +74,6 @@ export default function () {
 
 function buildTokenPayload() {
     return {
-        pii: randomString(12, TOKEN_PII_ALPHABET),
+        pii: randomString(16, TOKEN_PII_ALPHABET),
     }
 }
