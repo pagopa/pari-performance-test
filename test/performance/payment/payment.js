@@ -19,7 +19,7 @@ const fiscalCodes = new SharedArray('fiscalCodes', () => {
 });
 
 /** Environment and API configuration */
-const targetEnv = (__ENV.TARGET_ENV || 'dev').trim().toLowerCase();
+const targetEnv = (__ENV.TARGET_ENV || 'uat').trim().toLowerCase();
 const envConfig = loadEnvConfig(targetEnv);
 
 const baseUrl = toTrimmedString(__ENV.APIM_URL, envConfig.apimUrl || '');
@@ -64,7 +64,6 @@ export function setup() {
 
 /** Test data */
 const initiativeId = '68dd003ccce8c534d1da22bc';
-const startIndex = 0;
 const email = __ENV.KEYCLOAK_USERNAME;
 const password = __ENV.KEYCLOAK_PASSWORD;
 
@@ -72,17 +71,21 @@ const password = __ENV.KEYCLOAK_PASSWORD;
  * Default test function: End-to-End Payment Flow
  */
 export default function () {
-  const iterationIndex = startIndex + exec.scenario.iterationInTest;
-  const fiscalCode = fiscalCodes[iterationIndex];
+  const fiscalCode = fiscalCodes[Math.floor(Math.random() * fiscalCodes.length)];
+
+  //console.log(`🧾 FiscalCode: ${fiscalCode}`);
 
   if (!fiscalCode) {
     console.error(`Index ${iterationIndex} out of range. Skipping iteration.`);
     return;
   }
 
-  // Obtain tokens
+  //console.log('🔑 Requesting tokens...');
   const tokenIO = getTokenIO(fiscalCode);
   const tokenKeycloak = getTokenKeycloak(keycloakUrl, email, password);
+  //console.log('✅ Tokens retrieved successfully.');
+  //console.log('TokenIO:',tokenIO)
+  //console.log('tokenKeycloak:',tokenKeycloak)
 
   group('Payment API - End-to-End Flow', () => {
     let trxCode;
@@ -91,18 +94,20 @@ export default function () {
     /** Create Voucher */
     group('Create Voucher', () => {
       const payload = { initiativeId };
+      //console.log('📦 Creating voucher...');
       const res = createBarCode(baseUrl, tokenIO, payload);
-
       check(res, { 'Voucher created (201)': r => r?.status === 201 });
 
       trxCode = res.json('trxCode');
       if (!trxCode) {
         throw new Error('❌ Missing trxCode in createBarCode response.');
       }
+      //console.log(`🎟️ trxCode generated: ${trxCode}`);
     });
 
     /** Retrieve Products */
     group('Get Products', () => {
+      //console.log('🛒 Fetching approved products...');
       const res = getProductsApproved(baseUrl, tokenKeycloak);
 
       check(res, { 'Products retrieved (200)': r => r?.status === 200 });
@@ -111,8 +116,10 @@ export default function () {
       if (!productList.length) {
         throw new Error('❌ No products available for preview.');
       }
+      //console.log(`✅ Products retrieved: ${productList.length}`);
 
       selectedProduct = productList[Math.floor(Math.random() * productList.length)];
+      //console.log(`🎯 Selected product: ${selectedProduct.productName} (${selectedProduct.gtinCode})`);
     });
 
     /** Preview, Authorize and Delete Payment */
@@ -123,7 +130,7 @@ export default function () {
         amountCents: 1000,
         discountCode: trxCode,
       };
-
+      //console.log('💰 Previewing payment...');
       const previewRes = previewPayment(baseUrl, tokenKeycloak, previewPayload);
       check(previewRes, { 'Preview succeeded (200)': r => r?.status === 200 });
 
@@ -133,14 +140,17 @@ export default function () {
         discountCode: trxCode,
       };
 
+      //console.log('🔐 Authorizing payment...');
       const authRes = authPayment(baseUrl, tokenKeycloak, authPayload);
       check(authRes, { 'Authorization succeeded (200)': r => r?.status === 200 });
 
-      sleep(3);
+      //sleep(3);
 
+      //console.log('🗑️ Deleting payment...');
       const deleteRes = deletePayment(baseUrl, tokenKeycloak, authRes.json('id'));
       check(deleteRes, { 'Delete succeeded (200)': r => r?.status === 200 });
 
+      //console.log('✅ Payment flow completed successfully.');
     });
         
   });

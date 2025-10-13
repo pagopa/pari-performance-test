@@ -31,13 +31,14 @@ export function getTokenKeycloak(keycloakBaseUrl, email, password) {
   const apiName = 'getTokenKeycloak';
 
   const payload = [
-    'client_id=frontend',
+    'client_id=performance-test-client',
     `username=${encodeURIComponent(email)}`,
     `password=${encodeURIComponent(password)}`,
     'grant_type=password',
   ].join('&');
 
   const headers = buildHeaders('application/x-www-form-urlencoded');
+  
   const res = http.post(keycloakBaseUrl, payload, {
     headers,
     tags: { apiName },
