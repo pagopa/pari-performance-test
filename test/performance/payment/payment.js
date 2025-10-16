@@ -144,7 +144,7 @@ export default function () {
       const authRes = authPayment(baseUrl, tokenKeycloak, authPayload);
       check(authRes, { 'Authorization succeeded (200)': r => r?.status === 200 });
 
-      sleep(5);
+      sleep(8);
 
       //console.log('🗑️ Deleting payment...');
       const deleteRes = deletePayment(baseUrl, tokenKeycloak, authRes.json('id'));
