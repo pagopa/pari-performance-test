@@ -12,7 +12,7 @@ import {
 import { loadEnvConfig } from '../../common/loadEnv.js';
 import { prepareScenario } from '../../common/scenarioSetup.js';
 
-// Load the list of 100K CFs from a gzipped CSV file
+// Load the list of 100K CFs from a CSV file
 const fiscalCodes = new SharedArray('fiscalCodes', () => {
   const csv = open('../../../assets/fc_list_10M.csv');
   return csv.split('\n')
