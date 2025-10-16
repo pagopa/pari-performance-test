@@ -53,7 +53,7 @@ export function setup() {
 }
 
 const initiativeId = '68de7fc681ce9e35a476e985'
-const startIndex = 1000000;
+const startIndex = 0;
 
 export default function () {
 
