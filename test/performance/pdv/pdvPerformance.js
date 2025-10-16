@@ -13,7 +13,7 @@ import { prepareScenario } from '../../common/scenarioSetup.js'
 import { setupHandlerSummary } from '../../common/summarySetup.js'
 
 const targetEnv = toTrimmedString(__ENV.TARGET_ENV, 'dev').toLowerCase()
-const TOKEN_PII_ALPHABET = 'abcdefghijklmnopqrstuvwxyz01234567890'
+const TOKEN_PII_HEX_ALPHABET = '0123456789abcdef'
 const application = 'pdv'
 const testName = 'pdvPerformance'
 
@@ -74,6 +74,6 @@ export default function () {
 
 function buildTokenPayload() {
     return {
-        pii: randomString(5, TOKEN_PII_ALPHABET),
+        pii: randomString(6, TOKEN_PII_HEX_ALPHABET),
     }
 }
