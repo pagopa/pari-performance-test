@@ -33,7 +33,7 @@ const { scenarioConfig, logScenario } = prepareScenario({ env: __ENV });
 export const options = {
   discardResponseBodies: true,
   scenarios: {
-    payment: scenarioConfig,
+    createVoucher: scenarioConfig,
   },
   thresholds: {
     http_req_duration: ['p(95)<500'],
@@ -60,9 +60,7 @@ export function setup() {
 /** Test data */
 const initiativeId = '68de7fc681ce9e35a476e985';
 
-/**
- * Default test function: End-to-End Payment Flow
- */
+
 export default function () {
   const fiscalCode = fiscalCodes[Math.floor(Math.random() * fiscalCodes.length)];
 
