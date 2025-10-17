@@ -4,8 +4,7 @@ import { getOrgId } from '../utils.js';
 
 /** API Endpoints */
 const AUTH_API = {
-  IO_TOKEN: 'https://api-io.dev.cstar.pagopa.it/rtd/mock-io/login',
-  REGISTER_TOKEN: '/register/token/test',
+  REGISTER_TOKEN: '/register/token/test'
 };
 
 /**
