@@ -1,4 +1,5 @@
 {
-    "pdvUrl": "https://idpay.itn.internal.uat.cstar.pagopa.it/fakemcshareddatavault",
-    "apimUrl": "https://api-io.uat.cstar.pagopa.it/idpay-itn"
+    "pdvUrl": "https://idpay.itn.internal.uat.cstar.pagopa.it/mcshareddatavault",
+    "apimUrl": "https://api-io.uat.cstar.pagopa.it/idpay-itn",
+    "keycloakUrl": "https://keycloak.itn.internal.uat.cstar.pagopa.it/realms/merchant-operator/protocol/openid-connect/token"
 }

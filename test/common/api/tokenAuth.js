@@ -1,50 +1,95 @@
-import http from 'k6/http'
-import { logResult } from '../dynamicScenarios/utils.js'
-import { DEV, UAT, getBaseUrl } from '../envUrl.js'
-import { getOrgId } from '../utils.js'
+import http from 'k6/http';
+import { logResult } from '../dynamicScenarios/utils.js';
+import { getOrgId } from '../utils.js';
 
-export const REGISTER_AUTH_API_NAMES = {
-  authToken: 'register/token/test',
+/** API Endpoints */
+const AUTH_API = {
+  REGISTER_TOKEN: '/register/token/test'
+};
+
+/**
+ * Builds headers for HTTP requests.
+ * @param {string} contentType - The content type of the request.
+ * @return {Object} Headers object.
+ */
+function buildHeaders(contentType = 'application/json') {
+  return {
+    'Content-Type': contentType,
+    'Ocp-Apim-Trace': 'true',
+  };
 }
 
-const REGISTERED_ENVS = [DEV, UAT]
-const innerBaseUrl = `${getBaseUrl(REGISTERED_ENVS, 'eie')}`
-const orgId = getOrgId(REGISTERED_ENVS, 'eie')
+/**
+ * Retrieves Keycloak token for the given user credentials.
+ * @param {string} keycloakBaseUrl - The Keycloak token endpoint.
+ * @param {string} email - User email.
+ * @param {string} password - User password.
+ * @return {string|null} Access token or null if failed.
+ */
+export function getTokenKeycloak(keycloakBaseUrl, email, password) {
+  const apiName = 'getTokenKeycloak';
 
-export function getJwtToken() {
-  const apiName = REGISTER_AUTH_API_NAMES.authToken
-  const url = `${innerBaseUrl}/register/token/test`
+  const payload = [
+    'client_id=performance-test-client',
+    `username=${encodeURIComponent(email)}`,
+    `password=${encodeURIComponent(password)}`,
+    'grant_type=password',
+  ].join('&');
 
+  const headers = buildHeaders('application/x-www-form-urlencoded');
+  
+  const res = http.post(keycloakBaseUrl, payload, {
+    headers,
+    tags: { apiName },
+    responseType: 'text',
+  });
+
+  logResult(apiName, res);
+
+  if (res.status !== 200) {
+    console.error(`[${apiName}] ❌ Token not received. Status: ${res.status}, Body: ${res.body}`);
+    return null;
+  }
+
+  return res.json('access_token');
+}
+
+/**
+ * Retrieves a registration token.
+ * @param {string} innerBaseUrl - Base URL of the registration API.
+ * @return {Object} Object containing the response and organization ID.
+ */
+export function getTokenRegister(innerBaseUrl) {
+  const apiName = 'getTokenRegister';
+  const url = `${innerBaseUrl}${AUTH_API.REGISTER_TOKEN}`;
+
+  const orgId = getOrgId() || 'unknown-org-id';
   const payload = JSON.stringify({
     aud: 'idpay.register.welfare.pagopa.it',
     iss: 'https://api-io.dev.cstar.pagopa.it',
     uid: orgId,
-    name: 'pippo',
-    familyName: 'qwerty',
+    name: 'Pippo',
+    familyName: 'Qwerty',
     email: 'pippo@test.email.it',
-    orgId: orgId,
+    orgId,
     orgVAT: '80117082724',
     orgName: 'Ente di test IdPay',
     orgRole: 'operatore',
     orgPec: 'pec',
-    orgAddress: 'address'
-  })
+    orgAddress: 'address',
+  });
 
-  const headers = {
-    'Content-Type': 'application/json',
-    'Ocp-Apim-Trace': 'true'
-  }
+  const headers = buildHeaders();
+  const res = http.post(url, payload, { headers, tags: { apiName } });
 
-  const res = http.post(url, payload, { headers, tags: { apiName } })
+  logResult(apiName, res);
 
   if (res.status !== 200) {
-    console.error(`[ERROR] Token not received. Status: ${res.status}, Body: ${res.body}`)
+    console.error(`[${apiName}] ❌ Token not received. Status: ${res.status}, Body: ${res.body}`);
   }
-
-  logResult(apiName, res)
 
   return {
     tokenRes: res,
-    organizationId: orgId
-  }
+    organizationId: orgId,
+  };
 }
