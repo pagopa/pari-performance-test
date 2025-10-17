@@ -10,6 +10,8 @@ import {
     formatMs,
     formatCount,
     formatPercentage,
+    pickTrendPercentileValue,
+    formatRequestsRatePerSecond,
 } from './basicUtils.js'
 import { ensureReportsDirExists, resolveReportsDirectory } from './directoryUtils.js'
 import { CONFIG } from './dynamicScenarios/envVars.js'
@@ -54,60 +56,6 @@ function validateSummaryConfig({ application, testName, reportsDir }) {
         testName: resolvedTestName,
         outputDir,
     }
-}
-
-// Estrae un percentile trend gestendo varianti come p(99.0) o p(99.90), ignorando valori non finiti.
-function pickTrendPercentileValue(values, targetPercentile) {
-    if (!values) {
-        return undefined
-    }
-
-    const exactKey = `p(${targetPercentile})`
-    const exactValue = toFiniteNumber(values[exactKey])
-    if (exactValue !== undefined) {
-        return exactValue
-    }
-
-    const percentileEntries = Object.entries(values)
-        .map(([key, value]) => {
-            const match = key.match(/^p\((\d+(?:\.\d+)?)\)$/)
-            if (!match) {
-                return undefined
-            }
-
-            const percentile = Number(match[1])
-            const numericValue = toFiniteNumber(value)
-
-            if (!Number.isFinite(percentile) || numericValue === undefined) {
-                return undefined
-            }
-
-            return {
-                percentile,
-                value: numericValue,
-            }
-        })
-        .filter(Boolean)
-        .sort((a, b) => a.percentile - b.percentile)
-
-    const closestAbove = percentileEntries.find(
-        (entry) => entry.percentile >= targetPercentile
-    )
-    if (closestAbove) {
-        return closestAbove.value
-    }
-
-    return undefined
-}
-
-// Formatta un rate medio di richieste al secondo con due decimali, mostrando n/a quando il dato manca.
-function formatRequestsRatePerSecond(rateValue) {
-    const rate = toFiniteNumber(rateValue)
-    if (rate === undefined) {
-        return 'n/a'
-    }
-
-    return `${rate.toFixed(2)} req/s`
 }
 
 // Costruisce la closure che k6 invoca alla fine dell'esecuzione per produrre i report.
@@ -168,7 +116,7 @@ function createSummaryHandler({ context }) {
             `• 📦 Richieste: ${formatCount(totalRequests)} totali (${formatCount(
                 successfulRequests
             )} ✅ / ${formatCount(failedRequests)} ❌)`,
-            `• 📈 Richieste medie: ${formatRequestsRatePerSecond(httpReqs.rate)}`,
+            `• 📈 Richieste medie/sec: ${formatRequestsRatePerSecond(httpReqs.rate)}`,
             `• ⚡ p(95): ${formatMs(httpReqDurationP95)}`,
             `• 🚀 p(99): ${formatMs(httpReqDurationP99)}`,
             `• 📉 Error rate: ${formatPercentage(failRate)}`,

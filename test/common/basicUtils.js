@@ -99,3 +99,53 @@ export function formatPercentage(value) {
 
     return `${(number * 100).toFixed(2)} %`
 }
+
+// Restituisce il valore di percentile per una metrica trend se disponibile.
+export function pickTrendPercentileValue(values, targetPercentile) {
+    if (!values) {
+        return undefined
+    }
+
+    const direct = toFiniteNumber(values[`p(${targetPercentile})`])
+    if (direct !== undefined) {
+        return direct
+    }
+
+    let candidatePercentile
+    let candidateValue
+
+    for (const [key, rawValue] of Object.entries(values)) {
+        const match = /^p\((\d+(?:\.\d+)?)\)$/.exec(key)
+        if (!match) {
+            continue
+        }
+
+        const percentile = Number(match[1])
+        const value = toFiniteNumber(rawValue)
+
+        if (!Number.isFinite(percentile) || value === undefined) {
+            continue
+        }
+
+        const isBetterMatch =
+            percentile >= targetPercentile &&
+            (candidatePercentile === undefined || percentile < candidatePercentile)
+
+        if (isBetterMatch) {
+            candidatePercentile = percentile
+            candidateValue = value
+        }
+    }
+
+    return candidateValue
+}
+
+// Formatta un rate di richieste al secondo con due decimali.
+export function formatRequestsRatePerSecond(rateValue) {
+    const rate = toFiniteNumber(rateValue)
+    if (rate === undefined) {
+        return 'n/a'
+    }
+
+    return `${rate.toFixed(2)} req/s`
+}
