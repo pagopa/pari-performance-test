@@ -100,6 +100,48 @@ export function formatPercentage(value) {
     return `${(number * 100).toFixed(2)} %`
 }
 
+// Restituisce true quando ogni carattere della stringa è una cifra (0..9).
+// Usa una regex ancorata e senza quantificatori annidati, quindi non è soggetta a ReDoS.
+// Esempio: isDigitsOnly("123") => true; isDigitsOnly("12a") => false.
+function isDigitsOnly(value) {
+    if (!value) {
+        return false
+    }
+    return /^[0-9]+$/.test(value)
+}
+
+// Analizza chiavi come "p(95)" o "p(99.90)" in modo sicuro e leggibile.
+// Esempi:
+//   parsePercentileKey("p(95)") => 95
+//   parsePercentileKey("p(99.9)") => 99.9
+//   parsePercentileKey("p(foo)") => undefined
+function parsePercentileKey(key) {
+    if (typeof key !== 'string' || key.length < 4) {
+        return undefined
+    }
+
+    if (!key.startsWith('p(') || key[key.length - 1] !== ')') {
+        return undefined
+    }
+
+    const body = key.slice(2, -1)
+    if (!body) {
+        return undefined
+    }
+
+    const segments = body.split('.')
+    if (segments.length > 2) {
+        return undefined
+    }
+
+    if (!segments.every((segment) => isDigitsOnly(segment))) {
+        return undefined
+    }
+
+    const numeric = Number(body)
+    return Number.isFinite(numeric) ? numeric : undefined
+}
+
 // Restituisce il valore di percentile per una metrica trend se disponibile.
 export function pickTrendPercentileValue(values, targetPercentile) {
     if (!values) {
@@ -115,12 +157,11 @@ export function pickTrendPercentileValue(values, targetPercentile) {
     let candidateValue
 
     for (const [key, rawValue] of Object.entries(values)) {
-        const match = /^p\((\d+(?:\.\d+)?)\)$/.exec(key)
-        if (!match) {
+        const percentile = parsePercentileKey(key)
+        if (percentile === undefined) {
             continue
         }
 
-        const percentile = Number(match[1])
         const value = toFiniteNumber(rawValue)
 
         if (!Number.isFinite(percentile) || value === undefined) {
