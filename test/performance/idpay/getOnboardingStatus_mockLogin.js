@@ -42,7 +42,7 @@ export const options = {
 export function handleSummary(data) {
     return {
         stdout: textSummary(data, { indent: ' ', enableColors: true }),
-        [`report-${new Date().getTime()}.html`]: htmlReport(data),
+        [`report-onboard-status-${new Date().getTime()}.html`]: htmlReport(data),
     }
 }
 
@@ -50,7 +50,7 @@ const initiativeId = '68de7fc681ce9e35a476e985'
 
 // Load the list of 10K CFs from a CSV file
 const fiscalCodes = new SharedArray('fiscalCodes', () => {
-    const csv = open('../../../assets/fc_list_10k.csv');
+    const csv = open('../../../assets/fc_list_100k.csv');
     console.log('loading csv file with fiscal codes')
     return csv.split('\n')
         .map(line => line.trim())
@@ -79,9 +79,13 @@ export default function () {
         // Se non è in cache, genera un nuovo token
         const res = getMockLogin(fc);
 
+        check(res, {
+            'mock login status 200': (r) => r.status === 200,
+            'mock login body is not empty': (r) => r.body && r.body.length > 0
+        });
+
         // Controlla se la generazione del token ha avuto successo
         if (res.status !== 200 || !res.body) {
-            console.error(`Failed to get token for fiscal code ${fc}. Status: ${res.status}`);
             // Interrompi questa iterazione se non riusciamo a ottenere il token
             return;
         }

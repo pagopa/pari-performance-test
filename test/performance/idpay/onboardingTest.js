@@ -1,19 +1,20 @@
-import { htmlReport, textSummary } from 'https://jslib.k6.io/k6-summary/0.0.2/index.js';
+import { textSummary } from 'https://jslib.k6.io/k6-summary/0.0.2/index.js';
+import { htmlReport } from 'https://raw.githubusercontent.com/benc-uk/k6-reporter/main/dist/bundle.js';
+
 import { check } from 'k6';
 import { SharedArray } from 'k6/data';
 import exec from 'k6/execution';
 import { getMockLogin } from '../../common/api/mockIOLogin.js';
-import { saveOnboarding } from '../../common/api/onboardingClient.js';
-import { getOnboardingStatus } from '../../common/api/onboardingStatus.js';
+import { getOnboardingStatus, saveOnboarding } from '../../common/api/onboardingClient.js';
 import {
   toTrimmedString
 } from '../../common/basicUtils.js';
 import { loadEnvConfig } from '../../common/loadEnv.js';
 import { prepareScenario } from '../../common/scenarioSetup.js';
 
-// Load the list of 10M CFs from a CSV file
+// Load the list of 100K CFs from a CSV file
 const fiscalCodes = new SharedArray('fiscalCodes', () => {
-  const csv = open('../../../assets/fc_list_10M.csv');
+  const csv = open('../../../assets/fc_list_100k.csv');
   return csv.split('\n')
     .map(line => line.trim())
     .filter(line => line && line !== 'CF');
@@ -43,16 +44,16 @@ export const options = {
 export function handleSummary(data) {
   return {
     stdout: textSummary(data, { indent: ' ', enableColors: true }),
-    [`report-${new Date().getTime()}.html`]: htmlReport(data),
+    [`report-onboard-${new Date().getTime()}.html`]: htmlReport(data),
   }
 }
 
 export function setup() {
-    logScenario()
+  logScenario()
 }
 
 const initiativeId = '68de7fc681ce9e35a476e985'
-const startIndex = 1000000;
+const startIndex = 0;
 
 export default function () {
 
@@ -111,3 +112,5 @@ export default function () {
   // console.error(`Onboarding failed for CF: ${fiscalCode} - ${error.message}`);
 
 }
+
+// K6PERF_SCENARIO_TYPE=shared-iterations TARGET_ENV=uat K6PERF_VUS=1 K6PERF_ITERATIONS=1 ./xk6 run test/performance/idpay/onboardingTest.js
