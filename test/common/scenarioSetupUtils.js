@@ -379,6 +379,6 @@ export function logScenarioDetails(
         resolvedScenarioType,
         scenarioConfig
     )
-    logger(lines.join('\n'))
+    logger(['', ...lines, ''].join('\n'))
     return { resolvedScenarioType, scenarioConfig }
 }
