@@ -14,6 +14,16 @@ import {
 import { ensureReportsDirExists, resolveReportsDirectory } from './directoryUtils.js'
 import { CONFIG } from './dynamicScenarios/envVars.js'
 
+export const DEFAULT_SUMMARY_TREND_STATS = [
+    'avg',
+    'min',
+    'med',
+    'max',
+    'p(90)',
+    'p(95)',
+    'p(99)',
+]
+
 // Normalizza i parametri di ingresso per il summary handler e valida nomi obbligatori.
 // Aggiorna __ENV e CONFIG con la cartella di output risolta, così report e strumenti restano allineati.
 function validateSummaryConfig({ application, testName, reportsDir }) {
@@ -44,6 +54,60 @@ function validateSummaryConfig({ application, testName, reportsDir }) {
         testName: resolvedTestName,
         outputDir,
     }
+}
+
+// Estrae un percentile trend gestendo varianti come p(99.0) o p(99.90), ignorando valori non finiti.
+function pickTrendPercentileValue(values, targetPercentile) {
+    if (!values) {
+        return undefined
+    }
+
+    const exactKey = `p(${targetPercentile})`
+    const exactValue = toFiniteNumber(values[exactKey])
+    if (exactValue !== undefined) {
+        return exactValue
+    }
+
+    const percentileEntries = Object.entries(values)
+        .map(([key, value]) => {
+            const match = key.match(/^p\((\d+(?:\.\d+)?)\)$/)
+            if (!match) {
+                return undefined
+            }
+
+            const percentile = Number(match[1])
+            const numericValue = toFiniteNumber(value)
+
+            if (!Number.isFinite(percentile) || numericValue === undefined) {
+                return undefined
+            }
+
+            return {
+                percentile,
+                value: numericValue,
+            }
+        })
+        .filter(Boolean)
+        .sort((a, b) => a.percentile - b.percentile)
+
+    const closestAbove = percentileEntries.find(
+        (entry) => entry.percentile >= targetPercentile
+    )
+    if (closestAbove) {
+        return closestAbove.value
+    }
+
+    return undefined
+}
+
+// Formatta un rate medio di richieste al secondo con due decimali, mostrando n/a quando il dato manca.
+function formatRequestsRatePerSecond(rateValue) {
+    const rate = toFiniteNumber(rateValue)
+    if (rate === undefined) {
+        return 'n/a'
+    }
+
+    return `${rate.toFixed(2)} req/s`
 }
 
 // Costruisce la closure che k6 invoca alla fine dell'esecuzione per produrre i report.
@@ -83,6 +147,8 @@ function createSummaryHandler({ context }) {
             return types.length > 0 ? types.join(', ') : 'n/a'
         })()
 
+        const httpReqDurationP95 = pickTrendPercentileValue(httpReqDuration, 95)
+        const httpReqDurationP99 = pickTrendPercentileValue(httpReqDuration, 99)
         const totalRequests = toFiniteNumber(httpReqs.count)
         const failedRequests = toFiniteNumber(httpReqFailed.passes)
         const successfulRequests =
@@ -102,8 +168,9 @@ function createSummaryHandler({ context }) {
             `• 📦 Richieste: ${formatCount(totalRequests)} totali (${formatCount(
                 successfulRequests
             )} ✅ / ${formatCount(failedRequests)} ❌)`,
-            `• ⚡ p(95): ${formatMs(httpReqDuration['p(95)'])}`,
-            `• 🚀 p(99): ${formatMs(httpReqDuration['p(99)'])}`,
+            `• 📈 Richieste medie: ${formatRequestsRatePerSecond(httpReqs.rate)}`,
+            `• ⚡ p(95): ${formatMs(httpReqDurationP95)}`,
+            `• 🚀 p(99): ${formatMs(httpReqDurationP99)}`,
             `• 📉 Error rate: ${formatPercentage(failRate)}`,
             `• ✅ Checks: ${formatCount(checksPassed)} pass / ${formatCount(
                 checksFailed
@@ -124,7 +191,7 @@ function createSummaryHandler({ context }) {
             indent: ' ',
             enableColors: true,
             summaryTimeUnit: 'ms',
-            summaryTrendStats: ['avg', 'min', 'max', 'p(90)', 'p(95)', 'p(99)'],
+            summaryTrendStats: DEFAULT_SUMMARY_TREND_STATS,
         })
 
         return {

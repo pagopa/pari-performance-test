@@ -10,7 +10,10 @@ import { randomString } from 'https://jslib.k6.io/k6-utils/1.6.0/index.js'
 import { loadEnvConfig } from '../../common/loadEnv.js'
 import { toTrimmedString } from '../../common/basicUtils.js'
 import { prepareScenario } from '../../common/scenarioSetup.js'
-import { setupHandlerSummary } from '../../common/summarySetup.js'
+import {
+    setupHandlerSummary,
+    DEFAULT_SUMMARY_TREND_STATS,
+} from '../../common/summarySetup.js'
 
 const targetEnv = toTrimmedString(__ENV.TARGET_ENV, 'dev').toLowerCase()
 const TOKEN_PII_HEX_ALPHABET = '0123456789abcdef'
@@ -38,6 +41,7 @@ const testOptions = {
     thresholds: {
         checks: ['rate>0.99'],
     },
+    summaryTrendStats: DEFAULT_SUMMARY_TREND_STATS,
 }
 
 if (scenarioConfig) {
