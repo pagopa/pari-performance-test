@@ -1,21 +1,34 @@
 // macOS usage examples (execute from the repository root)
 //   Env-driven constant-arrival scenario
 //     TARGET_ENV=uat K6PERF_SCENARIO_TYPE=constant-arrival-rate K6PERF_RATE=300 K6PERF_TIME_UNIT=500ms \
-//     K6PERF_DURATION=3m K6PERF_PRE_ALLOCATED_VUS=150 K6PERF_MAX_VUS=300 k6 run ./test/performance/pdv/pdvPerformance.js
+//     K6PERF_DURATION=3m K6PERF_PRE_ALLOCATED_VUS=150 K6PERF_MAX_VUS=300 k6 run pdvPerformance.js
 //   Manual fallback (CLI-driven)
-//     TARGET_ENV=uat K6PERF_SCENARIO_TYPE=manual k6 run --vus 50 --duration 1m ./test/performance/pdv/pdvPerformance.js
+//     TARGET_ENV=uat K6PERF_SCENARIO_TYPE=manual k6 run --vus 1 --duration 1s pdvPerformance.js
 import http from 'k6/http'
 import { check } from 'k6'
 import { randomString } from 'https://jslib.k6.io/k6-utils/1.6.0/index.js'
 import { loadEnvConfig } from '../../common/loadEnv.js'
 import { toTrimmedString } from '../../common/basicUtils.js'
 import { prepareScenario } from '../../common/scenarioSetup.js'
+import {
+    setupHandlerSummary,
+    DEFAULT_SUMMARY_TREND_STATS,
+} from '../../common/summarySetup.js'
 
 const targetEnv = toTrimmedString(__ENV.TARGET_ENV, 'dev').toLowerCase()
-const TOKEN_PII_ALPHABET = 'abcdefghijklmnopqrstuvwxyz01234567890'
+const TOKEN_PII_HEX_ALPHABET = '0123456789abcdef'
+const application = 'pdv'
+const testName = 'pdvPerformance'
 
 const envConfig = loadEnvConfig(targetEnv)
 const pdvUrl = toTrimmedString(__ENV.PDV_URL, envConfig.pdvUrl || '')
+// Prepara reportistica finale per il test corrente condividendo la stessa cartella output.
+// Restituisce handleSummary che k6 userà al termine della run per generare i file.
+const summarySetup = setupHandlerSummary({
+    application,
+    testName,
+    reportsDir: 'reports',
+})
 
 if (!pdvUrl) {
     throw new Error(`Missing PDV_URL for environment: ${targetEnv}`)
@@ -28,6 +41,7 @@ const testOptions = {
     thresholds: {
         checks: ['rate>0.99'],
     },
+    summaryTrendStats: DEFAULT_SUMMARY_TREND_STATS,
 }
 
 if (scenarioConfig) {
@@ -41,6 +55,8 @@ export const options = testOptions
 export function setup() {
     logScenario()
 }
+
+export const handleSummary = summarySetup.handleSummary
 
 export default function () {
     const payload = buildTokenPayload()
@@ -62,6 +78,6 @@ export default function () {
 
 function buildTokenPayload() {
     return {
-        pii: randomString(12, TOKEN_PII_ALPHABET),
+        pii: randomString(6, TOKEN_PII_HEX_ALPHABET),
     }
 }
