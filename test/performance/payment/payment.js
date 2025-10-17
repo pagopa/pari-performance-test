@@ -3,7 +3,8 @@ import { check, group, sleep } from 'k6';
 import { SharedArray } from 'k6/data';
 import exec from 'k6/execution';
 
-import { getTokenIO, getTokenKeycloak } from '../../common/api/tokenAuth.js';
+import { getTokenKeycloak } from '../../common/api/tokenAuth.js';
+import { getMockLogin } from '../../common/api/mockIOLogin.js'
 import { getProductsApproved, createBarCode, previewPayment, authPayment, deletePayment } from '../../common/api/payment.js';
 import { toTrimmedString } from '../../common/basicUtils.js';
 import { loadEnvConfig } from '../../common/loadEnv.js';
@@ -81,7 +82,7 @@ export default function () {
   }
 
   //console.log('🔑 Requesting tokens...');
-  const tokenIO = getTokenIO(fiscalCode);
+  const tokenIO = getMockLogin(fiscalCode).body;
   const tokenKeycloak = getTokenKeycloak(keycloakUrl, email, password);
   //console.log('✅ Tokens retrieved successfully.');
   //console.log('TokenIO:',tokenIO)
@@ -97,7 +98,6 @@ export default function () {
       //console.log('📦 Creating voucher...');
       const res = createBarCode(baseUrl, tokenIO, payload);
       check(res, { 'Voucher created (201)': r => r?.status === 201 });
-
       trxCode = res.json('trxCode');
       if (!trxCode) {
         throw new Error('❌ Missing trxCode in createBarCode response.');
@@ -133,7 +133,6 @@ export default function () {
       //console.log('💰 Previewing payment...');
       const previewRes = previewPayment(baseUrl, tokenKeycloak, previewPayload);
       check(previewRes, { 'Preview succeeded (200)': r => r?.status === 200 });
-
       const authPayload = {
         additionalProperties: { productGtin: selectedProduct.gtinCode },
         amountCents: 1000,

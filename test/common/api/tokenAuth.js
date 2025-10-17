@@ -56,32 +56,6 @@ export function getTokenKeycloak(keycloakBaseUrl, email, password) {
 }
 
 /**
- * Retrieves IO token, optionally filtered by fiscal code.
- * @param {string} cf - Optional fiscal code.
- * @return {string|null} Token or null if request failed.
- */
-export function getTokenIO(cf = '') {
-  const apiName = 'getTokenIO';
-  const url = cf ? `${AUTH_API.IO_TOKEN}?fiscalCode=${encodeURIComponent(cf)}` : AUTH_API.IO_TOKEN;
-
-  const headers = buildHeaders();
-  const res = http.post(url, null, {
-    headers,
-    tags: { apiName },
-    responseType: 'text',
-  });
-
-  logResult(apiName, res);
-
-  if (res.status !== 200) {
-    console.error(`[${apiName}] ❌ Token request failed. Status: ${res.status}`);
-    return null;
-  }
-
-  return res.body;
-}
-
-/**
  * Retrieves a registration token.
  * @param {string} innerBaseUrl - Base URL of the registration API.
  * @return {Object} Object containing the response and organization ID.
