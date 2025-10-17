@@ -1,10 +1,8 @@
 {
     "dev": {
-        "keycloakBaseUrl": "https://keycloak.itn.internal.dev.cstar.pagopa.it/realms/merchant-operator/protocol/openid-connect/token",
         "baseUrl": "https://api-io.dev.cstar.pagopa.it/idpay-itn"
     },
     "uat": {
-        "keycloakBaseUrl": "https://keycloak.itn.internal.uat.cstar.pagopa.it/realms/merchant-operator/protocol/openid-connect/token",
         "baseUrl": "https://api-io.uat.cstar.pagopa.it/idpay-itn"
     }
 }
