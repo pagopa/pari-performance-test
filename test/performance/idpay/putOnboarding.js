@@ -1,9 +1,8 @@
 import { check, group } from 'k6';
-import { SharedArray } from 'k6/data';
 import { textSummary } from 'https://jslib.k6.io/k6-summary/0.0.1/index.js';
 import { htmlReport } from 'https://raw.githubusercontent.com/benc-uk/k6-reporter/main/dist/bundle.js';
 
-import { fetchUserInitiatives } from '../../common/api/onboardingClient.js';
+import { saveOnboarding } from '../../common/api/onboardingClient.js';
 import { getMockLogin } from '../../common/api/mockIOLogin.js';
 import { loadEnvConfig } from '../../common/loadEnv.js';
 import { prepareScenario } from '../../common/scenarioSetup.js';
@@ -21,22 +20,13 @@ if (!baseUrl) {
   throw new Error(`Missing APIM_URL for environment: ${targetEnv}`);
 }
 
-/** Shared fiscal codes dataset (10k CF onboarded). */
-const fiscalCodes = new SharedArray('fiscalCodes', () => {
-  const csv = open('../../../assets/fc_list_10k.csv');
-  return csv
-    .split('\n')
-    .map(line => line.trim())
-    .filter(line => line && line !== 'CF');
-});
-
 /** Scenario configuration and logger. */
 const { scenarioConfig, logScenario } = prepareScenario({ env: __ENV });
 
 export const options = {
   discardResponseBodies: true,
   scenarios: {
-    fetchInitiativeByServiceId: scenarioConfig,
+    saveOnboarding: scenarioConfig,
   },
   thresholds: {
     http_req_duration: ['p(95)<500'], // 95% delle richieste < 500ms
@@ -62,23 +52,33 @@ export function setup() {
   logScenario();
 }
 
+const INITIATIVE_ID = '68de7fc681ce9e35a476e985';
+
+ // Prepare payload for saveOnboarding
+  const payload = {
+    initiativeId: INITIATIVE_ID,
+    confirmedTos: true,
+    pdndAccept: true,
+    selfDeclarationList: [
+      { "_type": "multi_consent", "code": "isee", "value": "3" },
+      { "_type": "boolean", "code": "1", "accepted": true },
+    ]
+  };
 
 /**
- * Main test entry point — retrieves initiatives by User.
+ * Main test entry point — retrieves initiative detail by Initiative ID.
  */
 export default function () {
-  // Pick a random onboarded fiscal code.
-  const fiscalCode = fiscalCodes[Math.floor(Math.random() * fiscalCodes.length)];
-
   // Get a mock IO token for the selected user.
-  const tokenIO = getMockLogin(fiscalCode).body;
+  const tokenIO = getMockLogin("AAAAAA00A00A000A").body;
 
   // Grouped metrics for clear visualization in k6 reports.
-  group('Onboarding API → Retrieve Initiatives by User', () => {
-    const res = fetchUserInitiatives(baseUrl, tokenIO);
+  group('Onboarding API → Save Onboarding', () => {
+    const res = saveOnboarding(baseUrl, tokenIO, payload);
 
     check(res, {
       '✅ Response status is 200': (r) => r.status === 200,
+      '📦 Response body is not empty': (r) => !!r.body && r.body.length > 0,
     });
   });
 }
