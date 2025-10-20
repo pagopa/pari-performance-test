@@ -21,6 +21,13 @@ parameters:
       - 'test/performance/idpay/getOnboardingStatus_mockLogin.js'
       - 'test/performance/payment/payment.js'
       - 'test/performance/payment/createVoucher.js'
+      - 'test/performance/idpay/getInitiativeDetail.js'
+      - 'test/performance/idpay/getInitiativeService.js'
+      - 'test/performance/idpay/getInitiativesUser.js'
+      - 'test/performance/idpay/getTimeline.js'
+      - 'test/performance/idpay/getWallet.js'
+      - 'test/performance/idpay/getWalletDetail.js'
+      - 'test/performance/idpay/putOnboarding.js'
 
   - name: 'TARGET_ENV'
     displayName: 'Target environment for configuration'
