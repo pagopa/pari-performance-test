@@ -67,7 +67,7 @@ const INITIATIVE_ID = __ENV.INITIATIVE_ID || '68de7fc681ce9e35a476e985';
   };
 
 // 🔹 Legge il nome file CSV dall’ambiente o usa un default
-const csvFile = __ENV.FISCAL_CODE_FILE || '../../../assets/fc_list_10k.csv';
+const csvFile = __ENV.FISCAL_CODE_FILE || '../../../assets/fc_list_100k.csv';
 
 // 🔹 Carica i codici fiscali
 const fiscalCodes = loadCsvArray('fiscalCodes', csvFile);
@@ -90,4 +90,4 @@ export default function () {
   });
 }
 
-// ./k6 run -e K6PERF_SCENARIO_TYPE="constant-arrival-rate" -e K6PERF_TIME_UNIT="1s" -e K6PERF_PRE_ALLOCATED_VUS="10" -e K6PERF_MAX_VUS="20" -e K6PERF_RATE="1" -e K6PERF_DURATION="1s" -e TARGET_ENV="uat" -e FISCAL_CODE_FILE="../../../assets/fc_list_10k.csv" -e INITIATIVE_ID="68de7fc681ce9e35a476e985" .\test\performance\idpay\putOnboarding.js
+// ./k6 run -e K6PERF_SCENARIO_TYPE="constant-arrival-rate" -e K6PERF_TIME_UNIT="1s" -e K6PERF_PRE_ALLOCATED_VUS="10" -e K6PERF_MAX_VUS="20" -e K6PERF_RATE="1" -e K6PERF_DURATION="1s" -e TARGET_ENV="uat" -e FISCAL_CODE_FILE="../../../assets/fc_list_100k.csv" -e INITIATIVE_ID="68de7fc681ce9e35a476e985" .\test\performance\idpay\putOnboarding.js
