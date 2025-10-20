@@ -1,13 +1,13 @@
 import { check, group } from 'k6';
 import { textSummary } from 'https://jslib.k6.io/k6-summary/0.0.1/index.js';
 import { htmlReport } from 'https://raw.githubusercontent.com/benc-uk/k6-reporter/main/dist/bundle.js';
-import { SharedArray } from 'k6/data';
 
 import { saveOnboarding } from '../../common/api/onboardingClient.js';
 import { getMockLogin } from '../../common/api/mockIOLogin.js';
 import { loadEnvConfig } from '../../common/loadEnv.js';
 import { prepareScenario } from '../../common/scenarioSetup.js';
 import { toTrimmedString } from '../../common/basicUtils.js';
+import { loadCsvArray } from '../../common/loadCsvArray.js';
 
 /** Target environment (dev | uat | prod). */
 const targetEnv = (__ENV.TARGET_ENV || 'dev').trim().toLowerCase();
@@ -53,7 +53,7 @@ export function setup() {
   logScenario();
 }
 
-const INITIATIVE_ID = '68de7fc681ce9e35a476e985';
+const INITIATIVE_ID = __ENV.INITIATIVE_ID || '68de7fc681ce9e35a476e985';
 
  // Prepare payload for saveOnboarding
   const payload = {
@@ -66,14 +66,11 @@ const INITIATIVE_ID = '68de7fc681ce9e35a476e985';
     ]
   };
 
-  const fiscalCodes = new SharedArray('fiscalCodes', () => {
-    const csv = open('../../../assets/fc_list_10k.csv');
-    return csv
-      .split('\n')
-      .map(line => line.trim())
-      .filter(line => line && line !== 'CF');
-  });
+// 🔹 Legge il nome file CSV dall’ambiente o usa un default
+const csvFile = __ENV.FISCAL_CODE_FILE || '../../../assets/fc_list_10k.csv';
 
+// 🔹 Carica i codici fiscali
+const fiscalCodes = loadCsvArray('fiscalCodes', csvFile);
 /**
  * Main test entry point — retrieves initiative detail by Initiative ID.
  */
@@ -92,3 +89,5 @@ export default function () {
     });
   });
 }
+
+// ./k6 run -e K6PERF_SCENARIO_TYPE="constant-arrival-rate" -e K6PERF_TIME_UNIT="1s" -e K6PERF_PRE_ALLOCATED_VUS="10" -e K6PERF_MAX_VUS="20" -e K6PERF_RATE="1" -e K6PERF_DURATION="1s" -e TARGET_ENV="uat" -e FISCAL_CODE_FILE="../../../assets/fc_list_10k.csv" -e INITIATIVE_ID="68de7fc681ce9e35a476e985" .\test\performance\idpay\putOnboarding.js
