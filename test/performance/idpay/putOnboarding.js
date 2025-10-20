@@ -1,6 +1,7 @@
 import { check, group } from 'k6';
 import { textSummary } from 'https://jslib.k6.io/k6-summary/0.0.1/index.js';
 import { htmlReport } from 'https://raw.githubusercontent.com/benc-uk/k6-reporter/main/dist/bundle.js';
+import { SharedArray } from 'k6/data';
 
 import { saveOnboarding } from '../../common/api/onboardingClient.js';
 import { getMockLogin } from '../../common/api/mockIOLogin.js';
@@ -65,20 +66,29 @@ const INITIATIVE_ID = '68de7fc681ce9e35a476e985';
     ]
   };
 
+  const fiscalCodes = new SharedArray('fiscalCodes', () => {
+    const csv = open('../../../assets/fc_list_10k.csv');
+    return csv
+      .split('\n')
+      .map(line => line.trim())
+      .filter(line => line && line !== 'CF');
+  });
+
 /**
  * Main test entry point — retrieves initiative detail by Initiative ID.
  */
 export default function () {
+  const fiscalCode = fiscalCodes[Math.floor(Math.random() * fiscalCodes.length)];
+
   // Get a mock IO token for the selected user.
-  const tokenIO = getMockLogin("AAAAAA00A00A000A").body;
+  const tokenIO = getMockLogin(fiscalCode).body;
 
   // Grouped metrics for clear visualization in k6 reports.
   group('Onboarding API → Save Onboarding', () => {
     const res = saveOnboarding(baseUrl, tokenIO, payload);
 
     check(res, {
-      '✅ Response status is 200': (r) => r.status === 200,
-      '📦 Response body is not empty': (r) => !!r.body && r.body.length > 0,
+      '✅ Response status is 202': (r) => r.status === 202
     });
   });
 }

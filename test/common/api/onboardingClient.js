@@ -112,8 +112,7 @@ export function saveOnboarding(baseUrl, token, payload, acceptLanguage = 'it-IT'
 
   const headers = buildHeaders(token, acceptLanguage);
 
-  const res = http.put(url, JSON.stringify(payload), { headers, tags: { apiName: 'saveOnboarding' } });
-  console.log("url: " + url + " token: " + token + " res:" + res.body);
+  const res = http.put(url, JSON.stringify(payload), { headers, tags: { apiName: 'saveOnboarding' }, responseType: 'text' });
 
   if (res.status !== 202) {
     throw new Error(`API Error: ${res.status} - ${res.body}`);
