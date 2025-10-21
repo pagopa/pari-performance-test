@@ -17,6 +17,7 @@ parameters:
     type: string
     default: 'test/performance/pdv/pdvPerformance.js'
     values:
+      - 'test/performance/idpay/onboardingTest.js'
       - 'test/performance/pdv/pdvPerformance.js'
       - 'test/performance/idpay/getOnboardingStatus_mockLogin.js'
       - 'test/performance/payment/payment.js'
