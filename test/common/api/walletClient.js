@@ -46,7 +46,7 @@ function validateAndLogResponse(name, res, expectedStatuses = [200, 201, 202]) {
 }
 
 /**
- * Retrieves detailed information for a specific initiative.
+ * Retrieves detailed information for a wallet.
  * @param {string} baseUrl - Base API URL.
  * @param {string} token - Bearer authorization token.
  * @param {string} [locale='it-IT'] - Language preference.
@@ -62,7 +62,7 @@ export function getWallet(baseUrl, token, locale = 'it-IT') {
 }
 
 /**
- * Retrieves detailed information for a specific initiative.
+ * Retrieves detailed information for a specific initiative wallet.
  * @param {string} baseUrl - Base API URL.
  * @param {string} token - Bearer authorization token.
  * @param {string} initiativeId - Initiative identifier.

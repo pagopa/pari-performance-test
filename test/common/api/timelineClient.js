@@ -45,7 +45,7 @@ function validateAndLogResponse(name, res, expectedStatuses = [200, 201, 202]) {
 }
 
 /**
- * Retrieves detailed information for a specific initiative.
+ * Retrieves detailed information for a specific timeline.
  * @param {string} baseUrl - Base API URL.
  * @param {string} token - Bearer authorization token.
  * @param {string} initiativeId - Initiative identifier.
