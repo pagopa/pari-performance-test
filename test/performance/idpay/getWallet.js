@@ -45,26 +45,22 @@ const csvFile = __ENV.FISCAL_CODE_FILE || "../../../assets/fc_list_100k.csv";
 // 🔹 Carica i codici fiscali
 const fiscalCodes = loadCsvArray("fiscalCodes", csvFile);
 
-export default function() {
+
+export default function () {
   const fiscalCode = fiscalCodes[Math.floor(Math.random() * fiscalCodes.length)];
 
-  // Get a mock IO token for the selected user.
-  const tokenRes = getMockLogin(fiscalCode);
-  const tokenIO = tokenRes.body;
+  // Get token & checks in one call
+  const { token, ok } = getMockLogin(fiscalCode);
 
-  check(tokenRes, {
-    "mock login status 200": (r) => r.status === 200,
-    "mock login body is not empty": (r) => r.body && r.body.length > 0,
-  });
-
-  if (tokenRes.status !== 200 || !tokenIO) {
+  if (!ok || !token) {
     // Interrompi questa iterazione se non riusciamo a ottenere il token
     return;
   }
+
   mockLoginCounter.add(1);
 
-  group("Wallet API → get Wallet", () => {
-    const res = getWallet(baseUrl, tokenIO);
+  group('Wallet API → get Wallet', () => {
+    const res = getWallet(baseUrl, token);
 
     if (res.status === 200) {
       status200Counter.add(1);
@@ -73,10 +69,9 @@ export default function() {
     }
 
     check(res, {
-      "✅ Response status is 200": (r) => r.status === 200,
-      "📦 Response body is not empty": (r) => !!r.body && r.body.length > 0,
+      '✅ Response status is 200': (r) => r.status === 200,
+      '📦 Response body is not empty': (r) => !!r.body && r.body.length > 0,
     });
   });
 }
-
 // ./k6 run -e K6PERF_SCENARIO_TYPE="constant-arrival-rate" -e K6PERF_TIME_UNIT="1s" -e K6PERF_PRE_ALLOCATED_VUS="10" -e K6PERF_MAX_VUS="20" -e K6PERF_RATE="1" -e K6PERF_DURATION="1s" -e TARGET_ENV="uat" -e FISCAL_CODE_FILE="../../../assets/fc_list_100k.csv" .\test\performance\idpay\getWallet.js

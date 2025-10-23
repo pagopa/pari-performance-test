@@ -75,15 +75,9 @@ export default function () {
   const fiscalCode = fiscalCodes[Math.floor(Math.random() * fiscalCodes.length)];
 
   // Get a mock IO token for the selected user.
-  const tokenRes = getMockLogin(fiscalCode);
-  const tokenIO = tokenRes.body;
+  const { token, ok } = getMockLogin(fiscalCode);
 
-  check(tokenRes, {
-    "mock login status 200": (r) => r.status === 200,
-    "mock login body is not empty": (r) => r.body && r.body.length > 0,
-  });
-
-  if (tokenRes.status !== 200 || !tokenIO) {
+  if (!ok || !token) {
     // Interrompi questa iterazione se non riusciamo a ottenere il token
     return;
   }
@@ -91,7 +85,7 @@ export default function () {
 
   // Grouped metrics for clear visualization in k6 reports.
   group('Onboarding API → Retrieve Initiative by Initiative ID', () => {
-    const res = fetchInitiativeDetail(baseUrl, tokenIO, INITIATIVE_ID);
+    const res = fetchInitiativeDetail(baseUrl, token, INITIATIVE_ID);
 
     if (res.status === 200) {
       status200Counter.add(1);
