@@ -34,6 +34,7 @@ export function setup() {
   logScenario();
 }
 
+// Counters
 const status200Counter = new Counter("_getWallet_ok");
 const statusErrorCounter = new Counter("_getWallet_Ko");
 const mockLoginCounter = new Counter("_mock_login_succeeded");

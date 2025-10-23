@@ -1,4 +1,5 @@
 import { check, group } from 'k6';
+import { Counter } from 'k6/metrics'
 import { textSummary } from 'https://jslib.k6.io/k6-summary/0.0.1/index.js';
 import { htmlReport } from 'https://raw.githubusercontent.com/benc-uk/k6-reporter/main/dist/bundle.js';
 
@@ -53,6 +54,11 @@ export function setup() {
   logScenario();
 }
 
+// Counters
+const status200Counter = new Counter("_getWallet_ok");
+const statusErrorCounter = new Counter("_getWallet_Ko");
+const mockLoginCounter = new Counter("_mock_login_succeeded");
+
 const SERVICE_ID = '01K6JJB7W6B6F1W31EHDS9JP3Z';
 
 // 🔹 Legge il nome file CSV dall’ambiente o usa un default
@@ -69,11 +75,29 @@ export default function () {
   const fiscalCode = fiscalCodes[Math.floor(Math.random() * fiscalCodes.length)];
 
   // Get a mock IO token for the selected user.
-  const tokenIO = getMockLogin(fiscalCode).body;
+  const tokenRes = getMockLogin(fiscalCode);
+  const tokenIO = tokenRes.body;
+
+  check(tokenRes, {
+    "mock login status 200": (r) => r.status === 200,
+    "mock login body is not empty": (r) => r.body && r.body.length > 0,
+  });
+
+  if (tokenRes.status !== 200 || !tokenIO) {
+    // Interrompi questa iterazione se non riusciamo a ottenere il token
+    return;
+  }
+  mockLoginCounter.add(1);
 
   // Grouped metrics for clear visualization in k6 reports.
   group('Onboarding API → Retrieve Initiative by Service ID', () => {
     const res = fetchInitiativeByServiceId(baseUrl, tokenIO, SERVICE_ID);
+
+    if (res.status === 200) {
+      status200Counter.add(1);
+    } else {
+      statusErrorCounter.add(1);
+    }
 
     check(res, {
       '✅ Response status is 200': (r) => r.status === 200,
