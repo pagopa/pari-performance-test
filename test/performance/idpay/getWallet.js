@@ -60,7 +60,7 @@ export default function () {
   mockLoginCounter.add(1);
 
   group('Wallet API → get Wallet', () => {
-    const res = getWallet(baseUrl, token);
+    const res = getWallet(baseUrl, token, 'it-IT', [200]);
 
     if (res.status === 200) {
       status200Counter.add(1);

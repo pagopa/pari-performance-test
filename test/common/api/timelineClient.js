@@ -8,7 +8,7 @@ import { logResult } from '../dynamicScenarios/utils.js';
  * @enum {string}
  */
 const TimelineEndpoints = {
-  GET_TIMELINE: '/timeline/{initiativeId}'
+  GET_TIMELINE: '/timeline/{initiativeId}',
 };
 
 /**
@@ -36,9 +36,21 @@ function buildHeaders(token, locale = 'it-IT') {
 function validateAndLogResponse(name, res, expectedStatuses = [200, 201, 202]) {
   logResult(name, res);
 
+  const ok = expectedStatuses.includes(res?.status);
+  if (!ok) {
+    const preview =
+      typeof res?.body === 'string'
+        ? res.body.slice(0, 300)
+        : JSON.stringify(res?.body ?? '').slice(0, 300);
+    console.error(
+      `[${name}] Unexpected status ${res?.status}. Expected: ${expectedStatuses.join(
+        ','
+      )}. Body: ${preview}`
+    );
+  }
+
   check(res, {
-    [`${name} responded successfully`]: (r) =>
-      expectedStatuses.includes(r.status),
+    [`${name} responded successfully`]: (r) => expectedStatuses.includes(r?.status),
   });
 
   return res;
@@ -50,13 +62,30 @@ function validateAndLogResponse(name, res, expectedStatuses = [200, 201, 202]) {
  * @param {string} token - Bearer authorization token.
  * @param {string} initiativeId - Initiative identifier.
  * @param {string} [locale='it-IT'] - Language preference.
- * @returns {Object}
+ * @param {number[]} [expectedStatuses=[200,404]] - Acceptable statuses (404 spesso atteso: TIMELINE_NOT_FOUND).
+ * @returns {Response}
  */
-export function getTimeline(baseUrl, token, initiativeId, locale = 'it-IT') {
+export function getTimeline(
+  baseUrl,
+  token,
+  initiativeId,
+  locale = 'it-IT',
+  expectedStatuses = [200, 404]
+) {
   const apiName = 'getTimeline';
   const url = `${baseUrl}${TimelineEndpoints.GET_TIMELINE.replace('{initiativeId}', initiativeId)}`;
   const headers = buildHeaders(token, locale);
 
-  const res = http.get(url, { headers, tags: { apiName }, responseType: 'text' });
-  return validateAndLogResponse(apiName, res);
+  // Se tra gli attesi c'è 404, non contarlo come "failed" nelle metriche k6
+  const params = {
+    headers,
+    responseType: 'text',
+    tags: {
+      apiName,
+      expected_response: expectedStatuses.includes(404) ? 'true' : 'false',
+    },
+  };
+
+  const res = http.get(url, params);
+  return validateAndLogResponse(apiName, res, expectedStatuses);
 }

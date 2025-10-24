@@ -60,7 +60,7 @@ export default function () {
   mockLoginCounter.add(1);
 
   group('Timeline API → get Timeline', () => {
-    const res = getTimeline(baseUrl, token, INITIATIVE_ID);
+    const res = getTimeline(baseUrl, token, INITIATIVE_ID, 'it-IT', [200]);
 
     if (res.status === 200) {
       status200Counter.add(1);
