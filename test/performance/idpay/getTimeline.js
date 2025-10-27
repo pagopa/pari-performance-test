@@ -35,11 +35,15 @@ export function setup() {
 }
 
 // Counters
-const status200Counter = new Counter("_getWallet_ok");
+const statusOkCounter = new Counter("_getWallet_ok");
 const statusErrorCounter = new Counter("_getWallet_Ko");
 const mockLoginCounter = new Counter("_mock_login_succeeded");
 
+// 🔹 Legge l'initiative ID dall’ambiente o usa un default
 const INITIATIVE_ID = __ENV.INITIATIVE_ID || '68de7fc681ce9e35a476e985';
+
+// 🔹 Legge gli status di risposta che si aspetta dall’ambiente o usa un default
+const EXPECTED_STATUSES = parseExpectedStatuses(__ENV.EXPECTED_STATUSES, [200]);
 
 // 🔹 Legge il nome file CSV dall’ambiente o usa un default
 const csvFile = __ENV.FISCAL_CODE_FILE || '../../../assets/fc_list_100k.csv';
@@ -60,19 +64,19 @@ export default function () {
   mockLoginCounter.add(1);
 
   group('Timeline API → get Timeline', () => {
-    const res = getTimeline(baseUrl, token, INITIATIVE_ID, 'it-IT', [200]);
+    const res = getTimeline(baseUrl, token, INITIATIVE_ID, 'it-IT', EXPECTED_STATUSES);
 
-    if (res.status === 200) {
-      status200Counter.add(1);
+    if (EXPECTED_STATUSES.includes(res.status)) {
+      statusOkCounter.add(1);
     } else {
       statusErrorCounter.add(1);
     }
 
     check(res, {
-      '✅ Response status is 200': r => r.status === 200,
+      '✅ Response status is expected': r => EXPECTED_STATUSES.includes(r.status),
       '📦 Response body is not empty': r => !!r.body && r.body.length > 0,
     });
   });
 }
 
-// ./k6 run -e K6PERF_SCENARIO_TYPE="constant-arrival-rate" -e K6PERF_TIME_UNIT="1s" -e K6PERF_PRE_ALLOCATED_VUS="10" -e K6PERF_MAX_VUS="20" -e K6PERF_RATE="1" -e K6PERF_DURATION="1s" -e TARGET_ENV="uat" -e FISCAL_CODE_FILE="../../../assets/fc_list_100k.csv" -e INITIATIVE_ID="68de7fc681ce9e35a476e985" .\test\performance\idpay\getTimeline.js
+// ./k6 run -e K6PERF_SCENARIO_TYPE="constant-arrival-rate" -e K6PERF_TIME_UNIT="1s" -e K6PERF_PRE_ALLOCATED_VUS="10" -e K6PERF_MAX_VUS="20" -e K6PERF_RATE="1" -e K6PERF_DURATION="1s" -e TARGET_ENV="uat" -e FISCAL_CODE_FILE="../../../assets/fc_list_100k.csv" -e INITIATIVE_ID="68de7fc681ce9e35a476e985" -e EXPECTED_STATUSES="200,404" .\test\performance\idpay\getTimeline.js
