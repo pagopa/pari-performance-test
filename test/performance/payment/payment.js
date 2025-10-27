@@ -82,7 +82,7 @@ export default function () {
   }
 
   //console.log('🔑 Requesting tokens...');
-  const tokenIO = getMockLogin(fiscalCode).body;
+  const { token } = getMockLogin(fiscalCode);
   const tokenKeycloak = getTokenKeycloak(keycloakUrl, email, password);
   //console.log('✅ Tokens retrieved successfully.');
   //console.log('TokenIO:',tokenIO)
@@ -96,7 +96,7 @@ export default function () {
     group('Create Voucher', () => {
       const payload = { initiativeId };
       //console.log('📦 Creating voucher...');
-      const res = createBarCode(baseUrl, tokenIO, payload);
+      const res = createBarCode(baseUrl, token, payload);
       check(res, { 'Voucher created (201)': r => r?.status === 201 });
       trxCode = res.json('trxCode');
       if (!trxCode) {

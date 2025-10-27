@@ -72,6 +72,12 @@ const testConstant = __ENV.TEST_CONSTANT || 'default_test_constant_value';
  *  Sezione per il richiamo di eventuali Utils esterne
  */
 
+ /**
+  *  Sezione per i contatori delle chiamate utili al report k6
+  */
+ const test200Counter = new Counter('test_200');
+ const test404Counter = new Counter('test_404');
+
 /**
  *  Funzione dove viene effettuala la logica per il test con conseguente richiamo dello specifico Client
  */
@@ -80,6 +86,12 @@ export default function () {
   // Grouped metrics for clear visualization in k6 reports.
   group('Test API → specific what this test doing', () => {
     const res = testNameScenario(baseUrl, testConstant);
+
+    if (res.status === 200) {
+        test200Counter.add(1);
+    } else if (res.status === 404) {
+        test404Counter.add(1);
+    }
 
     check(res, {
       '✅ Response status is 200': (r) => r.status === 200,

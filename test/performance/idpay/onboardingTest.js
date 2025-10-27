@@ -71,15 +71,11 @@ export default function () {
   }
 
   // Generate token using mockIOLogin
-  const tokenResponse = getMockLogin(fiscalCode);
-  const tokenOk = check(tokenResponse, {
-    '1. getMockLogin: status is 200': (r) => r.status === 200,
-  });
+  const { token, ok } = getMockLogin(fiscalCode);
 
-  if (!tokenOk) {
+  if (!ok || !token) {
     return;
   }
-  const token = tokenResponse.body;
 
   // call the onboarding status first to ensure the user is not already onboarded
   const statusResponse = getOnboardingStatus(baseUrl, initiativeId, token);
