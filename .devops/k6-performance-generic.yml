@@ -28,6 +28,8 @@ parameters:
       - 'test/performance/idpay/getWallet.js'
       - 'test/performance/idpay/getWalletDetail.js'
       - 'test/performance/idpay/putOnboarding.js'
+      - 'test/performance/idpay/flow_onboardingInitiative_IO.js'
+      - 'test/performance/idpay/flow_walletTimeline_IO.js'
 
   - name: 'TARGET_ENV'
     displayName: 'Target environment for configuration'
@@ -103,6 +105,21 @@ parameters:
     displayName: 'Total iterations (ENV: K6PERF_ITERATIONS, 0 disables)'
     type: number
     default: 0
+
+  - name: 'WALLET_EXPECTED_STATUSES'
+    displayName: '(Optional) Expected statuses for getWallet (comma-separated, e.g. 200,404)'
+    type: string
+    default: '200'
+
+  - name: 'INITIATIVE_ID'
+    displayName: '(Optional) Initiative ID (used by some scripts)'
+    type: string
+    default: '68de7fc681ce9e35a476e985'
+
+  - name: 'FISCAL_CODE_FILE'
+    displayName: '(Optional) Path to CSV file with fiscal codes'
+    type: string
+    default: '../../../assets/fc_list_100k.csv'
 
 variables:
 
@@ -185,6 +202,9 @@ jobs:
           printf '%-24s | %s\n' 'K6PERF_ITERATIONS' "${K6PERF_ITERATIONS}"
           printf '%-24s | %s\n' 'K6PERF_STAGES' "${K6PERF_STAGES_JSON}"
           printf '%-24s | %s\n' 'COMPUTED_RUN_NAME' "${COMPUTED_PIPELINE_NAME}"
+          printf '%-24s | %s\n' 'WALLET_EXPECTED_STATUSES' "${WALLET_EXPECTED_STATUSES}"
+          printf '%-24s | %s\n' 'INITIATIVE_ID' "${INITIATIVE_ID}"
+          printf '%-24s | %s\n' 'FISCAL_CODE_FILE' "${FISCAL_CODE_FILE}"
         displayName: '🔍 Pipeline parameters snapshot'
         env:
           K6_SCRIPT_PATH: ${{ parameters.K6_SCRIPT_PATH }}
@@ -204,6 +224,10 @@ jobs:
           COMPUTED_PIPELINE_NAME: $(ComputedPipelineName)
           KEYCLOAK_USERNAME: $(KEYCLOAK_USERNAME)
           KEYCLOAK_PASSWORD: $(KEYCLOAK_PASSWORD)
+          # 🔹 Env aggiunte
+          WALLET_EXPECTED_STATUSES: ${{ parameters.WALLET_EXPECTED_STATUSES }}
+          INITIATIVE_ID: ${{ parameters.INITIATIVE_ID }}
+          FISCAL_CODE_FILE: ${{ parameters.FISCAL_CODE_FILE }}
 
       - ${{ each k6Script in split(variables.SCRIPTS_TO_EXECUTE, ',') }}:
           - script: |
@@ -223,6 +247,10 @@ jobs:
               K6PERF_MAX_VUS: ${{ parameters.K6PERF_MAX_VUS }}
               ${{ if gt(length(parameters.K6PERF_STAGES), 0) }}:
                 K6PERF_STAGES_JSON: ${{ convertToJson(parameters.K6PERF_STAGES) }}
+              # (Facoltativo) puoi passarle anche qui se lo script le usa in validazione:
+              WALLET_EXPECTED_STATUSES: ${{ parameters.WALLET_EXPECTED_STATUSES }}
+              INITIATIVE_ID: ${{ parameters.INITIATIVE_ID }}
+              FISCAL_CODE_FILE: ${{ parameters.FISCAL_CODE_FILE }}
 
   - template: templates\xk6-build.yml
     parameters:
@@ -275,6 +303,10 @@ jobs:
                 K6PERF_STAGES_JSON: ${{ convertToJson(parameters.K6PERF_STAGES) }}
               KEYCLOAK_USERNAME: $(KEYCLOAK_USERNAME)
               KEYCLOAK_PASSWORD: $(KEYCLOAK_PASSWORD)
+              # 🔹 Env inoltrate agli script k6 (usabili come __ENV.*)
+              WALLET_EXPECTED_STATUSES: ${{ parameters.WALLET_EXPECTED_STATUSES }}
+              INITIATIVE_ID: ${{ parameters.INITIATIVE_ID }}
+              FISCAL_CODE_FILE: ${{ parameters.FISCAL_CODE_FILE }}
             timeoutInMinutes: 0
             displayName: '🚀 Run k6 script ${{ k6Script }}'
 
