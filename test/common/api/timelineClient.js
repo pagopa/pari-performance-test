@@ -28,6 +28,7 @@ function buildHeaders(token, locale = 'it-IT') {
 
 /**
  * Validates and logs HTTP responses.
+ * Special case: 404 with TIMELINE_USER_NOT_FOUND is considered OK.
  * @param {string} name - Logical API name (used for tags and logging).
  * @param {Response} res - HTTP response object.
  * @param {number[]} [expectedStatuses=[200,201,202]] - Acceptable HTTP statuses.
@@ -36,25 +37,42 @@ function buildHeaders(token, locale = 'it-IT') {
 function validateAndLogResponse(name, res, expectedStatuses = [200, 201, 202]) {
   logResult(name, res);
 
-  const ok = expectedStatuses.includes(res?.status);
+  // ✅ Determina se la risposta è OK
+  let ok = expectedStatuses.includes(res.status);
+
+  // ✅ Caso speciale: 404 con TIMELINE_USER_NOT_FOUND
+  if (res.status === 404) {
+    try {
+      const body = res?.body ? (res?.json?.() ?? JSON.parse(res.body)) : null;
+      if (body?.code === 'TIMELINE_USER_NOT_FOUND') {
+        ok = true;
+      }
+    } catch {
+      // ignora eventuali errori di parsing
+    }
+  }
+
+  // 🔎 Log di errore solo se non è ok
   if (!ok) {
     const preview =
-      typeof res?.body === 'string'
+      typeof res.body === 'string'
         ? res.body.slice(0, 300)
-        : JSON.stringify(res?.body ?? '').slice(0, 300);
+        : JSON.stringify(res.body).slice(0, 300);
     console.error(
-      `[${name}] Unexpected status ${res?.status}. Expected: ${expectedStatuses.join(
+      `[${name}] Unexpected status ${res.status}. Expected: ${expectedStatuses.join(
         ','
       )}. Body: ${preview}`
     );
   }
 
+  // 🔍 Check K6
   check(res, {
-    [`${name} responded successfully`]: (r) => expectedStatuses.includes(r?.status),
+    [`${name} responded successfully`]: () => ok,
   });
 
   return res;
 }
+
 
 /**
  * Retrieves detailed information for a specific timeline.

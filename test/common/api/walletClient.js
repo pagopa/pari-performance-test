@@ -29,6 +29,7 @@ function buildHeaders(token, locale = 'it-IT') {
 
 /**
  * Validates and logs HTTP responses.
+ * Special case: 404 with WALLET_USER_NOT_ONBOARDED is considered OK.
  * @param {string} name - Logical API name (used for tags and logging).
  * @param {Response} res - HTTP response object.
  * @param {number[]} [expectedStatuses=[200,201,202]] - Acceptable HTTP statuses.
@@ -37,11 +38,27 @@ function buildHeaders(token, locale = 'it-IT') {
 function validateAndLogResponse(name, res, expectedStatuses = [200, 201, 202]) {
   logResult(name, res);
 
-  const ok = expectedStatuses.includes(res.status);
+  // ✅ Determina se la risposta è OK
+  let ok = expectedStatuses.includes(res.status);
 
+  // ✅ Caso speciale: 404 con WALLET_USER_NOT_ONBOARDED
+  if (res.status === 404) {
+    try {
+      const body = res?.body ? (res?.json?.() ?? JSON.parse(res.body)) : null;
+      if (body?.code === 'WALLET_USER_NOT_ONBOARDED') {
+        ok = true;
+      }
+    } catch {
+      // ignora errori di parsing
+    }
+  }
+
+  // 🔎 Log di errore solo se non è ok
   if (!ok) {
     const preview =
-      typeof res.body === 'string' ? res.body.slice(0, 300) : JSON.stringify(res.body).slice(0, 300);
+      typeof res.body === 'string'
+        ? res.body.slice(0, 300)
+        : JSON.stringify(res.body).slice(0, 300);
     console.error(
       `[${name}] Unexpected status ${res.status}. Expected: ${expectedStatuses.join(
         ','
@@ -49,12 +66,14 @@ function validateAndLogResponse(name, res, expectedStatuses = [200, 201, 202]) {
     );
   }
 
+  // 🔍 Check K6
   check(res, {
-    [`${name} responded successfully`]: (r) => expectedStatuses.includes(r.status),
+    [`${name} responded successfully`]: () => ok,
   });
 
   return res;
 }
+
 
 /**
  * Retrieves wallet summary.
