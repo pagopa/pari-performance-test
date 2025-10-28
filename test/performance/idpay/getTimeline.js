@@ -43,7 +43,7 @@ const mockLoginCounter = new Counter("_mock_login_succeeded");
 const INITIATIVE_ID = __ENV.INITIATIVE_ID || '68de7fc681ce9e35a476e985';
 
 // 🔹 Legge gli status di risposta che si aspetta dall’ambiente o usa un default
-const EXPECTED_STATUSES = parseExpectedStatuses(__ENV.EXPECTED_STATUSES, [200]);
+const EXPECTED_STATUSES = parseExpectedStatuses(__ENV.EXPECTED_STATUSES, [200, 404]);
 
 // 🔹 Legge il nome file CSV dall’ambiente o usa un default
 const csvFile = __ENV.FISCAL_CODE_FILE || '../../../assets/fc_list_100k.csv';

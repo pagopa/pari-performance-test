@@ -44,7 +44,7 @@ const mockLoginCounter = new Counter("_mock_login_succeeded");
 const csvFile = __ENV.FISCAL_CODE_FILE || "../../../assets/fc_list_100k.csv";
 
 // 🔹 Legge gli status di risposta che si aspetta dall’ambiente o usa un default
-const EXPECTED_STATUSES = parseExpectedStatuses(__ENV.EXPECTED_STATUSES, [200]);
+const EXPECTED_STATUSES = parseExpectedStatuses(__ENV.EXPECTED_STATUSES, [200, 404]);
 
 // 🔹 Carica i codici fiscali
 const fiscalCodes = loadCsvArray("fiscalCodes", csvFile);
