@@ -9,6 +9,7 @@ import { prepareScenario } from "../../common/scenarioSetup.js";
 import { toTrimmedString } from "../../common/basicUtils.js";
 import { getWallet } from "../../common/api/walletClient.js";
 import { loadCsvArray } from "../../common/loadCsvArray.js";
+import { parseExpectedStatuses } from "../../common/utils.js";
 
 const targetEnv = (__ENV.TARGET_ENV || "dev").trim().toLowerCase();
 const envConfig = loadEnvConfig(targetEnv);
@@ -35,12 +36,15 @@ export function setup() {
 }
 
 // Counters
-const status200Counter = new Counter("_getWallet_ok");
+const statusOkCounter = new Counter("_getWallet_ok");
 const statusErrorCounter = new Counter("_getWallet_Ko");
 const mockLoginCounter = new Counter("_mock_login_succeeded");
 
 // 🔹 Legge il nome file CSV dall’ambiente o usa un default
 const csvFile = __ENV.FISCAL_CODE_FILE || "../../../assets/fc_list_100k.csv";
+
+// 🔹 Legge gli status di risposta che si aspetta dall’ambiente o usa un default
+const EXPECTED_STATUSES = parseExpectedStatuses(__ENV.EXPECTED_STATUSES, [200, 404]);
 
 // 🔹 Carica i codici fiscali
 const fiscalCodes = loadCsvArray("fiscalCodes", csvFile);
@@ -60,18 +64,18 @@ export default function () {
   mockLoginCounter.add(1);
 
   group('Wallet API → get Wallet', () => {
-    const res = getWallet(baseUrl, token, 'it-IT', [200]);
+    const res = getWallet(baseUrl, token, "it-IT", EXPECTED_STATUSES);
 
-    if (res.status === 200) {
-      status200Counter.add(1);
+    if (EXPECTED_STATUSES.includes(res.status)) {
+      statusOkCounter.add(1);
     } else {
       statusErrorCounter.add(1);
     }
 
     check(res, {
-      '✅ Response status is 200': (r) => r.status === 200,
-      '📦 Response body is not empty': (r) => !!r.body && r.body.length > 0,
+      "✅ Response status is expected": (r) => EXPECTED_STATUSES.includes(r.status),
+      "📦 Response body is not empty": (r) => !!r.body && r.body.length > 0,
     });
   });
 }
-// ./k6 run -e K6PERF_SCENARIO_TYPE="constant-arrival-rate" -e K6PERF_TIME_UNIT="1s" -e K6PERF_PRE_ALLOCATED_VUS="10" -e K6PERF_MAX_VUS="20" -e K6PERF_RATE="1" -e K6PERF_DURATION="1s" -e TARGET_ENV="uat" -e FISCAL_CODE_FILE="../../../assets/fc_list_100k.csv" .\test\performance\idpay\getWallet.js
+// ./k6 run -e K6PERF_SCENARIO_TYPE="constant-arrival-rate" -e K6PERF_TIME_UNIT="1s" -e K6PERF_PRE_ALLOCATED_VUS="10" -e K6PERF_MAX_VUS="20" -e K6PERF_RATE="1" -e K6PERF_DURATION="1s" -e TARGET_ENV="uat" -e FISCAL_CODE_FILE="../../../assets/fc_list_100k.csv" -e EXPECTED_STATUSES="200,404" .\test\performance\idpay\getWallet.js

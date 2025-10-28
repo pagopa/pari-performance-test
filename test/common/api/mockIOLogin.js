@@ -17,8 +17,8 @@ export function getMockLogin(fiscalCode) {
 
   // ✅ esegui i check qui
   const ok = check(res, {
-    'mock login status 200': (r) => r.status === 200,
-    'mock login body is not empty': (r) => r.body && r.body.length > 0,
+    '✅ mock login status 200': (r) => r.status === 200,
+    '📦 mock login body is not empty': (r) => r.body && r.body.length > 0,
   });
 
   if (!ok) {

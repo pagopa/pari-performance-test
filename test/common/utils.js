@@ -157,6 +157,25 @@ export function getRandomCategory() {
     return categories[randomIndex];
 }
 
+/**
+ * Parses a comma-separated list of HTTP status codes from an environment variable.
+ * Example: "200,404,500" → [200, 404, 500]
+ * @param {string} envValue - Raw environment variable string (e.g. "200,404").
+ * @param {number[]} [fallback=[200]] - Default value if parsing fails or envValue is empty.
+ * @returns {number[]} Array of numeric status codes.
+ */
+export function parseExpectedStatuses(envValue, fallback = [200]) {
+    const raw = (envValue || "").trim();
+    if (!raw) return fallback;
+
+    const parsed = raw
+        .split(",")
+        .map(s => Number.parseInt(s.trim(), 10))
+        .filter(n => !Number.isNaN(n));
+
+    return parsed.length ? parsed : fallback;
+}
+
 export const ORG_IDS = {
     dev_eie: '72c2c5f8-1c71-4614-a4b3-95e3aee71c3d',
     uat_eie: '8bd31e63-a8e8-4cbc-b06d-bc69f32c3fde'
