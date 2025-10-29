@@ -30,22 +30,39 @@ function buildHeaders(token, locale = 'it-IT') {
   };
 }
 
+function parseJsonSafe(res) {
+  try {
+    return res?.json?.() ?? (res?.body ? JSON.parse(res.body) : null);
+  } catch { return null; }
+}
+
 /**
- * Validates and logs HTTP responses.
- * @param {string} name - Logical API name (used for tags and logging).
- * @param {Response} res - HTTP response object.
- * @param {number[]} [expectedStatuses=[200,201,202]] - Acceptable HTTP statuses.
- * @returns {Response}
+ * Validazione generica con supporto a errori attesi per status.
+ * - okStatuses: es. [200]
+ * - expectedByStatus: es. { 404: ['INITIATIVE_NOT_FOUND'], 400: ['ONBOARDING_*'] }
  */
-function validateAndLogResponse(name, res, expectedStatuses = [200, 201, 202]) {
+function validateAndLogResponse(name, res, okStatuses = [200], expectedByStatus = {}) {
   logResult(name, res);
 
+  const isOk = !!res && okStatuses.includes(res.status);
+  let ok = isOk;
+
+  if (!ok && res) {
+    const expectedCodes = expectedByStatus[res.status];
+    if (expectedCodes && expectedCodes.length > 0) {
+      const j = parseJsonSafe(res);
+      if (j?.code && expectedCodes.includes(j.code)) {
+        ok = true;
+      }
+    }
+  }
+
   check(res, {
-    [`${name} responded successfully`]: (r) =>
-      expectedStatuses.includes(r.status),
+    [`${name} responded with pure 2xx`]: () => isOk,
+    [`${name} ok (status in ${JSON.stringify(okStatuses)} or expected codes)`]: () => ok,
   });
 
-  return res;
+  return { res, ok, isOk };
 }
 
 /**
@@ -56,13 +73,33 @@ function validateAndLogResponse(name, res, expectedStatuses = [200, 201, 202]) {
  * @param {string} [locale='it-IT'] - Language preference.
  * @returns {Response}
  */
+
 export function fetchInitiativeDetail(baseUrl, token, initiativeId, locale = 'it-IT') {
-  const apiName = 'fetchInitiativeDetail';
+  const name = 'fetchInitiativeDetail';
   const url = `${baseUrl}${OnboardingEndpoints.INITIATIVE_DETAIL.replace('{initiativeId}', initiativeId)}`;
   const headers = buildHeaders(token, locale);
 
-  const res = http.get(url, { headers, tags: { apiName }, responseType: 'text' });
-  return validateAndLogResponse(apiName, res);
+  const params = {
+    headers,
+    responseType: 'text',
+    tags: {
+      apiName: name,
+      // Può restituire 400/404 attesi
+      expected_response: 'true',
+    },
+  };
+
+  const res = http.get(url, params);
+  // OK se 200; OK anche se 404 o 400 con i codici attesi
+  return validateAndLogResponse(
+    name,
+    res,
+    [200],
+    {
+      404: ['ONBOARDING_USER_NOT_ONBOARDED'],
+      400: ['ONBOARDING_ALREADY_ONBOARDED', 'ONBOARDING_ON_EVALUATION'],
+    }
+  );
 }
 
 /**
@@ -70,15 +107,30 @@ export function fetchInitiativeDetail(baseUrl, token, initiativeId, locale = 'it
  * @param {string} baseUrl - Base API URL.
  * @param {string} token - Bearer authorization token.
  * @param {string} [locale='it-IT'] - Language preference.
- * @returns {Response}
+ * @returns {{res: Response, ok: boolean, isOk: boolean}}
  */
 export function fetchUserInitiatives(baseUrl, token, locale = 'it-IT') {
-  const apiName = 'fetchUserInitiatives';
+  const name = 'fetchUserInitiatives';
   const url = `${baseUrl}${OnboardingEndpoints.BY_USER}`;
   const headers = buildHeaders(token, locale);
 
-  const res = http.get(url, { headers, tags: { apiName }, responseType: 'text' });
-  return validateAndLogResponse(apiName, res);
+  const params = {
+    headers,
+    responseType: 'text',
+    tags: {
+      apiName: name,
+      // Metti 'true' solo se decidi di considerare OK alcuni 4xx con code attesi
+      expected_response: 'false',
+    },
+  };
+
+  const res = http.get(url, params);
+
+  // OK solo se 200.
+  // Se vuoi considerare come OK anche alcuni errori attesi (es. 404 con un certo code),
+  // passa il 4° argomento con la mappa degli status/codici, tipo:
+  // return validateAndLogResponse(name, res, [200], { 404: ['ONBOARDING_USER_NOT_FOUND'] });
+  return validateAndLogResponse(name, res, [200]);
 }
 
 /**
@@ -90,14 +142,24 @@ export function fetchUserInitiatives(baseUrl, token, locale = 'it-IT') {
  * @returns {Response}
  */
 export function fetchInitiativeByServiceId(baseUrl, token, serviceId, locale = 'it-IT') {
-  const apiName = 'fetchInitiativeByServiceId';
+  const name = 'fetchInitiativeByServiceId';
   const url = `${baseUrl}${OnboardingEndpoints.BY_SERVICE_ID.replace('{serviceId}', serviceId)}`;
   const headers = buildHeaders(token, locale);
 
-  const res = http.get(url, { headers, tags: { apiName }, responseType: 'text' });
-  return validateAndLogResponse(apiName, res);
-}
+  const params = {
+    headers,
+    responseType: 'text',
+    tags: {
+      apiName: name,
+      // Potrebbe restituire 404 atteso
+      expected_response: 'true',
+    },
+  };
 
+  const res = http.get(url, params);
+  // OK se 200, oppure 404 con INITIATIVE_NOT_FOUND
+  return validateAndLogResponse(name, res, [200], { 404: ['INITIATIVE_NOT_FOUND'] });
+}
 /**
  * Calls the PUT /onboarding endpoint.
  * @param {string} baseUrl - The base URL for the API.

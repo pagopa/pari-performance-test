@@ -1,5 +1,5 @@
 import { check, group } from 'k6';
-import { Counter } from 'k6/metrics'
+import { Counter } from 'k6/metrics';
 import { textSummary } from 'https://jslib.k6.io/k6-summary/0.0.1/index.js';
 import { htmlReport } from 'https://raw.githubusercontent.com/benc-uk/k6-reporter/main/dist/bundle.js';
 
@@ -31,15 +31,12 @@ export const options = {
     fetchInitiativeDetail: scenarioConfig,
   },
   thresholds: {
-    http_req_duration: ['p(95)<500'], // 95% delle richieste < 500ms
+    // 95% delle richieste < 500ms
+    http_req_duration: ['p(95)<500'],
   },
 };
 
-/**
- * Generates summary reports (stdout + HTML).
- * @param {Object} data - k6 summary metrics.
- * @returns {Object} Report outputs.
- */
+/** REPORT */
 export function handleSummary(data) {
   return {
     stdout: textSummary(data, { indent: ' ', enableColors: true }),
@@ -47,55 +44,50 @@ export function handleSummary(data) {
   };
 }
 
-/**
- * Setup function for scenario logging.
- */
+/** Setup */
 export function setup() {
   logScenario();
 }
 
-// Counters
-const status200Counter = new Counter("_getInitiativeDetail_ok");
-const statusErrorCounter = new Counter("_getInitiativeDetail_Ko");
-const mockLoginCounter = new Counter("_mock_login_succeeded");
+/** Counters */
+const fetchDetailOk_Counter = new Counter('_fetchInitiativeDetail_ok');
+const fetchDetailKo_Counter = new Counter('_fetchInitiativeDetail_ko');
+const mockLoginCounter = new Counter('_mock_login_succeeded');
 
+/** Parametri */
 const INITIATIVE_ID = __ENV.INITIATIVE_ID || '68de7fc681ce9e35a476e985';
 
-// 🔹 Legge il nome file CSV dall’ambiente o usa un default
+/** CSV */
 const csvFile = __ENV.FISCAL_CODE_FILE || '../../../assets/fc_list_100k.csv';
-
-// 🔹 Carica i codici fiscali
 const fiscalCodes = loadCsvArray('fiscalCodes', csvFile);
 
-/**
- * Main test entry point — retrieves initiative detail by Initiative ID.
- */
+/** Main */
 export default function () {
+  if (!fiscalCodes || fiscalCodes.length === 0) {
+    throw new Error(`La lista dei codici fiscali è vuota. File letto: ${csvFile}`);
+  }
 
+  // Pick a random fiscal code.
   const fiscalCode = fiscalCodes[Math.floor(Math.random() * fiscalCodes.length)];
 
-  // Get a mock IO token for the selected user.
+  // Mock IO login
   const { token, ok } = getMockLogin(fiscalCode);
-
   if (!ok || !token) {
-    // Interrompi questa iterazione se non riusciamo a ottenere il token
+    // Iterazione “bruciata”: non inquina le metriche
     return;
   }
   mockLoginCounter.add(1);
 
-  // Grouped metrics for clear visualization in k6 reports.
+  // Group per report k6 chiaro
   group('Onboarding API → Retrieve Initiative by Initiative ID', () => {
-    const res = fetchInitiativeDetail(baseUrl, token, INITIATIVE_ID);
+    // Il client ritorna { res, ok, isOk } e gestisce anche 400/404 attesi
+    const { res, ok: overallOk } = fetchInitiativeDetail(baseUrl, token, INITIATIVE_ID);
 
-    if (res.status === 200) {
-      status200Counter.add(1);
-    } else {
-      statusErrorCounter.add(1);
-    }
+    (overallOk ? fetchDetailOk_Counter : fetchDetailKo_Counter).add(1);
 
     check(res, {
-      '✅ Response status is 200': (r) => r.status === 200,
-      '📦 Response body is not empty': (r) => !!r.body && r.body.length > 0,
+      '✅ Response status is 200': (r) => r && r.status === 200,
+      '📦 Response body is not empty': (r) => r && !!r.body && r.body.length > 0,
     });
   });
 }
