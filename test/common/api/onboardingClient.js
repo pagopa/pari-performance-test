@@ -13,6 +13,7 @@ const OnboardingEndpoints = {
   INITIATIVE_DETAIL: '/onboarding/{initiativeId}/detail',
   SAVE_ONBOARDING: '/onboarding',
   ONBOARDING_STATUS: '/onboarding/{initiativeId}/status',
+  ONBOARDING_USER_INITIATIVE_STATUS: '/onboarding/user/initiative/status',
 };
 
 /**
@@ -193,6 +194,24 @@ export function saveOnboarding(baseUrl, token, payload, acceptLanguage = 'it-IT'
 export function getOnboardingStatus(baseUrl, initiativeId, token) {
     const url = `${baseUrl}${OnboardingEndpoints.ONBOARDING_STATUS.replace('{initiativeId}', initiativeId)}`;
     
+    const headers = buildHeaders(token);
+
+    const params = {
+        headers
+    }
+
+    return http.get(url, params)
+}
+
+/**
+ * Calls the onboarding get user initiative status endpoint.
+ * @param {string} baseUrl - The base URL for the API.
+ * @param {string} token - The Bearer token for authorization.
+ * @returns {Response} - The k6 HTTP response object.
+ */
+export function getOnboardingUserInitiativeStatus(baseUrl, token) {
+    const url = `${baseUrl}${OnboardingEndpoints.ONBOARDING_USER_INITIATIVE_STATUS}`;
+
     const headers = buildHeaders(token);
 
     const params = {
