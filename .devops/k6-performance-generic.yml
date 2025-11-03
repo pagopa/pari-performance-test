@@ -28,7 +28,6 @@ parameters:
       - 'test/performance/idpay/getWallet.js'
       - 'test/performance/idpay/getWalletDetail.js'
       - 'test/performance/idpay/putOnboarding.js'
-      - 'test/performance/idpay/getOnboardingUserInitiativeStatus_IO.js'
       - 'test/performance/idpay/flow_onboardingInitiative_IO.js'
       - 'test/performance/idpay/flow_walletTimeline_IO.js'
 

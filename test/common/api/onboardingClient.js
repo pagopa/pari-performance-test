@@ -126,11 +126,6 @@ export function fetchUserInitiatives(baseUrl, token, locale = 'it-IT') {
   };
 
   const res = http.get(url, params);
-
-  // OK solo se 200.
-  // Se vuoi considerare come OK anche alcuni errori attesi (es. 404 con un certo code),
-  // passa il 4° argomento con la mappa degli status/codici, tipo:
-  // return validateAndLogResponse(name, res, [200], { 404: ['ONBOARDING_USER_NOT_FOUND'] });
   return validateAndLogResponse(name, res, [200]);
 }
 
@@ -194,24 +189,6 @@ export function saveOnboarding(baseUrl, token, payload, acceptLanguage = 'it-IT'
 export function getOnboardingStatus(baseUrl, initiativeId, token) {
     const url = `${baseUrl}${OnboardingEndpoints.ONBOARDING_STATUS.replace('{initiativeId}', initiativeId)}`;
     
-    const headers = buildHeaders(token);
-
-    const params = {
-        headers
-    }
-
-    return http.get(url, params)
-}
-
-/**
- * Calls the onboarding get user initiative status endpoint.
- * @param {string} baseUrl - The base URL for the API.
- * @param {string} token - The Bearer token for authorization.
- * @returns {Response} - The k6 HTTP response object.
- */
-export function getOnboardingUserInitiativeStatus(baseUrl, token) {
-    const url = `${baseUrl}${OnboardingEndpoints.ONBOARDING_USER_INITIATIVE_STATUS}`;
-
     const headers = buildHeaders(token);
 
     const params = {
