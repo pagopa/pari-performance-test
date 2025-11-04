@@ -14,7 +14,7 @@ import { prepareScenario } from '../../common/scenarioSetup.js';
 
 // Load the list of 100K CFs from a CSV file
 const fiscalCodes = new SharedArray('fiscalCodes', () => {
-  const csv = open('../../../assets/fc_list_10.csv');
+  const csv = open('../../../assets/fc_list_100k_2.csv');
   return csv.split('\n')
     .map(line => line.trim())
     .filter(line => line && line !== 'CF');
