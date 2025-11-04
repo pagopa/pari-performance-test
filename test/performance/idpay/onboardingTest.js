@@ -14,7 +14,7 @@ import { prepareScenario } from '../../common/scenarioSetup.js';
 
 // Load the list of 100K CFs from a CSV file
 const fiscalCodes = new SharedArray('fiscalCodes', () => {
-  const csv = open('../../../assets/fc_list_100k_2.csv');
+  const csv = open('../../../assets/fc_list_10.csv');
   return csv.split('\n')
     .map(line => line.trim())
     .filter(line => line && line !== 'CF');
@@ -52,7 +52,7 @@ export function setup() {
   logScenario()
 }
 
-const initiativeId = '68de7fc681ce9e35a476e985'
+const initiativeId = '68dd003ccce8c534d1da22bc'
 const startIndex = 0;
 
 export default function () {

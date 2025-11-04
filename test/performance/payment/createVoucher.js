@@ -1,8 +1,9 @@
 import { htmlReport, textSummary } from 'https://jslib.k6.io/k6-summary/0.0.2/index.js';
-import { check, group, sleep } from 'k6';
+import { check, group } from 'k6';
 import { SharedArray } from 'k6/data';
 
-import { getTokenIO } from '../../common/api/tokenAuth.js';
+import exec from 'k6/execution';
+import { getMockLogin } from '../../common/api/mockIOLogin.js';
 import { createBarCode } from '../../common/api/payment.js';
 import { toTrimmedString } from '../../common/basicUtils.js';
 import { loadEnvConfig } from '../../common/loadEnv.js';
@@ -10,7 +11,7 @@ import { prepareScenario } from '../../common/scenarioSetup.js';
 
 /** Load fiscal codes from CSV */
 const fiscalCodes = new SharedArray('fiscalCodes', () => {
-  const csv = open('../../../assets/fc_list_10k.csv');
+  const csv = open('../../../assets/fc_list_10.csv');
   return csv
     .split('\n')
     .map(line => line.trim())
@@ -58,11 +59,14 @@ export function setup() {
 }
 
 /** Test data */
-const initiativeId = '68de7fc681ce9e35a476e985';
+const initiativeId = '68dd003ccce8c534d1da22bc';
+const startIndex = 0;
 
 
 export default function () {
-  const fiscalCode = fiscalCodes[Math.floor(Math.random() * fiscalCodes.length)];
+  const index = startIndex + exec.scenario.iterationInTest;
+
+  const fiscalCode = fiscalCodes[index]
 
   //console.log(`🧾 FiscalCode: ${fiscalCode}`);
 
@@ -72,7 +76,7 @@ export default function () {
   }
 
   //console.log('🔑 Requesting tokens...');
-  const tokenIO = getTokenIO(fiscalCode);
+  const tokenIO = getMockLogin(fiscalCode);
   //console.log('✅ Tokens retrieved successfully.');
   //console.log('TokenIO:',tokenIO)
 
@@ -81,14 +85,14 @@ export default function () {
   group('Create Voucher', () => {
     const payload = { initiativeId };
     //console.log('📦 Creating voucher...');
-    const res = createBarCode(baseUrl, tokenIO, payload);
+    const res = createBarCode(baseUrl, tokenIO.body, payload);
     check(res, { 'Voucher created (201)': r => r?.status === 201 });
 
     trxCode = res.json('trxCode');
     if (!trxCode) {
       throw new Error('❌ Missing trxCode in createBarCode response.');
     }
-    console.log(`🎟️ trxCode generated: ${trxCode}`);
+    console.log(`🎟️CF: ${fiscalCode} trxCode generated: ${trxCode}`);
   });
 
 }
