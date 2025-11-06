@@ -54,8 +54,8 @@ const csvFile = __ENV.FISCAL_CODE_FILE || "../../../assets/fc_list_100k.csv";
 const getWalletOk_Counter = new Counter("_getWallet_ok");
 const getWalletKo_Counter = new Counter("_getWallet_ko");
 
-const firstGetOnboardingStatusOk_Counter = new Counter("_first_getOnboardingStatus_ok");
-const firstGetOnboardingStatusKo_Counter = new Counter("_first_getOnboardingStatus_ko");
+const getOnboardingStatusOk_Counter = new Counter("_getOnboardingStatus_ok");
+const getOnboardingStatusKo_Counter = new Counter("_getOnboardingStatus_ko");
 
 const fetchInitiativeByServiceIdOk_Counter = new Counter("_fetchInitiativeByServiceId_ok");
 const fetchInitiativeByServiceIdKo_Counter = new Counter("_fetchInitiativeByServiceId_ko");
@@ -69,8 +69,8 @@ const decisionGetOnboardingStatusKo_Counter = new Counter("_decisionGetOnboardin
 const saveOnboardingOk_Counter = new Counter("_saveOnboarding_ok");
 const saveOnboardingKo_Counter = new Counter("_saveOnboarding_ko");
 
-const secondGetOnboardingStatusOk_Counter = new Counter("_second_getOnboardingStatus_ok");
-const secondGetOnboardingStatusKo_Counter = new Counter("_second_getOnboardingStatus_ko");
+const getOnboardingInitiativesUserStatusOk_Counter = new Counter("_getOnboardingInitiativesUserStatus_ok");
+const getOnboardingInitiativesUserStatusKo_Counter = new Counter("_getOnboardingInitiativesUserStatus_ko");
 
 const mockLoginCounter = new Counter("_mock_login_succeeded");
 
@@ -158,8 +158,8 @@ export default function flowOnboardingAndDetailIo() {
 
   // 2) getOnboardingStatus (prima volta, informativa)
   callAndTrack(getOnboardingStatus, [baseUrl, INITIATIVE_ID, token], {
-    okCounter: firstGetOnboardingStatusOk_Counter,
-    koCounter: firstGetOnboardingStatusKo_Counter,
+    okCounter: getOnboardingStatusOk_Counter,
+    koCounter: getOnboardingStatusKo_Counter,
     label: "✅ getFirstOnboardingStatus",
     okStatuses: [200, 404], // utente può non essere onboarded
   });
@@ -230,12 +230,12 @@ export default function flowOnboardingAndDetailIo() {
     return;
   }
 
-  // 6) getOnboardingStatus (seconda volta)
-  callAndTrack(getOnboardingStatus, [baseUrl, INITIATIVE_ID, token], {
-    okCounter: secondGetOnboardingStatusOk_Counter,
-    koCounter: secondGetOnboardingStatusKo_Counter,
-    label: "✅ getSecondOnboardingStatus",
-    okStatuses: [200, 404], // a seconda delle latenze, potrebbe risultare ancora 404
+  // 6) fetchUserInitiatives
+  callAndTrack(fetchUserInitiatives, [baseUrl, token], {
+    okCounter: getOnboardingInitiativesUserStatusOk_Counter,
+    koCounter: getOnboardingInitiativesUserStatusKo_Counter,
+    label: "✅ fetchUserInitiatives",
+    okStatuses: [200],
   });
 }
 
