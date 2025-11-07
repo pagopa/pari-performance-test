@@ -75,7 +75,7 @@ const getOnboardingInitiativesUserStatusKo_Counter = new Counter("_getOnboarding
 const mockLoginCounter = new Counter("_mock_login_succeeded");
 
 // --- CSV ---
-const fiscalCodes = loadCsvArray("fiscalCodes", csvFile);
+const fiscalCodes = loadCsvArray('fiscalCodes', csvFile);
 
 // --- UTILS ---
 const parseJsonSafe = (res) => {
