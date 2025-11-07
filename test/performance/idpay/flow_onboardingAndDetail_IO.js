@@ -12,6 +12,7 @@ import {
   fetchInitiativeDetail,
   getOnboardingStatus,
   saveOnboarding,
+  fetchUserInitiatives,
 } from "../../common/api/onboardingClient.js";
 import { getWallet } from "../../common/api/walletClient.js";
 import { loadCsvArray } from "../../common/loadCsvArray.js";
