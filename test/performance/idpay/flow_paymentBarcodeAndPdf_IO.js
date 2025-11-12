@@ -101,12 +101,9 @@ function callAndTrack(caller, args, { okCounter, koCounter, label, okStatuses = 
 console.log(`Calling ${label} with args: ${JSON.stringify(args)}`);
   const normalized = normalizeCallResult(caller(...args), okStatuses, expectedByStatus);
   const { res, ok } = normalized;
-console.log(`${label} response: ${res ? res.status : 'no response'}`);
   (ok ? okCounter : koCounter).add(1);
-console.log(`${label} completed. OK: ${ok}, Status: ${res ? res.status : 'no response'}`);
   check(res, {
     [`${label} overall ok`]: () => ok,
-    // alcuni 202/204/404 attesi potrebbero non avere body utile, non fallire il check
     [`${label} has body`]: (r) => (r && typeof r.body === "string" ? r.body.length >= 0 : true),
   });
 
