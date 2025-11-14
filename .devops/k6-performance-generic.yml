@@ -31,6 +31,8 @@ parameters:
       - 'test/performance/idpay/flow_onboardingInitiative_IO.js'
       - 'test/performance/idpay/flow_walletTimeline_IO.js'
       - 'test/performance/idpay/flow_onboardingAndDetail_IO.js'
+      - 'test/performance/idpay/flow_paymentBarcodeAndPdf_IO.js'
+
 
   - name: 'TARGET_ENV'
     displayName: 'Target environment for configuration'

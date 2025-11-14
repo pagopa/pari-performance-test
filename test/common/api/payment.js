@@ -8,7 +8,9 @@ const PAYMENT_API = {
   PRODUCTS: '/merchant-op/products?size=10&status=APPROVED',
   PREVIEW_PAYMENT: '/merchant-op/transactions/bar-code/{trxCode}/preview',
   AUTH_PAYMENT: '/merchant-op/transactions/bar-code/{trxCode}/authorize',
-  DELETE_PAYMENT: '/merchant-op/transactions/{trxCode}'
+  DELETE_PAYMENT: '/merchant-op/transactions/{trxCode}',
+  GET_BARCODE: '/payment/initiatives/{initiativeId}/bar-code',
+  DOWNLOAD_PDF: '/web/payment/initiatives/{initiativeId}/bar-code/{trxCode}/pdf',
 };
 
 /**
@@ -51,6 +53,30 @@ function validateResponse(apiName, res, expectedField = 'trxCode') {
   });
 
   return res;
+}
+
+function validateAndLogResponse(name, res, okStatuses = [200], expectedByStatus = {}) {
+  logResult(name, res);
+
+  const isOk = !!res && okStatuses.includes(res.status);
+  let ok = isOk;
+
+  if (!ok && res) {
+    const expectedCodes = expectedByStatus[res.status];
+    if (expectedCodes && expectedCodes.length > 0) {
+      const j = parseJsonSafe(res);
+      if (j?.code && expectedCodes.includes(j.code)) {
+        ok = true;
+      }
+    }
+  }
+
+  check(res, {
+    [`${name} responded with pure 2xx`]: () => isOk,
+    [`${name} ok (status in ${JSON.stringify(okStatuses)} or expected codes)`]: () => ok,
+  });
+
+  return { res, ok, isOk };
 }
 
 /**
@@ -150,4 +176,44 @@ export function deletePayment(baseUrl, token, id, acceptLanguage = 'it-IT'){
   });
 
   return validateResponse(apiName, res);
+}
+
+export function getBarcode(baseUrl, token, initiativeId, acceptLanguage = 'it-IT'){
+  const apiName = 'getBarcode';
+  const url = `${baseUrl}${PAYMENT_API.GET_BARCODE.replace('{initiativeId}', initiativeId)}`;
+  const headers = buildHeaders(token, acceptLanguage);
+
+  const params = {
+    headers,
+    responseType: 'text',
+    tags: {
+      apiName: apiName,
+      // Potrebbe restituire 404 atteso
+      expected_response: 'true',
+    },
+  };
+
+  const res = http.get(url, params);
+
+  return validateAndLogResponse(apiName, res);
+}
+
+export function downloadPdf(baseUrl, token, initiativeId, trxCode, acceptLanguage = 'it-IT'){
+  const apiName = 'downloadPdf';
+  const url = `${baseUrl}${PAYMENT_API.DOWNLOAD_PDF.replace('{initiativeId}', initiativeId).replace('{trxCode}', trxCode)}`;
+  const headers = buildHeaders(token, acceptLanguage);
+    console.log(`Downloading PDF from URL: ${url}`);
+  const params = {
+    headers,
+    responseType: 'text',
+    tags: {
+      apiName: apiName,
+      // Potrebbe restituire 404 atteso
+      expected_response: 'true',
+    },
+  };
+
+  const res = http.get(url, params);
+
+  return validateAndLogResponse(apiName, res);
 }
