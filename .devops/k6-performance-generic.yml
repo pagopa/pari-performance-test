@@ -124,11 +124,6 @@ parameters:
     type: string
     default: '../../../assets/fc_list_100k.csv'
 
-  - name: 'TRX_CODE'
-    displayName: '(Optional) Trx_code (used by some scripts)'
-    type: string
-    default: '../../../assets/fc_list_100k.csv'
-
 variables:
 
   - name: working-dir
@@ -213,7 +208,6 @@ jobs:
           printf '%-24s | %s\n' 'WALLET_EXPECTED_STATUSES' "${WALLET_EXPECTED_STATUSES}"
           printf '%-24s | %s\n' 'INITIATIVE_ID' "${INITIATIVE_ID}"
           printf '%-24s | %s\n' 'FISCAL_CODE_FILE' "${FISCAL_CODE_FILE}"
-          printf '%-24s | %s\n' 'TRX_CODE' "${TRX_CODE}"
         displayName: '🔍 Pipeline parameters snapshot'
         env:
           K6_SCRIPT_PATH: ${{ parameters.K6_SCRIPT_PATH }}
@@ -237,7 +231,6 @@ jobs:
           WALLET_EXPECTED_STATUSES: ${{ parameters.WALLET_EXPECTED_STATUSES }}
           INITIATIVE_ID: ${{ parameters.INITIATIVE_ID }}
           FISCAL_CODE_FILE: ${{ parameters.FISCAL_CODE_FILE }}
-          TRX_CODE: ${{ parameters.TRX_CODE }}
 
       - ${{ each k6Script in split(variables.SCRIPTS_TO_EXECUTE, ',') }}:
           - script: |
@@ -261,7 +254,6 @@ jobs:
               WALLET_EXPECTED_STATUSES: ${{ parameters.WALLET_EXPECTED_STATUSES }}
               INITIATIVE_ID: ${{ parameters.INITIATIVE_ID }}
               FISCAL_CODE_FILE: ${{ parameters.FISCAL_CODE_FILE }}
-              TRX_CODE: ${{ parameters.TRX_CODE }}
 
   - template: templates\xk6-build.yml
     parameters:
@@ -318,7 +310,6 @@ jobs:
               WALLET_EXPECTED_STATUSES: ${{ parameters.WALLET_EXPECTED_STATUSES }}
               INITIATIVE_ID: ${{ parameters.INITIATIVE_ID }}
               FISCAL_CODE_FILE: ${{ parameters.FISCAL_CODE_FILE }}
-              TRX_CODE: ${{ parameters.TRX_CODE }}
             timeoutInMinutes: 0
             displayName: '🚀 Run k6 script ${{ k6Script }}'
 
