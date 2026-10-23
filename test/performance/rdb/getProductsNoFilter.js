@@ -4,9 +4,11 @@ import { assert, statusOk } from '../../common/assertions.js'
 import defaultHandleSummaryBuilder from '../../common/handleSummaryBuilder.js'
 import { defaultApiOptionsBuilder } from '../../common/dynamicScenarios/defaultOptions.js'
 import { setupWithProducts } from '../../common/setupUtils.js'
+import { getInitiativeId } from '../../common/envUrl.js'
 
 const application = 'register'
 const testName = 'getProducts'
+const initiativeId = getInitiativeId()
 
 export const options = defaultApiOptionsBuilder(application, testName)
 export const handleSummary = defaultHandleSummaryBuilder(application, testName)
@@ -22,7 +24,7 @@ export default function (data) {
         }
 
         group('Search all products', () => {
-            const res = getProducts(params, data.accessToken)
+            const res = getProducts(params, initiativeId, data.accessToken)
             const content = res.json()?.content || []
 
             const checks = check(res, {

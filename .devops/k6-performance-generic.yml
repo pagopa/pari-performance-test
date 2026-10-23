@@ -32,6 +32,8 @@ parameters:
       - 'test/performance/idpay/flow_walletTimeline_IO.js'
       - 'test/performance/idpay/flow_onboardingAndDetail_IO.js'
       - 'test/performance/idpay/flow_paymentBarcodeAndPdf_IO.js'
+      - 'test/performance/rdb/getProducts.js'
+      - 'test/performance/rdb/getProductsNoFilter.js'
 
 
   - name: 'TARGET_ENV'
@@ -117,7 +119,10 @@ parameters:
   - name: 'INITIATIVE_ID'
     displayName: '(Optional) Initiative ID (used by some scripts)'
     type: string
-    default: '68de7fc681ce9e35a476e985'
+    values: 
+      - '68dd003ccce8c534d1da22bc'
+      - '69e0fa95e21efa516c7b8dec'
+    default: '68dd003ccce8c534d1da22bc'
 
   - name: 'FISCAL_CODE_FILE'
     displayName: '(Optional) Path to CSV file with fiscal codes'

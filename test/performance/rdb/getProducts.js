@@ -5,9 +5,11 @@ import defaultHandleSummaryBuilder from '../../common/handleSummaryBuilder.js'
 import { defaultApiOptionsBuilder } from '../../common/dynamicScenarios/defaultOptions.js'
 import { getRandomCategory } from '../../common/utils.js'
 import { setupWithProducts } from '../../common/setupUtils.js'
+import { getInitiativeId } from '../../common/envUrl.js'
 
 const application = 'register'
 const testName = 'getProducts'
+const initiativeId = getInitiativeId()
 
 export const options = defaultApiOptionsBuilder(application, testName)
 export const handleSummary = defaultHandleSummaryBuilder(application, testName)
@@ -18,18 +20,18 @@ export function setup() {
 
 export default function (data) {
     group('Product Register API - Test with category filter', () => {
-        const randomCategory = getRandomCategory()
+        const randomCategory = getRandomCategory(initiativeId)
         console.log(`[FILTER] Using random category: ${randomCategory}`)
 
         const params = {
-            organizationId: data.products[0]?.organizationId,
+            organizationId: data.products[0].organizationId,
             category: randomCategory
         }
 
         console.log(`[API CALL] Params being sent: ${JSON.stringify(params)}`)
 
         group(`Search products for category: ${randomCategory}`, () => {
-            const res = getProducts(params, data.accessToken)
+            const res = getProducts(params, initiativeId, data.accessToken)
             const content = res.json()?.content || []
 
             console.log(`[API RESPONSE] Category: ${randomCategory}, Response: ${JSON.stringify(res.json(), null, 2)}`)
