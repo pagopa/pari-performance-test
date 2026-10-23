@@ -1,4 +1,5 @@
-import { getTokenRegister, getTokenKeycloak, getTokenIO } from './api/tokenAuth.js'
+import { getTokenRegister, getTokenKeycloak } from './api/tokenAuth.js'
+import { getMockLogin } from '../common/api/mockIOLogin.js'
 import { getProducts } from './api/productRegister.js'
 import { getBaseUrl, getInitiativeId } from './envUrl.js'
 import { check, fail } from 'k6'
@@ -16,7 +17,7 @@ export function setupTokenKeycloak(email, password){
 }
 
 export function setupTokenIO(cf = ''){
-  const { tokenIOResponse } = getTokenIO(cf)
+  const { tokenIOResponse } = getMockLogin(cf) //verify
 
   const successIo = check(tokenIOResponse, { 'IO token received': (r) => r && r.status === 200 })
   if (!successIo || !tokenIOResponse.body) {
