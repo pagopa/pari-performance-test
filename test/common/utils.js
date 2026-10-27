@@ -2,7 +2,7 @@ import { randomIntBetween, randomString } from 'https://jslib.k6.io/k6-utils/1.1
 import papaparse from 'https://jslib.k6.io/papaparse/5.1.1/index.js';
 import { randomBytes } from 'k6/crypto';
 import exec from 'k6/execution';
-import { CONFIG } from './dynamicScenarios/envVars.js';
+import { getInitiativeOrganizationId, getInitiativeId } from './envUrl.js';
 
 
 export function randomFiscalCode() {
@@ -140,7 +140,7 @@ export function getCategoryFromProductGroup(productGroup, product = {}) {
     return null
 }
 
-const CategoriesEnum = {
+const BonusElettrodomesticiCategoriesEnum = {
     WASHINGMACHINES: 'WASHINGMACHINES',
     WASHERDRIERS: 'WASHERDRIERS',
     OVENS: 'OVENS',
@@ -151,8 +151,21 @@ const CategoriesEnum = {
     COOKINGHOBS: 'COOKINGHOBS'
 };
 
-export function getRandomCategory() {
-    const categories = Object.values(CategoriesEnum);
+const BonusDecoderCategoriesEnum = {
+    DS: 'DS',
+    DT: 'DT',
+    DTC: 'DTC',
+    DTS: 'DTS',
+    DTSC: 'DTSC'
+};
+
+export function getRandomCategory(initiativeId) {
+    if (initiativeId === getInitiativeId('bonus_decoder')) {
+        const categories = Object.values(BonusDecoderCategoriesEnum);
+        const randomIndex = Math.floor(Math.random() * categories.length); //NOSONAR
+        return categories[randomIndex];
+    }
+    const categories = Object.values(BonusElettrodomesticiCategoriesEnum);
     const randomIndex = Math.floor(Math.random() * categories.length); //NOSONAR
     return categories[randomIndex];
 }
@@ -176,28 +189,13 @@ export function parseExpectedStatuses(envValue, fallback = [200]) {
     return parsed.length ? parsed : fallback;
 }
 
-export const ORG_IDS = {
-    dev_eie: '72c2c5f8-1c71-4614-a4b3-95e3aee71c3d',
-    uat_eie: '8bd31e63-a8e8-4cbc-b06d-bc69f32c3fde'
+/**
+ * Resolves the organizationId for a given initiative from config/{env}.json's
+ * `initiatives` section (see envUrl.js's getInitiativeOrganizationId).
+ * @param {string} [initiativeName='bonus_elettrodomestici'] - Key under `initiatives` in config/{env}.json.
+ * @returns {string|null} organization_id for the current TARGET_ENV, or null if missing.
+ */
+export function getOrgId(initiativeName = 'bonus_elettrodomestici') {
+    return getInitiativeOrganizationId(initiativeName)
 }
 
-export function getOrgId(operationAvailableEnvs, system) {
-    const env = CONFIG.TARGET_ENV
-
-    if (
-        !operationAvailableEnvs.includes(env)
-    ) {
-        abort('Environment selected not allowed for orgId resolution')
-        return null
-    }
-
-    const key = `${env}_${system}`
-    const orgId = ORG_IDS[key]
-
-    if (!orgId) {
-        abort(`Missing orgId for key: ${key}`)
-        return null
-    }
-
-    return orgId
-}

@@ -2,5 +2,15 @@
     "pdvUrl": "https://idpay.itn.internal.uat.cstar.pagopa.it/mcshareddatavault",
     "apimUrl": "https://api-io.uat.cstar.pagopa.it/idpay-itn",
     "keycloakUrl": "https://keycloak.itn.internal.uat.cstar.pagopa.it/realms/merchant-operator/protocol/openid-connect/token",
-    "keycloakUserUrl": "https://api-mcshared.uat.cstar.pagopa.it/auth-itn/realms/user/protocol/openid-connect/token"
+    "keycloakUserUrl": "https://api-mcshared.uat.cstar.pagopa.it/auth-itn/realms/user/protocol/openid-connect/token",
+    "initiatives": {
+        "bonus_elettrodomestici": {
+            "id": "68dd003ccce8c534d1da22bc",
+            "organization_id": "999e1892-08e8-4d13-bec9-54814cd31b0c"
+        },
+        "bonus_decoder": {
+            "id": "69e0fa95e21efa516c7b8dec",
+            "organization_id": "999e1892-08e8-4d13-bec9-54814cd31b0c"
+        }
+    }
 }

@@ -1,5 +1,7 @@
-import { getTokenIO, getTokenRegister, getTokenKeycloak } from './api/tokenAuth.js'
+import { getTokenRegister, getTokenKeycloak } from './api/tokenAuth.js'
+import { getMockLogin } from '../common/api/mockIOLogin.js'
 import { getProducts } from './api/productRegister.js'
+import { getBaseUrl, getInitiativeId } from './envUrl.js'
 import { check, fail } from 'k6'
 
 export function setupTokenKeycloak(email, password){
@@ -15,7 +17,7 @@ export function setupTokenKeycloak(email, password){
 }
 
 export function setupTokenIO(cf = ''){
-  const { tokenIOResponse } = getTokenIO(cf)
+  const { tokenIOResponse } = getMockLogin(cf) //verify
 
   const successIo = check(tokenIOResponse, { 'IO token received': (r) => r && r.status === 200 })
   if (!successIo || !tokenIOResponse.body) {
@@ -28,7 +30,8 @@ export function setupTokenIO(cf = ''){
 }
 
 export function setupTokenRegister() {
-  const { tokenResponse, organizationId } = getTokenRegister()
+  const innerBaseUrl = getBaseUrl().baseUrl
+  const { tokenRes: tokenResponse, organizationId } = getTokenRegister(innerBaseUrl)
 
   const successJwt = check(tokenResponse, { 'JWT token received': (r) => r && r.status === 200 })
   if (!successJwt || !tokenResponse.body) {
@@ -44,8 +47,9 @@ export function setupTokenRegister() {
 export function setupWithProducts() {
   const { accessToken, organizationId } = setupTokenRegister()
 
+  const initiativeId = getInitiativeId()
   const fetchParams = { organizationId }
-  const productRes = getProducts(fetchParams, accessToken)
+  const productRes = getProducts(fetchParams, initiativeId, accessToken)
 
   if (!productRes) {
     console.error('[setupWithProducts] getProducts returned falsy response')

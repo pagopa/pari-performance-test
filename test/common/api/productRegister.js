@@ -10,15 +10,15 @@ const REGISTERED_ENVS = [DEV, UAT]
 const innerBaseUrl =  getBaseUrl(REGISTERED_ENVS).baseUrl
 const API_PREFIX = '/register'
 
-export function getProducts(params, accessToken) {
+export function getProducts(params, initiativeId, accessToken) {
     const apiName = PRODUCT_API_NAMES.getProducts
 
-    const headers = {
+    const requestParams = {
         headers: {
             'Content-Type': 'application/json',
             'x-organization-role': 'operatore',
             'Authorization': `Bearer ${accessToken}`
-        },
+        }
     }
 
     const queryString = Object.entries(params)
@@ -26,9 +26,8 @@ export function getProducts(params, accessToken) {
         .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
         .join('&')
 
-    const url = `${innerBaseUrl}${API_PREFIX}/products?${queryString}`
-
-    const res = http.get(url, headers, { tags: { apiName } })
+    const url = `${innerBaseUrl}${API_PREFIX}/initiatives/${initiativeId}/products?${queryString}`
+    const res = http.get(url, requestParams)
 
     logResult(apiName, res)
 
