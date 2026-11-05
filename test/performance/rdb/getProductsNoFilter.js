@@ -5,15 +5,25 @@ import defaultHandleSummaryBuilder from '../../common/handleSummaryBuilder.js'
 import { defaultApiOptionsBuilder } from '../../common/dynamicScenarios/defaultOptions.js'
 import { setupWithProducts } from '../../common/setupUtils.js'
 import { getInitiativeId } from '../../common/envUrl.js'
+<<<<<<< Updated upstream:test/performance/rdb/getProductsNoFilter.js
+=======
+import { prepareScenario } from '../../common/scenarioSetup.js'
+>>>>>>> Stashed changes:test/performance/eie/getProductsNoFilter.js
 
 const application = 'register'
 const testName = 'getProducts'
 const initiativeId = getInitiativeId()
 
-export const options = defaultApiOptionsBuilder(application, testName)
+const { scenarioConfig, logScenario } = prepareScenario({ env: __ENV })
+
+export const options = {
+    ...defaultApiOptionsBuilder(application, testName),
+    scenarios: { [testName]: scenarioConfig },
+}
 export const handleSummary = defaultHandleSummaryBuilder(application, testName)
 
 export function setup() {
+    logScenario()
     return setupWithProducts()
 }
 
