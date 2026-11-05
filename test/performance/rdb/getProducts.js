@@ -6,10 +6,7 @@ import { defaultApiOptionsBuilder } from '../../common/dynamicScenarios/defaultO
 import { getRandomCategory } from '../../common/utils.js'
 import { setupWithProducts } from '../../common/setupUtils.js'
 import { getInitiativeId } from '../../common/envUrl.js'
-<<<<<<< Updated upstream:test/performance/rdb/getProducts.js
-=======
 import { prepareScenario } from '../../common/scenarioSetup.js'
->>>>>>> Stashed changes:test/performance/eie/getProducts.js
 
 const application = 'register'
 const testName = 'getProducts'

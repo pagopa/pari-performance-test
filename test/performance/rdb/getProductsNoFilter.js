@@ -5,10 +5,7 @@ import defaultHandleSummaryBuilder from '../../common/handleSummaryBuilder.js'
 import { defaultApiOptionsBuilder } from '../../common/dynamicScenarios/defaultOptions.js'
 import { setupWithProducts } from '../../common/setupUtils.js'
 import { getInitiativeId } from '../../common/envUrl.js'
-<<<<<<< Updated upstream:test/performance/rdb/getProductsNoFilter.js
-=======
 import { prepareScenario } from '../../common/scenarioSetup.js'
->>>>>>> Stashed changes:test/performance/eie/getProductsNoFilter.js
 
 const application = 'register'
 const testName = 'getProducts'
