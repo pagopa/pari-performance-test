@@ -8,7 +8,7 @@ import { getInitiativeId } from '../../common/envUrl.js'
 import { prepareScenario } from '../../common/scenarioSetup.js'
 
 const application = 'register'
-const testName = 'getProducts'
+const testName = 'getProductsNoFilter'
 const initiativeId = getInitiativeId()
 
 const { scenarioConfig, logScenario } = prepareScenario({ env: __ENV })
