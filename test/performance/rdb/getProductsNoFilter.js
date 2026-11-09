@@ -11,7 +11,7 @@ const application = 'register'
 const testName = 'getProductsNoFilter'
 const initiativeId = getInitiativeId()
 
-const { scenarioConfig, logScenario } = prepareScenario({ env: __ENV })
+const { scenarioConfig, logScenario } = prepareScenario()
 
 export const options = {
     ...defaultApiOptionsBuilder(application, testName),
