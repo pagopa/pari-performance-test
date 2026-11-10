@@ -6,15 +6,22 @@ import { defaultApiOptionsBuilder } from '../../common/dynamicScenarios/defaultO
 import { getRandomCategory } from '../../common/utils.js'
 import { setupWithProducts } from '../../common/setupUtils.js'
 import { getInitiativeId } from '../../common/envUrl.js'
+import { prepareScenario } from '../../common/scenarioSetup.js'
 
 const application = 'register'
 const testName = 'getProducts'
 const initiativeId = getInitiativeId()
 
-export const options = defaultApiOptionsBuilder(application, testName)
+const { scenarioConfig, logScenario } = prepareScenario()
+
+export const options = {
+    ...defaultApiOptionsBuilder(application, testName),
+    scenarios: { [testName]: scenarioConfig },
+}
 export const handleSummary = defaultHandleSummaryBuilder(application, testName)
 
 export function setup() {
+    logScenario()
     return setupWithProducts()
 }
 
