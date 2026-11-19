@@ -9,7 +9,6 @@ import { getProductsApproved, createBarCode, previewPayment, authPayment, delete
 import { toTrimmedString } from '../../common/basicUtils.js';
 import { loadEnvConfig } from '../../common/loadEnv.js';
 import { prepareScenario } from '../../common/scenarioSetup.js';
-import { getInitiativeId } from '../../common/envUrl.js';
 import { decodeJwt } from '../../common/dynamicScenarios/utils.js'; // TEMP: debug JWT claims, remove after use
 
 /** Load fiscal codes from CSV */
@@ -66,8 +65,7 @@ export function setup() {
 }
 
 /** Test data */
-// Resolved from INITIATIVE_ID env var or config/{env}.json initiatives (defaults to bonus_elettrodomestici).
-const initiativeId = getInitiativeId();
+const initiativeId = '68de7fc681ce9e35a476e985';
 const email = __ENV.KEYCLOAK_USERNAME;
 const password = __ENV.KEYCLOAK_PASSWORD;
 
