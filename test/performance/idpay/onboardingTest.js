@@ -11,10 +11,13 @@ import {
 } from '../../common/basicUtils.js';
 import { loadEnvConfig } from '../../common/loadEnv.js';
 import { prepareScenario } from '../../common/scenarioSetup.js';
+import { getInitiativeId, getIoRootUrl } from '../../common/envUrl.js';
 
-// Load the list of 100K CFs from a CSV file
+// Load fiscal codes from CSV. Use the SAME file as the test consuming the
+// onboarded users (e.g. payment.js uses fc_list_10k.csv) so coverage matches.
+const csvFile = __ENV.FISCAL_CODE_FILE || '../../../assets/fc_list_10k.csv';
 const fiscalCodes = new SharedArray('fiscalCodes', () => {
-  const csv = open('../../../assets/fc_list_100k.csv');
+  const csv = open(csvFile);
   return csv.split('\n')
     .map(line => line.trim())
     .filter(line => line && line !== 'CF');
@@ -28,6 +31,7 @@ const baseUrl = toTrimmedString(__ENV.APIM_URL, envConfig.apimUrl || '')
 if (!baseUrl) {
   throw new Error(`Missing APIM_URL for environment: ${targetEnv}`)
 }
+const ioBaseUrl = getIoRootUrl(baseUrl)
 
 const { scenarioConfig, logScenario } = prepareScenario({ env: __ENV })
 
@@ -52,7 +56,7 @@ export function setup() {
   logScenario()
 }
 
-const initiativeId = '68de7fc681ce9e35a476e985'
+const initiativeId = __ENV.INITIATIVE_ID || getInitiativeId()
 const startIndex = 0;
 
 export default function () {
@@ -71,7 +75,7 @@ export default function () {
   }
 
   // Generate token using mockIOLogin
-  const { token, ok } = getMockLogin(fiscalCode);
+  const { token, ok } = getMockLogin(ioBaseUrl, fiscalCode);
 
   if (!ok || !token) {
     return;
