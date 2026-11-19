@@ -110,7 +110,7 @@ export default function () {
     /** Retrieve Products */
     group('Get Products', () => {
       //console.log('🛒 Fetching approved products...');
-      const res = getProductsApproved(baseUrl, tokenKeycloak);
+      const res = getProductsApproved(baseUrl, initiativeId, tokenKeycloak);
 
       check(res, { 'Products retrieved (200)': r => r?.status === 200 });
 
@@ -133,7 +133,7 @@ export default function () {
         discountCode: trxCode,
       };
       //console.log('💰 Previewing payment...');
-      const previewRes = previewPayment(baseUrl, tokenKeycloak, previewPayload);
+      const previewRes = previewPayment(baseUrl, initiativeId, tokenKeycloak, previewPayload);
       check(previewRes, { 'Preview succeeded (200)': r => r?.status === 200 });
       const authPayload = {
         additionalProperties: { productGtin: selectedProduct.gtinCode },
@@ -142,13 +142,13 @@ export default function () {
       };
 
       //console.log('🔐 Authorizing payment...');
-      const authRes = authPayment(baseUrl, tokenKeycloak, authPayload);
+      const authRes = authPayment(baseUrl, initiativeId, tokenKeycloak, authPayload);
       check(authRes, { 'Authorization succeeded (200)': r => r?.status === 200 });
 
       sleep(17);
 
       //console.log('🗑️ Deleting payment...');
-      const deleteRes = deletePayment(baseUrl, tokenKeycloak, authRes.json('id'));
+      const deleteRes = deletePayment(baseUrl, initiativeId, tokenKeycloak, authRes.json('id'));
       check(deleteRes, { 'Delete succeeded (200)': r => r?.status === 200 });
 
       //console.log('✅ Payment flow completed successfully.');

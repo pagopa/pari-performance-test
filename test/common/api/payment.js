@@ -5,10 +5,10 @@ import { logResult, logErrorResult } from '../dynamicScenarios/utils.js';
 /** Payment API Endpoints */
 const PAYMENT_API = {
   CREATE_BARCODE: '/payment/bar-code',
-  PRODUCTS: '/merchant-op/products?size=10&status=APPROVED',
-  PREVIEW_PAYMENT: '/merchant-op/transactions/bar-code/{trxCode}/preview',
-  AUTH_PAYMENT: '/merchant-op/transactions/bar-code/{trxCode}/authorize',
-  DELETE_PAYMENT: '/merchant-op/transactions/{trxCode}',
+  PRODUCTS: '/merchant-op/initiatives/{initiativeId}/products?size=10&status=APPROVED',
+  PREVIEW_PAYMENT: '/merchant-op/initiatives/{initiativeId}/transactions/bar-code/{trxCode}/preview',
+  AUTH_PAYMENT: '/merchant-op/initiatives/{initiativeId}/transactions/bar-code/{trxCode}/authorize',
+  DELETE_PAYMENT: '/merchant-op/initiatives/{initiativeId}/transactions/{trxCode}',
   GET_BARCODE: '/payment/initiatives/{initiativeId}/bar-code',
   DOWNLOAD_PDF: '/web/payment/initiatives/{initiativeId}/bar-code/{trxCode}/pdf',
 };
@@ -28,13 +28,16 @@ function buildHeaders(token, acceptLanguage = 'it-IT') {
 }
 
 /**
- * Replaces the {trxCode} placeholder in an endpoint with the actual transaction code.
- * @param {string} endpoint - Endpoint URL with {trxCode} placeholder.
+ * Replaces the {trxCode} and {initiativeId} placeholders in an endpoint with their actual values.
+ * @param {string} endpoint - Endpoint URL with {trxCode}/{initiativeId} placeholders.
  * @param {string} trxCode - Transaction code to replace in the URL.
- * @return {string} Endpoint with transaction code.
+ * @param {string} initiativeId - Initiative id to replace in the URL.
+ * @return {string} Endpoint with placeholders replaced.
  */
-function replaceTrxCode(endpoint, trxCode) {
-  return endpoint.replace('{trxCode}', trxCode || '');
+function replaceTrxCode(endpoint, trxCode, initiativeId) {
+  return endpoint
+    .replace('{trxCode}', trxCode || '')
+    .replace('{initiativeId}', initiativeId || '');
 }
 
 /**
@@ -90,9 +93,9 @@ function validateAndLogResponse(name, res, okStatuses = [200], expectedByStatus 
  * @param {string} acceptLanguage - Language for the request (default: 'it-IT').
  * @return {Object} Response object.
  */
-export function getProductsApproved(baseUrl, token, acceptLanguage = 'it-IT') {
+export function getProductsApproved(baseUrl, initiativeId, token, acceptLanguage = 'it-IT') {
   const apiName = 'getProductsApproved';
-  const url = `${baseUrl}${PAYMENT_API.PRODUCTS}`;
+  const url = `${baseUrl}${PAYMENT_API.PRODUCTS.replace('{initiativeId}', initiativeId || '')}`;
   const headers = buildHeaders(token, acceptLanguage);
 
   const res = http.get(url, {
@@ -133,9 +136,9 @@ export function createBarCode(baseUrl, token, payload, acceptLanguage = 'it-IT')
  * @param {string} acceptLanguage - Language for the request (default: 'it-IT').
  * @return {Object} Response object.
  */
-export function previewPayment(baseUrl, token, payload, acceptLanguage = 'it-IT') {
+export function previewPayment(baseUrl, initiativeId, token, payload, acceptLanguage = 'it-IT') {
   const apiName = 'previewPayment';
-  const url = `${baseUrl}${replaceTrxCode(PAYMENT_API.PREVIEW_PAYMENT, payload.discountCode)}`;
+  const url = `${baseUrl}${replaceTrxCode(PAYMENT_API.PREVIEW_PAYMENT, payload.discountCode, initiativeId)}`;
   const headers = buildHeaders(token, acceptLanguage);
 
   const res = http.put(url, JSON.stringify(payload), {
@@ -155,9 +158,9 @@ export function previewPayment(baseUrl, token, payload, acceptLanguage = 'it-IT'
  * @param {string} acceptLanguage - Language for the request (default: 'it-IT').
  * @return {Object} Response object.
  */
-export function authPayment(baseUrl, token, payload, acceptLanguage = 'it-IT') {
+export function authPayment(baseUrl, initiativeId, token, payload, acceptLanguage = 'it-IT') {
   const apiName = 'authPayment';
-  const url = `${baseUrl}${replaceTrxCode(PAYMENT_API.AUTH_PAYMENT, payload.discountCode)}`;
+  const url = `${baseUrl}${replaceTrxCode(PAYMENT_API.AUTH_PAYMENT, payload.discountCode, initiativeId)}`;
   const headers = buildHeaders(token, acceptLanguage);
 
   const res = http.put(url, JSON.stringify(payload), {
@@ -168,9 +171,9 @@ export function authPayment(baseUrl, token, payload, acceptLanguage = 'it-IT') {
   return validateResponse(apiName, res);
 }
 
-export function deletePayment(baseUrl, token, id, acceptLanguage = 'it-IT'){
+export function deletePayment(baseUrl, initiativeId, token, id, acceptLanguage = 'it-IT'){
   const apiName = 'deletePayment';
-  const url = `${baseUrl}${replaceTrxCode(PAYMENT_API.DELETE_PAYMENT, id)}`;
+  const url = `${baseUrl}${replaceTrxCode(PAYMENT_API.DELETE_PAYMENT, id, initiativeId)}`;
   const headers = buildHeaders(token, acceptLanguage);
 
   const res = http.del(url, null, {  
