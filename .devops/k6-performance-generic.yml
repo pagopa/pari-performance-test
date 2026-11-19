@@ -158,6 +158,8 @@ variables:
         value: $(DEV_KEYCLOAK_PASSWORD)
       - name: KEYCLOAK_CLIENT_SECRET
         value: $(DEV_KEYCLOAK_CLIENT_SECRET)
+      - name: APIM_MOCK_IO_SUBSCRIPTION_KEY
+        value: $(DEV_APIM_MOCK_IO_SUBSCRIPTION_KEY)
 
   - ${{ elseif eq(parameters.TARGET_ENV, 'uat') }}:
       - name: KEYCLOAK_USERNAME
@@ -166,6 +168,8 @@ variables:
         value: $(UAT_KEYCLOAK_PASSWORD)
       - name: KEYCLOAK_CLIENT_SECRET
         value: $(UAT_KEYCLOAK_CLIENT_SECRET)
+      - name: APIM_MOCK_IO_SUBSCRIPTION_KEY
+        value: $(UAT_APIM_MOCK_IO_SUBSCRIPTION_KEY)
 
   - name: xk6CacheKey
     value: '"xk6" | "1.3.0" | dotenv'
@@ -234,6 +238,7 @@ jobs:
           KEYCLOAK_USERNAME: $(KEYCLOAK_USERNAME)
           KEYCLOAK_PASSWORD: $(KEYCLOAK_PASSWORD)
           KEYCLOAK_CLIENT_SECRET: $(KEYCLOAK_CLIENT_SECRET)
+          APIM_MOCK_IO_SUBSCRIPTION_KEY: $(APIM_MOCK_IO_SUBSCRIPTION_KEY)
           # 🔹 Env aggiunte
           WALLET_EXPECTED_STATUSES: ${{ parameters.WALLET_EXPECTED_STATUSES }}
           INITIATIVE_ID: ${{ parameters.INITIATIVE_ID }}
@@ -315,6 +320,7 @@ jobs:
               KEYCLOAK_USERNAME: $(KEYCLOAK_USERNAME)
               KEYCLOAK_PASSWORD: $(KEYCLOAK_PASSWORD)
               KEYCLOAK_CLIENT_SECRET: $(KEYCLOAK_CLIENT_SECRET)
+              APIM_MOCK_IO_SUBSCRIPTION_KEY: $(APIM_MOCK_IO_SUBSCRIPTION_KEY)
               # 🔹 Env inoltrate agli script k6 (usabili come __ENV.*)
               WALLET_EXPECTED_STATUSES: ${{ parameters.WALLET_EXPECTED_STATUSES }}
               INITIATIVE_ID: ${{ parameters.INITIATIVE_ID }}
