@@ -3,7 +3,7 @@ import { check, group, sleep } from 'k6';
 import { SharedArray } from 'k6/data';
 import exec from 'k6/execution';
 
-import { getProductsApproved, createBarCode, previewPayment, authPayment, deletePayment } from '../../common/api/payment.js';
+import { getProductsApproved, createBarCode, previewPayment, authPayment, deletePayment, generateUuidV4 } from '../../common/api/payment.js';
 import { toTrimmedString } from '../../common/basicUtils.js';
 import { loadEnvConfig } from '../../common/loadEnv.js';
 import { prepareScenario } from '../../common/scenarioSetup.js';
@@ -126,23 +126,26 @@ export default function () {
 
     /** Preview, Authorize and Delete Payment */
     group('Preview, Authorize And Delete Payment', () => {
+      // Payload shapes must match the real OpenAPI DTOs (PreviewPaymentRequestV2DTO /
+      // AuthBarCodePaymentDTO): trxCode/initiativeId are path params, not body fields.
       const previewPayload = {
-        productGtin: selectedProduct.gtinCode,
-        productName: selectedProduct.productName,
         amountCents: 1000,
-        discountCode: trxCode,
+        additionalProperties: {
+          productGtin: selectedProduct.gtinCode,
+          productName: selectedProduct.productName,
+        },
       };
       //console.log('💰 Previewing payment...');
-      const previewRes = previewPayment(baseUrl, initiativeId, tokenKeycloak, previewPayload);
+      const previewRes = previewPayment(baseUrl, initiativeId, trxCode, tokenKeycloak, previewPayload);
       check(previewRes, { 'Preview succeeded (200)': r => r?.status === 200 });
       const authPayload = {
-        additionalProperties: { productGtin: selectedProduct.gtinCode },
         amountCents: 1000,
-        discountCode: trxCode,
+        idTrxAcquirer: generateUuidV4(),
+        additionalProperties: { productGtin: selectedProduct.gtinCode },
       };
 
       //console.log('🔐 Authorizing payment...');
-      const authRes = authPayment(baseUrl, initiativeId, tokenKeycloak, authPayload);
+      const authRes = authPayment(baseUrl, initiativeId, trxCode, tokenKeycloak, authPayload);
       check(authRes, { 'Authorization succeeded (200)': r => r?.status === 200 });
 
       sleep(17);

@@ -14,6 +14,18 @@ const PAYMENT_API = {
 };
 
 /**
+ * Generates a RFC4122 v4 UUID using Math.random (sufficient for test data, not cryptographically secure).
+ * @return {string} A v4 UUID string.
+ */
+export function generateUuidV4() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
+/**
  * Builds headers for HTTP requests.
  * @param {string} token - Bearer token for authorization.
  * @param {string} acceptLanguage - Language for the request (default: 'it-IT').
@@ -136,9 +148,9 @@ export function createBarCode(baseUrl, token, payload, acceptLanguage = 'it-IT')
  * @param {string} acceptLanguage - Language for the request (default: 'it-IT').
  * @return {Object} Response object.
  */
-export function previewPayment(baseUrl, initiativeId, token, payload, acceptLanguage = 'it-IT') {
+export function previewPayment(baseUrl, initiativeId, trxCode, token, payload, acceptLanguage = 'it-IT') {
   const apiName = 'previewPayment';
-  const url = `${baseUrl}${replaceTrxCode(PAYMENT_API.PREVIEW_PAYMENT, payload.discountCode, initiativeId)}`;
+  const url = `${baseUrl}${replaceTrxCode(PAYMENT_API.PREVIEW_PAYMENT, trxCode, initiativeId)}`;
   const headers = buildHeaders(token, acceptLanguage);
 
   const res = http.put(url, JSON.stringify(payload), {
@@ -158,9 +170,9 @@ export function previewPayment(baseUrl, initiativeId, token, payload, acceptLang
  * @param {string} acceptLanguage - Language for the request (default: 'it-IT').
  * @return {Object} Response object.
  */
-export function authPayment(baseUrl, initiativeId, token, payload, acceptLanguage = 'it-IT') {
+export function authPayment(baseUrl, initiativeId, trxCode, token, payload, acceptLanguage = 'it-IT') {
   const apiName = 'authPayment';
-  const url = `${baseUrl}${replaceTrxCode(PAYMENT_API.AUTH_PAYMENT, payload.discountCode, initiativeId)}`;
+  const url = `${baseUrl}${replaceTrxCode(PAYMENT_API.AUTH_PAYMENT, trxCode, initiativeId)}`;
   const headers = buildHeaders(token, acceptLanguage);
 
   const res = http.put(url, JSON.stringify(payload), {
