@@ -75,7 +75,7 @@ const password = __ENV.KEYCLOAK_PASSWORD;
 export default function () {
   const fiscalCode = fiscalCodes[Math.floor(Math.random() * fiscalCodes.length)];
 
-  //console.log(`🧾 FiscalCode: ${fiscalCode}`);
+  console.log(`🧾 FiscalCode: ${fiscalCode}`);
 
   if (!fiscalCode) {
     console.error(`Index ${iterationIndex} out of range. Skipping iteration.`);
