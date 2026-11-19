@@ -1,6 +1,6 @@
 import http, { head } from 'k6/http';
 import { check } from 'k6';
-import { logResult } from '../dynamicScenarios/utils.js';
+import { logResult, logErrorResult } from '../dynamicScenarios/utils.js';
 
 /** Payment API Endpoints */
 const PAYMENT_API = {
@@ -45,11 +45,15 @@ function replaceTrxCode(endpoint, trxCode) {
  * @return {Object} Response object.
  */
 function validateResponse(apiName, res, expectedField = 'trxCode') {
-  logResult(apiName, res);
+  const isSuccess = [200, 201, 202].includes(res?.status);
+  // logResult only logs via its 3rd arg (a single expected status), which doesn't
+  // fit this multi-status check, so log the failure body/status explicitly here.
+  if (!isSuccess) {
+    logErrorResult(apiName, res, false);
+  }
 
   check(res, {
-    [`${apiName} - status is success`]: (r) =>
-      [200, 201, 202].includes(r.status)
+    [`${apiName} - status is success`]: () => isSuccess,
   });
 
   return res;

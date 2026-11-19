@@ -2,7 +2,7 @@ import { htmlReport, textSummary } from 'https://jslib.k6.io/k6-summary/0.0.2/in
 import { check, group, sleep } from 'k6';
 import { SharedArray } from 'k6/data';
 
-import { getTokenIO } from '../../common/api/tokenAuth.js';
+import { getMockLogin } from '../../common/api/mockIOLogin.js';
 import { createBarCode } from '../../common/api/payment.js';
 import { toTrimmedString } from '../../common/basicUtils.js';
 import { loadEnvConfig } from '../../common/loadEnv.js';
@@ -72,7 +72,10 @@ export default function () {
   }
 
   //console.log('🔑 Requesting tokens...');
-  const tokenIO = getTokenIO(fiscalCode);
+  const { token: tokenIO, ok } = getMockLogin(fiscalCode);
+  if (!ok || !tokenIO) {
+    throw new Error('IO mock login failed; cannot create voucher.');
+  }
   //console.log('✅ Tokens retrieved successfully.');
   //console.log('TokenIO:',tokenIO)
 
