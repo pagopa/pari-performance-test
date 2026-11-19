@@ -44,6 +44,15 @@ export function getBaseUrl(operationAvailableEnvs = VALID_ENVS) {
   return { baseUrl: config.apimUrl, keycloakBaseUrl: config.keycloakUrl }
 }
 
+/**
+ * Resolves the APIM gateway root (e.g. "https://api-io.uat.cstar.pagopa.it"),
+ * stripping the product-specific "/idpay-itn" suffix from apimUrl. Needed for
+ * endpoints under a different product path, such as "/shared/mock-io/login".
+ */
+export function getIoRootUrl(apimUrl) {
+  return apimUrl.replace(/\/idpay-itn\/?$/, '')
+}
+
 export function getInitiativeId(name) {
   if (name === undefined) {
     if (CONFIG.INITIATIVE_ID) {

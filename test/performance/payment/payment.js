@@ -3,13 +3,12 @@ import { check, group, sleep } from 'k6';
 import { SharedArray } from 'k6/data';
 import exec from 'k6/execution';
 
-import { getTokenKeycloak } from '../../common/api/tokenAuth.js';
-import { getMockLogin } from '../../common/api/mockIOLogin.js'
 import { getProductsApproved, createBarCode, previewPayment, authPayment, deletePayment } from '../../common/api/payment.js';
 import { toTrimmedString } from '../../common/basicUtils.js';
 import { loadEnvConfig } from '../../common/loadEnv.js';
 import { prepareScenario } from '../../common/scenarioSetup.js';
 import { getInitiativeId } from '../../common/envUrl.js';
+import { setupTokenIO, setupTokenKeycloak } from '../../common/setupUtils.js';
 
 /** Load fiscal codes from CSV */
 const fiscalCodes = new SharedArray('fiscalCodes', () => {
@@ -84,11 +83,12 @@ export default function () {
   }
 
   //console.log('🔑 Requesting tokens...');
-  const { token } = getMockLogin(fiscalCode);
-  const tokenKeycloak = getTokenKeycloak(keycloakUrl, email, password);
+  // setupTokenIO/setupTokenKeycloak validate the HTTP status and abort the
+  // iteration early (instead of silently continuing with a null token, which
+  // previously surfaced as a confusing 401 on createBarCode).
+  const token = setupTokenIO(fiscalCode);
+  const tokenKeycloak = setupTokenKeycloak(keycloakUrl, email, password);
   //console.log('✅ Tokens retrieved successfully.');
-  //console.log('TokenIO:',tokenIO)
-  //console.log('tokenKeycloak:',tokenKeycloak)
 
   group('Payment API - End-to-End Flow', () => {
     let trxCode;

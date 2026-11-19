@@ -17,12 +17,14 @@ import {
 } from '../../common/basicUtils.js'
 import { loadEnvConfig } from '../../common/loadEnv.js'
 import { prepareScenario } from '../../common/scenarioSetup.js'
+import { getIoRootUrl } from '../../common/envUrl.js'
 
 const targetEnv = (__ENV.TARGET_ENV || 'dev').trim().toLowerCase()
 
 const envConfig = loadEnvConfig(targetEnv)
 
 const baseUrl = toTrimmedString(__ENV.APIM_URL, envConfig.apimUrl || '')
+const ioBaseUrl = getIoRootUrl(baseUrl)
 if (!baseUrl) {
     throw new Error(`Missing APIM_URL for environment: ${targetEnv}`)
 }
@@ -77,21 +79,21 @@ export default function () {
         token = tokenCache.get(fc);
     } else {
         // Se non è in cache, genera un nuovo token
-        const res = getMockLogin(fc);
+        const { res, ok, token: ioToken } = getMockLogin(ioBaseUrl, fc);
 
         check(res, {
-            'mock login status 200': (r) => r.status === 200,
-            'mock login body is not empty': (r) => r.body && r.body.length > 0
+            'mock login status 200': (r) => r && r.status === 200,
+            'mock login body is not empty': (r) => r && r.body && r.body.length > 0
         });
 
         // Controlla se la generazione del token ha avuto successo
-        if (res.status !== 200 || !res.body) {
+        if (!ok || !ioToken) {
             // Interrompi questa iterazione se non riusciamo a ottenere il token
             return;
         }
         mockLoginCounter.add(1);
 
-        token = res.body;
+        token = ioToken;
         // Salva il nuovo token nella cache per usi futuri
         tokenCache.set(fc, token);
     }

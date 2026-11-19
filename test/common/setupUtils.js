@@ -1,31 +1,35 @@
 import { getTokenRegister, getTokenKeycloak } from './api/tokenAuth.js'
 import { getMockLogin } from '../common/api/mockIOLogin.js'
 import { getProducts } from './api/productRegister.js'
-import { getBaseUrl, getInitiativeId } from './envUrl.js'
+import { getBaseUrl, getInitiativeId, getIoRootUrl } from './envUrl.js'
 import { check, fail } from 'k6'
 
-export function setupTokenKeycloak(email, password){
-  const { tokenKeycloakResponse } = getTokenKeycloak(email, password)
-  const successKeycloak = check(tokenKeycloakResponse, { 'Keycloak token received': (r) => r && r.status === 200 })
-  if (!successKeycloak || !tokenKeycloakResponse.body) {
-    console.error('[setupToken] Failed to retrieve keycloak token', { status: tokenKeycloakResponse?.status })
-    fail('[setupToken] Aborting: invalid IO token')
+export function setupTokenKeycloak(keycloakBaseUrl, email, password){
+  // getTokenKeycloak() already logs/validates the HTTP response and returns
+  // the access_token string directly (or null on failure).
+  const accessToken = getTokenKeycloak(keycloakBaseUrl, email, password)
+  if (!accessToken) {
+    console.error('[setupToken] Failed to retrieve keycloak token')
+    fail('[setupToken] Aborting: invalid Keycloak token')
   }
 
-  const accessToken = tokenKeycloakResponse.json('access_token')
   return accessToken
 }
 
 export function setupTokenIO(cf = ''){
-  const { tokenIOResponse } = getMockLogin(cf) //verify
+  // Mock IO login lives under the APIM "/shared" product, not "/idpay-itn".
+  const ioBaseUrl = getIoRootUrl(getBaseUrl().baseUrl)
+  // getMockLogin() returns { res, ok, token }, not a raw HTTP response.
+  const { res, ok, token } = getMockLogin(ioBaseUrl, cf)
 
-  const successIo = check(tokenIOResponse, { 'IO token received': (r) => r && r.status === 200 })
-  if (!successIo || !tokenIOResponse.body) {
-    console.error('[setupToken] Failed to retrieve IO token', { status: tokenIOResponse?.status })
+  const successIo = ok && check(res, { 'IO token received': (r) => r && r.status === 200 })
+  if (!successIo || !token) {
+    console.error('[setupToken] Failed to retrieve IO token', { status: res?.status })
     fail('[setupToken] Aborting: invalid IO token')
   }
 
-  const ioToken = String(tokenIOResponse.body).replace(/"/g, '').trim()
+  // Defensive: strip any surrounding quotes in case the endpoint returns a JSON-quoted string.
+  const ioToken = String(token).replace(/^"|"$/g, '').trim()
   return ioToken
 }
 
