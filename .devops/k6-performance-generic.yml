@@ -126,9 +126,9 @@ parameters:
     default: '200'
 
   - name: 'INITIATIVE_ID'
-    displayName: '(Advanced/Optional) Raw initiative ID override — leave empty to use INITIATIVE_NAME'
+    displayName: '(Advanced/Optional) Raw initiative ID override — leave as "-" to use INITIATIVE_NAME'
     type: string
-    default: ''
+    default: '-'
 
   - name: 'FISCAL_CODE_FILE'
     displayName: '(Optional) Path to CSV file with fiscal codes'

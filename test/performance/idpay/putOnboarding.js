@@ -61,7 +61,7 @@ const status200Counter = new Counter("_getWallet_ok");
 const statusErrorCounter = new Counter("_getWallet_Ko");
 const mockLoginCounter = new Counter("_mock_login_succeeded");
 
-const INITIATIVE_ID = __ENV.INITIATIVE_ID || getInitiativeId();
+const INITIATIVE_ID = getInitiativeId();
 
  // Prepare payload for saveOnboarding
   const payload = {

@@ -56,7 +56,7 @@ export function setup() {
   logScenario()
 }
 
-const initiativeId = __ENV.INITIATIVE_ID || getInitiativeId()
+const initiativeId = getInitiativeId()
 const startIndex = 0;
 
 export default function () {
