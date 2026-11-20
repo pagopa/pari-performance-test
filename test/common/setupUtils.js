@@ -5,8 +5,6 @@ import { getBaseUrl, getInitiativeId, getIoRootUrl } from './envUrl.js'
 import { check, fail } from 'k6'
 
 export function setupTokenKeycloak(keycloakBaseUrl, email, password){
-  // getTokenKeycloak() already logs/validates the HTTP response and returns
-  // the access_token string directly (or null on failure).
   const accessToken = getTokenKeycloak(keycloakBaseUrl, email, password)
   if (!accessToken) {
     console.error('[setupToken] Failed to retrieve keycloak token')
@@ -17,9 +15,7 @@ export function setupTokenKeycloak(keycloakBaseUrl, email, password){
 }
 
 export function setupTokenIO(cf = ''){
-  // Mock IO login lives under the APIM "/shared" product, not "/idpay-itn".
   const ioBaseUrl = getIoRootUrl(getBaseUrl().baseUrl)
-  // getMockLogin() returns { res, ok, token }, not a raw HTTP response.
   const { res, ok, token } = getMockLogin(ioBaseUrl, cf)
 
   const successIo = ok && check(res, { 'IO token received': (r) => r && r.status === 200 })
@@ -28,7 +24,6 @@ export function setupTokenIO(cf = ''){
     fail('[setupToken] Aborting: invalid IO token')
   }
 
-  // Defensive: strip any surrounding quotes in case the endpoint returns a JSON-quoted string.
   const ioToken = String(token).replace(/^"|"$/g, '').trim()
   return ioToken
 }

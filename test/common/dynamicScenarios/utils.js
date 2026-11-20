@@ -59,8 +59,6 @@ export function logErrorResult(opName, result, printSecrets) {
 }
 
 export function decodeJwt(token) {
-  // k6's JS runtime (goja) has no atob(); use k6/encoding to base64url-decode
-  // the JWT payload segment, then UTF-8 decode the resulting bytes.
   const payload = token.split('.')[1]
   const bytes = new Uint8Array(encoding.b64decode(payload, 'rawurl'))
   const percentEncoded = Array.from(bytes)

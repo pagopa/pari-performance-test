@@ -64,7 +64,6 @@ export function setup() {
 }
 
 /** Test data */
-// Resolved from INITIATIVE_ID env var or config/{env}.json initiatives (defaults to bonus_elettrodomestici).
 const initiativeId = getInitiativeId();
 const email = __ENV.KEYCLOAK_USERNAME;
 const password = __ENV.KEYCLOAK_PASSWORD;
@@ -126,8 +125,6 @@ export default function () {
 
     /** Preview, Authorize and Delete Payment */
     group('Preview, Authorize And Delete Payment', () => {
-      // Payload shapes must match the real OpenAPI DTOs (PreviewPaymentRequestV2DTO /
-      // AuthBarCodePaymentDTO): trxCode/initiativeId are path params, not body fields.
       const previewPayload = {
         amountCents: 1000,
         additionalProperties: {

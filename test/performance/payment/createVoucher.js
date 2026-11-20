@@ -60,7 +60,6 @@ export function setup() {
 }
 
 /** Test data */
-// Resolved from INITIATIVE_ID env var or config/{env}.json initiatives (defaults to bonus_elettrodomestici).
 const initiativeId = getInitiativeId();
 
 

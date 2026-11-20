@@ -61,8 +61,6 @@ function replaceTrxCode(endpoint, trxCode, initiativeId) {
  */
 function validateResponse(apiName, res, expectedField = 'trxCode') {
   const isSuccess = [200, 201, 202].includes(res?.status);
-  // logResult only logs via its 3rd arg (a single expected status), which doesn't
-  // fit this multi-status check, so log the failure body/status explicitly here.
   if (!isSuccess) {
     logErrorResult(apiName, res, false);
   }

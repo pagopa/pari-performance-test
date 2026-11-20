@@ -14,7 +14,6 @@ export function getMockLogin(baseUrl, fiscalCode) {
   const url = `${baseUrl}/shared/mock-io/login?fiscalCode=${fiscalCode}`;
 
   const headers = {};
-  // Some APIM products require a subscription key for /shared/mock-io/*; forwarded only if set.
   if (__ENV.APIM_MOCK_IO_SUBSCRIPTION_KEY) {
     headers['Ocp-Apim-Subscription-Key'] = __ENV.APIM_MOCK_IO_SUBSCRIPTION_KEY;
   }
