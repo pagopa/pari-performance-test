@@ -7,6 +7,7 @@ import { createBarCode } from '../../common/api/payment.js';
 import { toTrimmedString } from '../../common/basicUtils.js';
 import { loadEnvConfig } from '../../common/loadEnv.js';
 import { prepareScenario } from '../../common/scenarioSetup.js';
+import { getInitiativeId, getIoRootUrl } from '../../common/envUrl.js';
 
 /** Load fiscal codes from CSV */
 const fiscalCodes = new SharedArray('fiscalCodes', () => {
@@ -26,6 +27,7 @@ const baseUrl = toTrimmedString(__ENV.APIM_URL, envConfig.apimUrl || '');
 if (!baseUrl) {
   throw new Error(`Missing APIM_URL for environment: ${targetEnv}`);
 }
+const ioBaseUrl = getIoRootUrl(baseUrl);
 
 /** Scenario setup */
 const { scenarioConfig, logScenario } = prepareScenario({ env: __ENV });
@@ -58,7 +60,8 @@ export function setup() {
 }
 
 /** Test data */
-const initiativeId = '68de7fc681ce9e35a476e985';
+// Resolved from INITIATIVE_ID env var or config/{env}.json initiatives (defaults to bonus_elettrodomestici).
+const initiativeId = getInitiativeId();
 
 
 export default function () {
@@ -72,7 +75,7 @@ export default function () {
   }
 
   //console.log('🔑 Requesting tokens...');
-  const { token: tokenIO, ok } = getMockLogin(fiscalCode);
+  const { token: tokenIO, ok } = getMockLogin(ioBaseUrl, fiscalCode);
   if (!ok || !tokenIO) {
     throw new Error('IO mock login failed; cannot create voucher.');
   }
