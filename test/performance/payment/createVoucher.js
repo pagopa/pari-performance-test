@@ -8,6 +8,7 @@ import { toTrimmedString } from '../../common/basicUtils.js';
 import { loadEnvConfig } from '../../common/loadEnv.js';
 import { prepareScenario } from '../../common/scenarioSetup.js';
 import { getInitiativeId, getIoRootUrl } from '../../common/envUrl.js';
+import { decodeJwt } from '../../common/dynamicScenarios/utils.js';
 
 /** Load fiscal codes from CSV */
 const fiscalCodes = new SharedArray('fiscalCodes', () => {
@@ -67,7 +68,7 @@ const initiativeId = getInitiativeId();
 export default function () {
   const fiscalCode = fiscalCodes[Math.floor(Math.random() * fiscalCodes.length)];
 
-  //console.log(`🧾 FiscalCode: ${fiscalCode}`);
+  console.log(`🧾 FiscalCode: ${fiscalCode}`);
 
   if (!fiscalCode) {
     console.error(`Index ${iterationIndex} out of range. Skipping iteration.`);
@@ -78,6 +79,14 @@ export default function () {
   const { token: tokenIO, ok } = getMockLogin(ioBaseUrl, fiscalCode);
   if (!ok || !tokenIO) {
     throw new Error('IO mock login failed; cannot create voucher.');
+  }
+  // Log the IO user id (JWT "sub" claim) alongside the fiscal code so a 403
+  // (e.g. PAYMENT_USER_UNSUBSCRIBED) can be cross-checked directly against the DB.
+  try {
+    const claims = decodeJwt(tokenIO);
+    console.log(`🪪 IO userId (sub): ${claims?.sub} - FiscalCode: ${fiscalCode}`);
+  } catch (e) {
+    console.error(`Failed to decode IO JWT: ${e?.message || e}`);
   }
   //console.log('✅ Tokens retrieved successfully.');
   //console.log('TokenIO:',tokenIO)
