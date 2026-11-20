@@ -7,6 +7,14 @@ pool:
 
 parameters:
 
+  - name: 'INITIATIVE_NAME'
+    displayName: '⭐ INITIATIVE (select the target initiative)'
+    type: string
+    default: 'Bonus Elettrodomestici'
+    values:
+      - 'Bonus Elettrodomestici'
+      - 'Bonus Decoder'
+
   - name: 'PIPELINE_NAME_PREFIX'
     displayName: '(Optional) pipeline run name prefix'
     type: string
@@ -118,9 +126,9 @@ parameters:
     default: '200'
 
   - name: 'INITIATIVE_ID'
-    displayName: '(Optional) Initiative ID (used by some scripts)'
+    displayName: '(Advanced/Optional) Raw initiative ID override — leave empty to use INITIATIVE_NAME'
     type: string
-    default: '68dd003ccce8c534d1da22bc'
+    default: ''
 
   - name: 'FISCAL_CODE_FILE'
     displayName: '(Optional) Path to CSV file with fiscal codes'
@@ -137,6 +145,9 @@ variables:
 
   - name: ComputedPipelineName
     value: ''
+
+  - name: InitiativeNameKey
+    value: ${{ lower(replace(parameters.INITIATIVE_NAME, ' ', '_')) }}
 
   # comma separated list of k6 scripts to execute
   - name: SCRIPTS_TO_EXECUTE
@@ -217,6 +228,7 @@ jobs:
           printf '%-24s | %s\n' 'K6PERF_STAGES' "${K6PERF_STAGES_JSON}"
           printf '%-24s | %s\n' 'COMPUTED_RUN_NAME' "${COMPUTED_PIPELINE_NAME}"
           printf '%-24s | %s\n' 'WALLET_EXPECTED_STATUSES' "${WALLET_EXPECTED_STATUSES}"
+          printf '%-24s | %s\n' 'INITIATIVE_NAME' "${INITIATIVE_NAME}"
           printf '%-24s | %s\n' 'INITIATIVE_ID' "${INITIATIVE_ID}"
           printf '%-24s | %s\n' 'FISCAL_CODE_FILE' "${FISCAL_CODE_FILE}"
         displayName: '🔍 Pipeline parameters snapshot'
@@ -242,6 +254,7 @@ jobs:
           APIM_MOCK_IO_SUBSCRIPTION_KEY: $(APIM_MOCK_IO_SUBSCRIPTION_KEY)
           # 🔹 Env aggiunte
           WALLET_EXPECTED_STATUSES: ${{ parameters.WALLET_EXPECTED_STATUSES }}
+          INITIATIVE_NAME: $(InitiativeNameKey)
           INITIATIVE_ID: ${{ parameters.INITIATIVE_ID }}
           FISCAL_CODE_FILE: ${{ parameters.FISCAL_CODE_FILE }}
 
@@ -265,6 +278,7 @@ jobs:
                 K6PERF_STAGES_JSON: ${{ convertToJson(parameters.K6PERF_STAGES) }}
               # (Facoltativo) puoi passarle anche qui se lo script le usa in validazione:
               WALLET_EXPECTED_STATUSES: ${{ parameters.WALLET_EXPECTED_STATUSES }}
+              INITIATIVE_NAME: $(InitiativeNameKey)
               INITIATIVE_ID: ${{ parameters.INITIATIVE_ID }}
               FISCAL_CODE_FILE: ${{ parameters.FISCAL_CODE_FILE }}
 
@@ -324,6 +338,7 @@ jobs:
               APIM_MOCK_IO_SUBSCRIPTION_KEY: $(APIM_MOCK_IO_SUBSCRIPTION_KEY)
               # 🔹 Env inoltrate agli script k6 (usabili come __ENV.*)
               WALLET_EXPECTED_STATUSES: ${{ parameters.WALLET_EXPECTED_STATUSES }}
+              INITIATIVE_NAME: $(InitiativeNameKey)
               INITIATIVE_ID: ${{ parameters.INITIATIVE_ID }}
               FISCAL_CODE_FILE: ${{ parameters.FISCAL_CODE_FILE }}
             timeoutInMinutes: 0

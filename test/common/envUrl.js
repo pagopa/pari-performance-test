@@ -55,10 +55,16 @@ export function getIoRootUrl(apimUrl) {
 
 export function getInitiativeId(name) {
   if (name === undefined) {
-    if (CONFIG.INITIATIVE_ID) {
+    // Pipeline "Initiative" selector (e.g. "bonus_elettrodomestici") takes
+    // precedence over the legacy raw-ID override, which in turn wins over
+    // the default initiative.
+    if (CONFIG.INITIATIVE_NAME) {
+      name = CONFIG.INITIATIVE_NAME
+    } else if (CONFIG.INITIATIVE_ID) {
       return CONFIG.INITIATIVE_ID
+    } else {
+      name = 'bonus_elettrodomestici'
     }
-    name = 'bonus_elettrodomestici'
   }
 
   const env = CONFIG.TARGET_ENV
