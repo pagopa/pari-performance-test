@@ -10,6 +10,7 @@ import { prepareScenario } from '../../common/scenarioSetup.js';
 import { toTrimmedString } from '../../common/basicUtils.js';
 import { loadCsvArray } from '../../common/loadCsvArray.js';
 import { getInitiativeId, getIoRootUrl } from '../../common/envUrl.js';
+import { getSelfDeclarationList } from '../../common/utils.js';
 
 /** Target environment (dev | uat | prod). */
 const targetEnv = (__ENV.TARGET_ENV || 'dev').trim().toLowerCase();
@@ -68,10 +69,7 @@ const INITIATIVE_ID = getInitiativeId();
     initiativeId: INITIATIVE_ID,
     confirmedTos: true,
     pdndAccept: true,
-    selfDeclarationList: [
-      { "_type": "multi_consent", "code": "isee", "value": "3" },
-      { "_type": "boolean", "code": "1", "accepted": true },
-    ]
+    selfDeclarationList: getSelfDeclarationList(INITIATIVE_ID)
   };
 
 // 🔹 Legge il nome file CSV dall’ambiente o usa un default

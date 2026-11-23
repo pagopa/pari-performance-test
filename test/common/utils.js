@@ -171,6 +171,22 @@ export function getRandomCategory(initiativeId) {
 }
 
 /**
+ * Returns the onboarding self-declaration list for an initiative.
+ * Bonus decoder requires no self declarations (empty list).
+ * @param {string} initiativeId - Initiative identifier.
+ * @returns {Array<Object>} Self-declaration list.
+ */
+export function getSelfDeclarationList(initiativeId) {
+    if (initiativeId === getInitiativeId('bonus_decoder')) {
+        return [];
+    }
+    return [
+        { "_type": "multi_consent", "code": "isee", "value": "3" },
+        { "_type": "boolean", "code": "1", "accepted": true },
+    ];
+}
+
+/**
  * Parses a comma-separated list of HTTP status codes from an environment variable.
  * Example: "200,404,500" → [200, 404, 500]
  * @param {string} envValue - Raw environment variable string (e.g. "200,404").
