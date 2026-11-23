@@ -177,7 +177,7 @@ export function getRandomCategory(initiativeId) {
  * @returns {Array<Object>} Self-declaration list.
  */
 export function getSelfDeclarationList(initiativeId) {
-    if (initiativeId === getInitiativeId('bonus_decoder')) {
+    if (initiativeId ===     getInitiativeId('performance_bonus_decoder')) {
         return [];
     }
     return [
