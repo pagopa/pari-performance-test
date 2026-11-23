@@ -44,27 +44,18 @@ export function getBaseUrl(operationAvailableEnvs = VALID_ENVS) {
   return { baseUrl: config.apimUrl, keycloakBaseUrl: config.keycloakUrl }
 }
 
-/**
- * Resolves the APIM gateway root (e.g. "https://api-io.uat.cstar.pagopa.it"),
- * stripping the product-specific "/idpay-itn" suffix from apimUrl. Needed for
- * endpoints under a different product path, such as "/shared/mock-io/login".
- */
 export function getIoRootUrl(apimUrl) {
   return apimUrl.replace(/\/idpay-itn\/?$/, '')
 }
 
 export function getInitiativeId(name) {
   if (name === undefined) {
-    // Pipeline "Initiative" selector (e.g. "bonus_elettrodomestici") takes
-    // precedence over the legacy raw-ID override, which in turn wins over
-    // the default initiative. "-" is the pipeline's disabled/placeholder
-    // value (same convention used by other optional parameters).
     if (CONFIG.INITIATIVE_NAME) {
       name = CONFIG.INITIATIVE_NAME
     } else if (CONFIG.INITIATIVE_ID && CONFIG.INITIATIVE_ID !== '-') {
       return CONFIG.INITIATIVE_ID
     } else {
-      name = 'bonus_elettrodomestici'
+      name = 'performance_bonus_elettrodomestici'
     }
   }
 
@@ -79,7 +70,7 @@ export function getInitiativeId(name) {
   return initiativeId
 }
 
-export function getInitiativeOrganizationId(name = 'bonus_elettrodomestici') {
+export function getInitiativeOrganizationId(name = 'performance_bonus_elettrodomestici') {
   const env = CONFIG.TARGET_ENV
   const organizationId = CONFIGS[env]?.initiatives?.[name]?.organization_id
 

@@ -10,10 +10,10 @@ parameters:
   - name: 'INITIATIVE_NAME'
     displayName: '⭐ INITIATIVE (select the target initiative)'
     type: string
-    default: 'Bonus Elettrodomestici'
+    default: 'Performance Bonus Elettrodomestici'
     values:
-      - 'Bonus Elettrodomestici'
-      - 'Bonus Decoder'
+      - 'Performance Bonus Elettrodomestici'
+      - 'Performance Bonus Decoder'
 
   - name: 'PIPELINE_NAME_PREFIX'
     displayName: '(Optional) pipeline run name prefix'
