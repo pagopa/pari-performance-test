@@ -5,11 +5,11 @@
     "keycloakUserUrl": "https://api-mcshared.uat.cstar.pagopa.it/auth-itn/realms/user/protocol/openid-connect/token",
     "initiatives": {
         "bonus_elettrodomestici": {
-            "id": "68dd003ccce8c534d1da22bc",
+            "id": "68de7fc681ce9e35a476e985",
             "organization_id": "999e1892-08e8-4d13-bec9-54814cd31b0c"
         },
         "bonus_decoder": {
-            "id": "69e0fa95e21efa516c7b8dec",
+            "id": "6b0405e49a76b95120b90b4f",
             "organization_id": "999e1892-08e8-4d13-bec9-54814cd31b0c"
         }
     }
