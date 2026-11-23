@@ -160,7 +160,7 @@ const BonusDecoderCategoriesEnum = {
 };
 
 export function getRandomCategory(initiativeId) {
-    if (initiativeId === getInitiativeId('bonus_decoder')) {
+    if (initiativeId === getInitiativeId('performance_bonus_decoder')) {
         const categories = Object.values(BonusDecoderCategoriesEnum);
         const randomIndex = Math.floor(Math.random() * categories.length); //NOSONAR
         return categories[randomIndex];
@@ -192,10 +192,10 @@ export function parseExpectedStatuses(envValue, fallback = [200]) {
 /**
  * Resolves the organizationId for a given initiative from config/{env}.json's
  * `initiatives` section (see envUrl.js's getInitiativeOrganizationId).
- * @param {string} [initiativeName='bonus_elettrodomestici'] - Key under `initiatives` in config/{env}.json.
+ * @param {string} [initiativeName='performance_bonus_elettrodomestici'] - Key under `initiatives` in config/{env}.json.
  * @returns {string|null} organization_id for the current TARGET_ENV, or null if missing.
  */
-export function getOrgId(initiativeName = 'bonus_elettrodomestici') {
+export function getOrgId(initiativeName = 'performance_bonus_elettrodomestici') {
     return getInitiativeOrganizationId(initiativeName)
 }
 
