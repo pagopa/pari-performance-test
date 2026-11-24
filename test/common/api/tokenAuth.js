@@ -1,6 +1,7 @@
 import http from 'k6/http';
 import { logResult } from '../dynamicScenarios/utils.js';
 import { getOrgId } from '../utils.js';
+import { CONFIG } from '../dynamicScenarios/envVars.js';
 
 /** API Endpoints */
 const AUTH_API = {
@@ -24,7 +25,7 @@ function buildHeaders(contentType = 'application/json') {
  * Client secret is read from KEYCLOAK_CLIENT_SECRET (required if performance-test-client
  * is configured as confidential in Keycloak); omitted from the payload when not set.
  */
-export function getTokenKeycloak(keycloakBaseUrl, email, password, clientSecret = __ENV.KEYCLOAK_CLIENT_SECRET) {
+export function getTokenKeycloak(keycloakBaseUrl, email, password, clientSecret = CONFIG.KEYCLOAK_CLIENT_SECRET) {
   const apiName = 'getTokenKeycloak';
 
   const parts = [

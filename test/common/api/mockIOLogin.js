@@ -2,6 +2,7 @@ import http from 'k6/http';
 import { check } from 'k6';
 import { Counter } from 'k6/metrics';
 import { logResult } from '../dynamicScenarios/utils.js';
+import { CONFIG } from '../dynamicScenarios/envVars.js';
 
 export const IDPAY_ONBOARDING_API_NAMES = {
   testLogin: 'idpay/mock-io',
@@ -14,8 +15,8 @@ export function getMockLogin(baseUrl, fiscalCode) {
   const url = `${baseUrl}/shared/mock-io/login?fiscalCode=${fiscalCode}`;
 
   const headers = {};
-  if (__ENV.APIM_MOCK_IO_SUBSCRIPTION_KEY) {
-    headers['Ocp-Apim-Subscription-Key'] = __ENV.APIM_MOCK_IO_SUBSCRIPTION_KEY;
+  if (CONFIG.APIM_MOCK_IO_SUBSCRIPTION_KEY) {
+    headers['Ocp-Apim-Subscription-Key'] = CONFIG.APIM_MOCK_IO_SUBSCRIPTION_KEY;
   }
 
   const res = http.post(url, null, { headers, responseType: 'text' });

@@ -13,10 +13,11 @@ import { loadEnvConfig } from '../../common/loadEnv.js';
 import { prepareScenario } from '../../common/scenarioSetup.js';
 import { getInitiativeId, getIoRootUrl } from '../../common/envUrl.js';
 import { getSelfDeclarationList } from '../../common/utils.js';
+import { CONFIG } from '../../common/dynamicScenarios/envVars.js';
 
 // Load fiscal codes from CSV. Use the SAME file as the test consuming the
 // onboarded users (e.g. payment.js uses fc_list_10k.csv) so coverage matches.
-const csvFile = __ENV.FISCAL_CODE_FILE || '../../../assets/fc_list_10k.csv';
+const csvFile = CONFIG.FISCAL_CODE_FILE || '../../../assets/fc_list_10k.csv';
 const fiscalCodes = new SharedArray('fiscalCodes', () => {
   const csv = open(csvFile);
   return csv.split('\n')
