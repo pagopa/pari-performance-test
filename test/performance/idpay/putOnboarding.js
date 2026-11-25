@@ -9,6 +9,8 @@ import { loadEnvConfig } from '../../common/loadEnv.js';
 import { prepareScenario } from '../../common/scenarioSetup.js';
 import { toTrimmedString } from '../../common/basicUtils.js';
 import { loadCsvArray } from '../../common/loadCsvArray.js';
+import { getInitiativeId, getIoRootUrl } from '../../common/envUrl.js';
+import { getSelfDeclarationList } from '../../common/utils.js';
 
 /** Target environment (dev | uat | prod). */
 const targetEnv = (__ENV.TARGET_ENV || 'dev').trim().toLowerCase();
@@ -21,6 +23,7 @@ const baseUrl = toTrimmedString(__ENV.APIM_URL, envConfig.apimUrl || '');
 if (!baseUrl) {
   throw new Error(`Missing APIM_URL for environment: ${targetEnv}`);
 }
+const ioBaseUrl = getIoRootUrl(baseUrl);
 
 /** Scenario configuration and logger. */
 const { scenarioConfig, logScenario } = prepareScenario({ env: __ENV });
@@ -59,17 +62,14 @@ const status200Counter = new Counter("_getWallet_ok");
 const statusErrorCounter = new Counter("_getWallet_Ko");
 const mockLoginCounter = new Counter("_mock_login_succeeded");
 
-const INITIATIVE_ID = __ENV.INITIATIVE_ID || '68de7fc681ce9e35a476e985';
+const INITIATIVE_ID = getInitiativeId();
 
  // Prepare payload for saveOnboarding
   const payload = {
     initiativeId: INITIATIVE_ID,
     confirmedTos: true,
     pdndAccept: true,
-    selfDeclarationList: [
-      { "_type": "multi_consent", "code": "isee", "value": "3" },
-      { "_type": "boolean", "code": "1", "accepted": true },
-    ]
+    selfDeclarationList: getSelfDeclarationList(INITIATIVE_ID)
   };
 
 // 🔹 Legge il nome file CSV dall’ambiente o usa un default
@@ -84,7 +84,7 @@ export default function () {
   const fiscalCode = fiscalCodes[Math.floor(Math.random() * fiscalCodes.length)];
 
   // Get a mock IO token for the selected user.
-  const { token, ok } = getMockLogin(fiscalCode);
+  const { token, ok } = getMockLogin(ioBaseUrl, fiscalCode);
 
   if (!ok || !token) {
     // Interrompi questa iterazione se non riusciamo a ottenere il token

@@ -2,6 +2,7 @@ import http from 'k6/http';
 import { check } from 'k6';
 import { Counter } from 'k6/metrics';
 import { logResult } from '../dynamicScenarios/utils.js';
+import { CONFIG } from '../dynamicScenarios/envVars.js';
 
 export const IDPAY_ONBOARDING_API_NAMES = {
   testLogin: 'idpay/mock-io',
@@ -9,11 +10,16 @@ export const IDPAY_ONBOARDING_API_NAMES = {
 
 const mockLoginErrorCounter = new Counter('mock_login_failed');
 
-export function getMockLogin(fiscalCode) {
+export function getMockLogin(baseUrl, fiscalCode) {
   const apiName = IDPAY_ONBOARDING_API_NAMES.testLogin;
-  const url = `https://uat01.rtd.internal.uat.cstar.pagopa.it/cstarmockbackendio/bpd/pagopa/api/v1/login?fiscalCode=${fiscalCode}`;
+  const url = `${baseUrl}/shared/mock-io/login?fiscalCode=${fiscalCode}`;
 
-  const res = http.post(url, null, { responseType: 'text' });
+  const headers = {};
+  if (CONFIG.APIM_MOCK_IO_SUBSCRIPTION_KEY) {
+    headers['Ocp-Apim-Subscription-Key'] = CONFIG.APIM_MOCK_IO_SUBSCRIPTION_KEY;
+  }
+
+  const res = http.post(url, null, { headers, responseType: 'text' });
 
   // ✅ esegui i check qui
   const ok = check(res, {

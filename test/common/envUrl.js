@@ -44,12 +44,19 @@ export function getBaseUrl(operationAvailableEnvs = VALID_ENVS) {
   return { baseUrl: config.apimUrl, keycloakBaseUrl: config.keycloakUrl }
 }
 
+export function getIoRootUrl(apimUrl) {
+  return apimUrl.replace(/\/idpay-itn\/?$/, '')
+}
+
 export function getInitiativeId(name) {
   if (name === undefined) {
-    if (CONFIG.INITIATIVE_ID) {
+    if (CONFIG.INITIATIVE_NAME) {
+      name = CONFIG.INITIATIVE_NAME
+    } else if (CONFIG.INITIATIVE_ID && CONFIG.INITIATIVE_ID !== '-') {
       return CONFIG.INITIATIVE_ID
+    } else {
+      name = 'performance_bonus_elettrodomestici'
     }
-    name = 'bonus_elettrodomestici'
   }
 
   const env = CONFIG.TARGET_ENV
@@ -63,7 +70,7 @@ export function getInitiativeId(name) {
   return initiativeId
 }
 
-export function getInitiativeOrganizationId(name = 'bonus_elettrodomestici') {
+export function getInitiativeOrganizationId(name = 'performance_bonus_elettrodomestici') {
   const env = CONFIG.TARGET_ENV
   const organizationId = CONFIGS[env]?.initiatives?.[name]?.organization_id
 

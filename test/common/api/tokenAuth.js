@@ -1,6 +1,7 @@
 import http from 'k6/http';
 import { logResult } from '../dynamicScenarios/utils.js';
 import { getOrgId } from '../utils.js';
+import { CONFIG } from '../dynamicScenarios/envVars.js';
 
 /** API Endpoints */
 const AUTH_API = {
@@ -21,16 +22,22 @@ function buildHeaders(contentType = 'application/json') {
 
 /**
  * Retrieves Keycloak token via Resource Owner Password flow (esistente).
+ * Client secret is read from KEYCLOAK_CLIENT_SECRET (required if performance-test-client
+ * is configured as confidential in Keycloak); omitted from the payload when not set.
  */
-export function getTokenKeycloak(keycloakBaseUrl, email, password) {
+export function getTokenKeycloak(keycloakBaseUrl, email, password, clientSecret = CONFIG.KEYCLOAK_CLIENT_SECRET) {
   const apiName = 'getTokenKeycloak';
 
-  const payload = [
+  const parts = [
     'client_id=performance-test-client',
     `username=${encodeURIComponent(email)}`,
     `password=${encodeURIComponent(password)}`,
     'grant_type=password',
-  ].join('&');
+  ];
+  if (clientSecret) {
+    parts.push(`client_secret=${encodeURIComponent(clientSecret)}`);
+  }
+  const payload = parts.join('&');
 
   const headers = buildHeaders('application/x-www-form-urlencoded');
 

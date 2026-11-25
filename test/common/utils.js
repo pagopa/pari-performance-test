@@ -160,7 +160,7 @@ const BonusDecoderCategoriesEnum = {
 };
 
 export function getRandomCategory(initiativeId) {
-    if (initiativeId === getInitiativeId('bonus_decoder')) {
+    if (initiativeId === getInitiativeId('performance_bonus_decoder')) {
         const categories = Object.values(BonusDecoderCategoriesEnum);
         const randomIndex = Math.floor(Math.random() * categories.length); //NOSONAR
         return categories[randomIndex];
@@ -168,6 +168,22 @@ export function getRandomCategory(initiativeId) {
     const categories = Object.values(BonusElettrodomesticiCategoriesEnum);
     const randomIndex = Math.floor(Math.random() * categories.length); //NOSONAR
     return categories[randomIndex];
+}
+
+/**
+ * Returns the onboarding self-declaration list for an initiative.
+ * Bonus decoder requires no self declarations (empty list).
+ * @param {string} initiativeId - Initiative identifier.
+ * @returns {Array<Object>} Self-declaration list.
+ */
+export function getSelfDeclarationList(initiativeId) {
+    if (initiativeId ===     getInitiativeId('performance_bonus_decoder')) {
+        return [];
+    }
+    return [
+        { "_type": "multi_consent", "code": "isee", "value": "3" },
+        { "_type": "boolean", "code": "1", "accepted": true },
+    ];
 }
 
 /**
@@ -192,10 +208,10 @@ export function parseExpectedStatuses(envValue, fallback = [200]) {
 /**
  * Resolves the organizationId for a given initiative from config/{env}.json's
  * `initiatives` section (see envUrl.js's getInitiativeOrganizationId).
- * @param {string} [initiativeName='bonus_elettrodomestici'] - Key under `initiatives` in config/{env}.json.
+ * @param {string} [initiativeName='performance_bonus_elettrodomestici'] - Key under `initiatives` in config/{env}.json.
  * @returns {string|null} organization_id for the current TARGET_ENV, or null if missing.
  */
-export function getOrgId(initiativeName = 'bonus_elettrodomestici') {
+export function getOrgId(initiativeName = 'performance_bonus_elettrodomestici') {
     return getInitiativeOrganizationId(initiativeName)
 }
 

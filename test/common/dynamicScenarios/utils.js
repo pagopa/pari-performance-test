@@ -1,4 +1,5 @@
 import { scenario, exec } from 'k6/execution'
+import encoding from 'k6/encoding'
 import { coalesce } from '../utils.js'
 
 export const testEntitiesBasedScenarioPrefix = 'scenario_'
@@ -59,13 +60,9 @@ export function logErrorResult(opName, result, printSecrets) {
 
 export function decodeJwt(token) {
   const payload = token.split('.')[1]
-  const decoded = JSON.parse(
-    decodeURIComponent(
-      atob(payload)
-        .split('')
-        .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-        .join('')
-    )
-  )
-  return decoded
+  const bytes = new Uint8Array(encoding.b64decode(payload, 'rawurl'))
+  const percentEncoded = Array.from(bytes)
+    .map(b => '%' + ('00' + b.toString(16)).slice(-2))
+    .join('')
+  return JSON.parse(decodeURIComponent(percentEncoded))
 }

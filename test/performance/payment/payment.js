@@ -3,12 +3,12 @@ import { check, group, sleep } from 'k6';
 import { SharedArray } from 'k6/data';
 import exec from 'k6/execution';
 
-import { getTokenKeycloak } from '../../common/api/tokenAuth.js';
-import { getMockLogin } from '../../common/api/mockIOLogin.js'
-import { getProductsApproved, createBarCode, previewPayment, authPayment, deletePayment } from '../../common/api/payment.js';
+import { getProductsApproved, createBarCode, previewPayment, authPayment, deletePayment, generateUuidV4 } from '../../common/api/payment.js';
 import { toTrimmedString } from '../../common/basicUtils.js';
 import { loadEnvConfig } from '../../common/loadEnv.js';
 import { prepareScenario } from '../../common/scenarioSetup.js';
+import { getInitiativeId } from '../../common/envUrl.js';
+import { setupTokenIO, setupTokenKeycloak } from '../../common/setupUtils.js';
 
 /** Load fiscal codes from CSV */
 const fiscalCodes = new SharedArray('fiscalCodes', () => {
@@ -64,7 +64,7 @@ export function setup() {
 }
 
 /** Test data */
-const initiativeId = '68de7fc681ce9e35a476e985';
+const initiativeId = getInitiativeId();
 const email = __ENV.KEYCLOAK_USERNAME;
 const password = __ENV.KEYCLOAK_PASSWORD;
 
@@ -74,7 +74,7 @@ const password = __ENV.KEYCLOAK_PASSWORD;
 export default function () {
   const fiscalCode = fiscalCodes[Math.floor(Math.random() * fiscalCodes.length)];
 
-  //console.log(`🧾 FiscalCode: ${fiscalCode}`);
+  console.log(`🧾 FiscalCode: ${fiscalCode}`);
 
   if (!fiscalCode) {
     console.error(`Index ${iterationIndex} out of range. Skipping iteration.`);
@@ -82,11 +82,12 @@ export default function () {
   }
 
   //console.log('🔑 Requesting tokens...');
-  const { token } = getMockLogin(fiscalCode);
-  const tokenKeycloak = getTokenKeycloak(keycloakUrl, email, password);
+  // setupTokenIO/setupTokenKeycloak validate the HTTP status and abort the
+  // iteration early (instead of silently continuing with a null token, which
+  // previously surfaced as a confusing 401 on createBarCode).
+  const token = setupTokenIO(fiscalCode);
+  const tokenKeycloak = setupTokenKeycloak(keycloakUrl, email, password);
   //console.log('✅ Tokens retrieved successfully.');
-  //console.log('TokenIO:',tokenIO)
-  //console.log('tokenKeycloak:',tokenKeycloak)
 
   group('Payment API - End-to-End Flow', () => {
     let trxCode;
@@ -108,7 +109,7 @@ export default function () {
     /** Retrieve Products */
     group('Get Products', () => {
       //console.log('🛒 Fetching approved products...');
-      const res = getProductsApproved(baseUrl, tokenKeycloak);
+      const res = getProductsApproved(baseUrl, initiativeId, tokenKeycloak);
 
       check(res, { 'Products retrieved (200)': r => r?.status === 200 });
 
@@ -125,28 +126,29 @@ export default function () {
     /** Preview, Authorize and Delete Payment */
     group('Preview, Authorize And Delete Payment', () => {
       const previewPayload = {
-        productGtin: selectedProduct.gtinCode,
-        productName: selectedProduct.productName,
         amountCents: 1000,
-        discountCode: trxCode,
+        additionalProperties: {
+          productGtin: selectedProduct.gtinCode,
+          productName: selectedProduct.productName,
+        },
       };
       //console.log('💰 Previewing payment...');
-      const previewRes = previewPayment(baseUrl, tokenKeycloak, previewPayload);
+      const previewRes = previewPayment(baseUrl, initiativeId, trxCode, tokenKeycloak, previewPayload);
       check(previewRes, { 'Preview succeeded (200)': r => r?.status === 200 });
       const authPayload = {
-        additionalProperties: { productGtin: selectedProduct.gtinCode },
         amountCents: 1000,
-        discountCode: trxCode,
+        idTrxAcquirer: generateUuidV4(),
+        additionalProperties: { productGtin: selectedProduct.gtinCode },
       };
 
       //console.log('🔐 Authorizing payment...');
-      const authRes = authPayment(baseUrl, tokenKeycloak, authPayload);
+      const authRes = authPayment(baseUrl, initiativeId, trxCode, tokenKeycloak, authPayload);
       check(authRes, { 'Authorization succeeded (200)': r => r?.status === 200 });
 
       sleep(17);
 
       //console.log('🗑️ Deleting payment...');
-      const deleteRes = deletePayment(baseUrl, tokenKeycloak, authRes.json('id'));
+      const deleteRes = deletePayment(baseUrl, initiativeId, tokenKeycloak, authRes.json('id'));
       check(deleteRes, { 'Delete succeeded (200)': r => r?.status === 200 });
 
       //console.log('✅ Payment flow completed successfully.');

@@ -9,12 +9,14 @@ import { loadEnvConfig } from "../../common/loadEnv.js";
 import { prepareScenario } from "../../common/scenarioSetup.js";
 import { toTrimmedString } from "../../common/basicUtils.js";
 import { downloadPdf, getBarcode } from '../../common/api/payment.js';
+import { getIoRootUrl } from "../../common/envUrl.js";
 import { loadCsvArray } from "../../common/loadCsvArray.js";
 
 // --- CONFIGURAZIONE AMBIENTE ---
 const targetEnv = (__ENV.TARGET_ENV || "dev").trim().toLowerCase();
 const envConfig = loadEnvConfig(targetEnv);
 const baseUrl = toTrimmedString(__ENV.APIM_URL, envConfig.apimUrl || "");
+const ioBaseUrl = getIoRootUrl(baseUrl);
 const keycloakUserUrl = toTrimmedString(__ENV.KEYCLOAK_USER_URL, envConfig.keycloakUserUrl || '');
 if (!baseUrl) throw new Error(`Missing APIM_URL for environment: ${targetEnv}`);
 if (!keycloakUserUrl) throw new Error(`Missing KEYCLOAK_USER_URL for environment: ${targetEnv}`);
@@ -117,7 +119,7 @@ export default function flowPaymentBarcodeAndPdfIo () {
   }
 
   const fiscalCode = fiscalCodes[Math.floor(Math.random() * fiscalCodes.length)];
-  const { token, ok: loginOk } = getMockLogin(fiscalCode);
+  const { token, ok: loginOk } = getMockLogin(ioBaseUrl, fiscalCode);
   const tokenKeycloak = getTokenKeycloakClientCredentials(keycloakUserUrl,
     {
       clientId: 'performance-test-client',
